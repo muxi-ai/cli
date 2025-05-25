@@ -64,7 +64,7 @@ var pushCmd = &cobra.Command{
 func init() {
     cobra.OnInitialize(initConfig)
 
-    rootCmd.PersistentFlags().String("registry", "muxihub.com", "Muxi registry to use")
+    rootCmd.PersistentFlags().String("registry", "registry.muxihub.com", "Muxi registry to use")
     viper.BindPFlag("registry", rootCmd.PersistentFlags().Lookup("registry"))
 
     rootCmd.AddCommand(loginCmd)
