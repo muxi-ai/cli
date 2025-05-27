@@ -98,7 +98,7 @@ Upload all resulting binaries to a GitHub release.
 class Muxi < Formula
   desc "MUXI CLI - AI agent registry and server interface"
   homepage "https://muxi.dev"
-  url "https://github.com/yourname/muxi/releases/download/v1.0.0/muxi-darwin-amd64.tar.gz"
+  url "https://github.com/muxi-ai/clireleases/download/v1.0.0/muxi-darwin-amd64.tar.gz"
   sha256 "<computed-sha256>"
   version "1.0.0"
 
@@ -129,7 +129,7 @@ fpm -s dir -t deb -n muxi -v 1.0.0 muxi=/usr/local/bin/muxi
 3. Users install with:
 
 ```bash
-wget https://github.com/yourname/muxi/releases/download/v1.0.0/muxi_1.0.0_amd64.deb
+wget https://github.com/muxi-ai/clireleases/download/v1.0.0/muxi_1.0.0_amd64.deb
 sudo dpkg -i muxi_1.0.0_amd64.deb
 ```
 
@@ -147,7 +147,7 @@ fpm -s dir -t rpm -n muxi -v 1.0.0 muxi=/usr/local/bin/muxi
 3. Users install with:
 
 ```bash
-wget https://github.com/yourname/muxi/releases/download/v1.0.0/muxi-1.0.0.x86_64.rpm
+wget https://github.com/muxi-ai/clireleases/download/v1.0.0/muxi-1.0.0.x86_64.rpm
 sudo rpm -i muxi-1.0.0.x86_64.rpm
 ```
 
@@ -162,7 +162,7 @@ pkgname=muxi
 pkgver=1.0.0
 pkgrel=1
 arch=('x86_64')
-source=("https://github.com/yourname/muxi/releases/download/v1.0.0/muxi-linux")
+source=("https://github.com/muxi-ai/clireleases/download/v1.0.0/muxi-linux")
 sha256sums=("<sha256>")
 
 package() {
@@ -186,7 +186,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o muxi-alpine
 3. Users install:
 
 ```bash
-wget https://github.com/yourname/muxi/releases/download/v1.0.0/muxi-alpine
+wget https://github.com/muxi-ai/clireleases/download/v1.0.0/muxi-alpine
 chmod +x muxi-alpine
 sudo mv muxi-alpine /usr/local/bin/muxi
 ```
@@ -202,7 +202,7 @@ sudo mv muxi-alpine /usr/local/bin/muxi
 stdenv.mkDerivation {
   name = "muxi-1.0.0";
   src = fetchurl {
-    url = "https://github.com/yourname/muxi/releases/download/v1.0.0/muxi-linux";
+    url = "https://github.com/muxi-ai/clireleases/download/v1.0.0/muxi-linux";
     sha256 = "<sha256>";
   };
   installPhase = ''
