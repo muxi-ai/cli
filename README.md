@@ -4,6 +4,16 @@ This guide explains how to compile the MUXI CLI for multiple platforms and how t
 
 ---
 
+## MUXI Ecosystem
+
+This repository is part of the larger MUXI ecosystem.
+
+**📋 Complete architectural overview:** See [MUXI-ARCHITECTURE.md](../MUXI-ARCHITECTURE.md) - explains how all 9 repositories fit together, dependencies, status, and roadmap.
+
+**🎯 This repo (cli):** Command-line tool for formation management - currently early WIP, blocked on runtime API finalization.
+
+---
+
 ## 🛠 Building MUXI for Different Platforms
 
 ### 🔧 Standard Build (Local)
