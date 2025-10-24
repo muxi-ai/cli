@@ -1,7 +1,7 @@
 # MUXI CLI Command Design Specification
 
-**Version:** 1.0  
-**Status:** Draft for Review  
+**Version:** 2.0  
+**Status:** Final Design  
 **Last Updated:** 2025-10-24
 
 ---
@@ -9,7 +9,8 @@
 ## Table of Contents
 
 - [Design Philosophy](#design-philosophy)
-- [Profile Architecture](#profile-architecture)
+- [Architecture Overview](#architecture-overview)
+- [Configuration Files](#configuration-files)
 - [Command Structure](#command-structure)
 - [Complete Command Tree](#complete-command-tree)
 - [Detailed Command Specifications](#detailed-command-specifications)
@@ -20,6 +21,27 @@
 
 ## Design Philosophy
 
+### Core Paradigm: Formation-as-Directory
+
+The CLI follows a **git-like** paradigm where formations are local directories:
+
+```bash
+# Create formation
+muxi init my-bot
+cd my-bot/
+
+# Work with formation (context-aware)
+muxi validate
+muxi deploy --profile production
+muxi agent add weather
+muxi status
+```
+
+**Two primary personas:**
+
+1. **👨‍💻 Developer** - Has formation source, works in formation directory
+2. **🔧 Operator** - Manages remote formations without source
+
 ### Command Structure Pattern
 
 ```
@@ -28,114 +50,232 @@ muxi [global-flags] <command> <subcommand> [args] [flags]
 
 ### Global Flags (available on all commands)
 
-- `--profile <name>` - Profile to use (overrides default)
-- `--output <format>` - Output format: `text` (default), `json`, `yaml`
-- `--no-color` - Disable colored output
-- `--debug` - Enable debug logging
-- `--help` - Show help for any command
+- `-p, --profile <name>` - Server profile to use
+- `-o, --output <format>` - Output format: `text`, `json`, `yaml`
+- `-c, --no-color` - Disable colored output
+- `-d, --debug` - Enable debug logging
+- `-h, --help` - Show help
+
+**Flag placement:** Flexible (before, after, or between commands)
+```bash
+muxi -p production formation list
+muxi formation list -p production
+muxi formation -p production list  # All work!
+```
 
 ### Key Design Decisions
 
-1. **Flat structure with flags** - `muxi agent list --profile my-bot` (not nested)
-   - Shorter commands, easier to type
-   - Standard CLI pattern (kubectl, docker, gh, etc.)
-   - Better tab completion
+1. **Formation-context aware** - Like Docker (Dockerfile), Terraform (.tf files)
+   - Commands detect formation directory automatically
+   - Credentials live IN the formation (secrets.enc)
+   - No need to constantly specify formation ID
 
-2. **Resource-oriented** - Commands map to resources: `agent`, `secret`, `mcp`, `formation`
-   - Intuitive CRUD operations
-   - Maps cleanly to REST APIs
+2. **Separation of concerns**
+   - **Profiles** (`~/.muxi/cli/profiles.yaml`) = Server connections
+   - **Formations** (`~/.muxi/cli/formations.yaml`) = Formation credentials + URLs
+   - **Local source** (`secrets.enc`) = Developer's formation source
 
-3. **Profile-aware routing** - Profiles know whether they connect to Server or Formation
-   - Server profiles: Use HMAC auth, access formations via `/api/{formation_id}/*`
-   - Formation profiles: Use formation auth (API keys), direct access
-   - CLI automatically routes commands based on profile type
+3. **Flexible deployment models**
+   - Standalone formations (direct connection)
+   - Server-managed formations (proxied)
+   - Hybrid (both)
+   - Local development (localhost)
 
 ---
 
-## Profile Architecture
+## Architecture Overview
 
-### Two Profile Types
+### Two Personas, Three Configuration Sources
 
-#### 1. Server Profile (connects to MUXI Server)
-
-**Purpose:** Manage multiple formations on a server
-
-**Connection:**
-```
-CLI → MUXI Server (port 7890)
-      ↓
-      Server API (/rpc/*)         [Formation lifecycle]
-      ↓
-      Formation Proxy (/api/*)     [Formation API access]
+#### Persona 1: Developer (has formation source)
+```bash
+cd ~/projects/my-formation/
+muxi validate        # Uses local formation.yaml + secrets.enc
+muxi deploy          # Uses local source + server profile
+muxi agent add       # Modifies local agents/ directory
+muxi status          # Connects to deployed instance
 ```
 
-**Authentication:** HMAC-SHA256 (server-level credentials)
+**Credentials:** From local `secrets.enc` file (encrypted)
 
-**Example profile:**
+#### Persona 2: Operator (no source, manages remote)
+```bash
+# Anywhere
+muxi formation list --profile production
+muxi formation restart my-bot --profile production
+muxi agent list --formation my-bot --profile production
+```
+
+**Credentials:** From `~/.muxi/cli/formations.yaml` (keychain-backed)
+
+---
+
+## Configuration Files
+
+### 1. `~/.muxi/cli/config.yaml` - Global CLI settings
+
 ```yaml
-# ~/.muxi/profiles.yaml
+default_profile: localhost
+default_registry: registry.muxihub.com
+output_format: text
+no_color: false
+debug: false
+```
+
+### 2. `~/.muxi/cli/profiles.yaml` - Server connections (WHERE)
+
+```yaml
+version: "1.0"
+default_profile: localhost
+
 profiles:
+  localhost:
+    servers:
+      - id: default
+        url: http://localhost:7890
+        auth:
+          key_id: MUXI_LOCAL_abc123
+          secret_key: sk_...
+  
   production:
-    type: server                    # Profile type
-    url: https://muxi.company.com:7890
-    auth:
-      type: hmac
-      key_id: MUXI_PROD_KEY
-      secret_key: sk_...
-    default_formation: my-bot       # Optional: default formation for commands
+    servers:
+      - id: default
+        url: https://muxi.company.com:7890
+        auth:
+          key_id: MUXI_PROD_KEY
+          secret_key: sk_...
 ```
 
-**Supported Operations:**
-- Formation lifecycle (deploy, list, stop, restart, delete, etc.)
-- Server management (status, logs)
-- Formation API access (via proxy) for all formations on the server
+**Purpose:** Server connections for deployment and management (HMAC auth)
 
-#### 2. Formation Profile (connects directly to Formation)
+**Note:** Profiles use multi-server array format for future extensibility. For now, CLI uses only the first/default server. Users can manually edit to add more servers with custom IDs (e.g., `us-east-1`, `eu-west-1`) for future multi-server support.
 
-**Purpose:** Interact with a single formation (standalone or remote)
+### 3. `~/.muxi/cli/formations.yaml` - Formation credentials (WHAT)
 
-**Connection:**
-```
-CLI → Formation API (direct)
-```
-
-**Authentication:** Formation-specific (admin or client API keys)
-
-**Example profile:**
 ```yaml
-# ~/.muxi/profiles.yaml
-profiles:
+version: "1.0"
+
+formations:
+  # Standalone formation (direct connection)
   my-bot:
-    type: formation                 # Profile type
-    url: http://localhost:8271      # Direct to formation
-    auth:
-      type: api_key
-      admin_key: fma_...            # For admin operations
-      client_key: fmc_...           # For user operations
+    url: https://my-bot.company.com
+    admin_key: "keychain:my-bot-admin"
+    client_key: "keychain:my-bot-client"
+    added_at: "2025-10-24T12:00:00Z"
+  
+  # Server-managed formation (requires --profile)
+  support-bot:
+    # No URL - must use --profile to access via server
+    admin_key: "keychain:support-bot-admin"
+    client_key: "keychain:support-bot-client"
+    added_at: "2025-10-24T13:00:00Z"
+  
+  # Hybrid (can use both direct and via server)
+  chat-bot:
+    url: https://chat-bot.company.com
+    admin_key: "keychain:chat-bot-admin"
+    client_key: "keychain:chat-bot-client"
+    added_at: "2025-10-24T14:00:00Z"
 ```
 
-**Supported Operations:**
-- Formation API commands only (agent, secret, mcp, chat, etc.)
-- No formation lifecycle commands (deploy, stop, etc.)
+**Purpose:** Formation credentials for operator access (without source)
 
-### Profile Commands Map to Profile Type
+**Security:** Keys stored in OS keychain, referenced by `keychain:` prefix
 
-| Command | Server Profile | Formation Profile |
-|---------|----------------|-------------------|
-| `muxi formation deploy` | ✅ Yes | ❌ No |
-| `muxi formation list` | ✅ Yes | ❌ No |
-| `muxi formation stop` | ✅ Yes | ❌ No |
-| `muxi server status` | ✅ Yes | ❌ No |
-| `muxi agent list` | ✅ Yes (via proxy) | ✅ Yes (direct) |
-| `muxi secret create` | ✅ Yes (via proxy) | ✅ Yes (direct) |
-| `muxi chat` | ✅ Yes (via proxy) | ✅ Yes (direct) |
+### 4. Formation directory structure (Developer source)
+
+```
+my-formation/
+├── formation.yaml       # Formation config (ID, port, agents, etc.)
+├── agents/
+│   ├── main.yaml
+│   └── weather.yaml
+├── mcp/
+│   └── postgres.yaml
+├── sops/
+│   └── customer-onboarding.yaml
+├── secrets.enc          # Encrypted secrets (ADMIN_KEY, CLIENT_KEY, etc.)
+├── .key                 # Encryption key (gitignored)
+├── .muxi                # Optional: profile/registry overrides
+├── .gitignore           # Auto-generated (excludes .key, secrets.enc)
+└── README.md
+```
+
+**Purpose:** Source of truth for formation development
+
+**Security:** 
+- `.key` - NEVER commit (auto-added to .gitignore)
+- `secrets.enc` - Safe to commit (encrypted, team decides)
+
+### 5. `.muxi` - Per-formation config (optional)
+
+```yaml
+# Optional overrides for this formation
+profile: production
+registry: private.company.com
+
+# Local development overrides
+env:
+  MODEL: gpt-4o-mini
+```
+
+**Purpose:** Project-specific defaults (like `.env` files)
+
+---
+
+## Connection Resolution
+
+### URL Resolution Logic
+
+| Context | Command | URL | Auth |
+|---------|---------|-----|------|
+| **In formation dir** | `muxi status` | `http://localhost:{port}` | secrets.enc |
+| **In formation dir** | `muxi status -p prod` | `{server}/api/{id}` | secrets.enc + HMAC |
+| **Outside** | `muxi status --formation my-bot` | formations.yaml URL | formations.yaml keys |
+| **Outside** | `muxi status --formation my-bot -p prod` | `{server}/api/my-bot` | formations.yaml keys + HMAC |
+
+### Deployment Models Supported
+
+**1. Standalone Formation (direct connection)**
+```bash
+muxi formation add my-bot --url https://my-bot.company.com
+muxi agent list --formation my-bot
+# → Direct to: https://my-bot.company.com/v1/agents
+```
+
+**2. Server-Managed Formation (proxied)**
+```bash
+muxi formation add support-bot  # No URL
+muxi agent list --formation support-bot --profile production
+# → Via server: https://server:7890/api/support-bot/v1/agents
+```
+
+**3. Local Development**
+```bash
+cd my-formation/
+muxi agent list
+# → Auto: http://localhost:8271/v1/agents (from formation.yaml port)
+```
+
+**4. Hybrid (both direct and via server)**
+```bash
+muxi formation add chat-bot --url https://chat-bot.company.com
+
+# Direct
+muxi agent list --formation chat-bot
+# → https://chat-bot.company.com/v1/agents
+
+# Via server (--profile overrides URL)
+muxi agent list --formation chat-bot --profile production
+# → https://server:7890/api/chat-bot/v1/agents
+```
 
 ### Auto-Detection on First Run
 
 **Scenario 1: Local MUXI Server detected**
 ```bash
 # CLI detects ~/.muxi/server/credentials.json
-→ Auto-creates "localhost" server profile
+→ Auto-creates "localhost" profile in profiles.yaml
 → Sets as default
 ```
 
@@ -145,78 +285,69 @@ profiles:
 → Offers to:
    1. Install MUXI Server locally
    2. Add remote server profile
-   3. Add formation profile (direct connection)
+   3. Create new formation (muxi init)
 ```
 
 ---
 
 ## Command Structure
 
-### Formation API Commands (work with both profile types)
+### Context-Aware Commands
 
-These commands work with **both** server and formation profiles:
+Commands behave differently based on context:
 
+#### In Formation Directory (Developer mode)
 ```bash
-# With server profile (proxied)
-muxi agent list --profile production
-→ Connects to: https://server:7890/api/my-bot/v1/agents
-→ Auth: HMAC (server credentials)
+cd my-formation/
 
-# With formation profile (direct)
-muxi agent list --profile my-bot
-→ Connects to: http://localhost:8271/v1/agents
-→ Auth: API key (formation admin key)
+# Auto-detects formation from formation.yaml
+muxi validate           # Validates local files
+muxi deploy             # Deploys THIS formation
+muxi agent add          # Creates agents/new-agent.yaml
+muxi status             # Status of THIS formation (local or deployed)
+
+# Can override with --profile
+muxi status --profile production  # Check production deployment
 ```
 
-### Server-Only Commands
-
-These commands **only** work with server profiles:
-
+#### Outside Formation Directory (Operator mode)
 ```bash
-muxi formation deploy bundle.tar.gz
-muxi formation list
-muxi server status
+# Requires explicit --formation flag
+muxi agent list --formation my-bot --profile production
+muxi status --formation my-bot
+muxi chat --formation my-bot
+
+# Server management (no formation needed)
+muxi formation list --profile production
+muxi server status --profile production
 ```
 
-**Error with formation profile:**
-```bash
-$ muxi formation list --profile my-bot
-Error: Command 'formation list' requires a server profile.
-  Profile 'my-bot' is a formation profile (type: formation).
-  
-Hint: Use a server profile instead:
-  muxi formation list --profile production
-```
+### Command Categories
 
-### Context and Defaults
+**1. Formation Development (requires formation directory)**
+- `muxi init` - Create new formation
+- `muxi validate` - Validate local files
+- `muxi deploy` - Deploy formation to server
+- `muxi agent add` - Add agent to local formation
+- `muxi secret add` - Add secret to local formation
+- `muxi mcp add` - Add MCP server to local formation
 
-**Server profile with default formation:**
-```yaml
-profiles:
-  production:
-    type: server
-    url: https://server:7890
-    default_formation: my-bot    # Commands default to this formation
-```
+**2. Formation Management (Server API, works anywhere)**
+- `muxi formation list` - List formations on server
+- `muxi formation stop/restart/delete` - Lifecycle management
+- `muxi formation logs` - Server-side logs
+- `muxi server status` - Server health
 
-```bash
-# These are equivalent:
-muxi agent list --profile production
-muxi agent list --profile production --formation my-bot
-```
+**3. Formation Runtime (Formation API, hybrid)**
+- `muxi status` - Formation runtime status
+- `muxi agent list/get/update` - Agent management
+- `muxi secret list/update` - Secret management
+- `muxi chat` - Interactive chat
+- `muxi session list/get` - Session management
 
-**Formation profile (no formation flag needed):**
-```yaml
-profiles:
-  my-bot:
-    type: formation
-    url: http://localhost:8271
-```
-
-```bash
-# Formation is implicit (from profile)
-muxi agent list --profile my-bot
-```
+**Hybrid commands** work both ways:
+- In formation dir: Auto-detect formation, use local secrets
+- Outside: Use `--formation` flag, use formations.yaml credentials
 
 ---
 
@@ -226,98 +357,343 @@ muxi agent list --profile my-bot
 muxi
 ├── version                    # Show CLI version
 ├── help                       # Show help
-├── whoami                     # Show current profile & registry auth status
+├── whoami                     # Show current profile, formation, & registry auth
 │
-├── profile                    # Profile management (local config)
-│   ├── add <name>            # Add new profile (server or formation)
-│   ├── use <name>            # Set default profile
-│   ├── list                  # List all profiles
+├── init [id]                  # Create new formation (alias: formation init)
+├── validate                   # Validate formation (requires formation context)
+├── deploy                     # Deploy formation (requires formation context)
+├── status                     # Formation status (hybrid: context-aware)
+├── logs                       # Formation logs (hybrid: context-aware)
+├── chat                       # Interactive chat (hybrid: context-aware)
+│
+├── profile                    # Server profile management
+│   ├── add <name>            # Add server profile (wizard)
+│   ├── list                  # List profiles
+│   ├── use <name>            # Set default profile (prompt for permanent)
 │   ├── remove <name>         # Remove profile
 │   └── current               # Show current default profile
 │
-├── registry                   # Registry operations (push/pull schemas)
-│   ├── login <registry>      # Authenticate to registry
+├── formation                  # Formation management
+│   ├── init [id]             # Create new formation (same as muxi init)
+│   ├── add <id>              # Add formation credentials (operator, wizard)
+│   ├── list-creds            # List configured formation credentials
+│   ├── remove-creds <id>     # Remove formation credentials
+│   │
+│   ├── list                  # List formations on server (Server API)
+│   ├── get <id>              # Get formation info (Server API)
+│   ├── stop <id>             # Stop formation (Server API)
+│   ├── restart <id>          # Restart formation (Server API)
+│   ├── delete <id>           # Delete formation (Server API)
+│   └── logs <id>             # Server-side logs (Server API)
+│
+├── agent                      # Agent management (Formation API, hybrid)
+│   ├── add                   # Add agent (wizard or file, context-aware)
+│   ├── list                  # List agents (hybrid)
+│   ├── get <id>              # Get agent (hybrid)
+│   ├── update <id>           # Update agent (hybrid)
+│   └── delete <id>           # Delete agent (hybrid)
+│
+├── secret                     # Secret management (Formation API, hybrid)
+│   ├── add <key>             # Add secret (hybrid)
+│   ├── list                  # List secrets (hybrid)
+│   ├── update <key>          # Update secret (hybrid)
+│   └── delete <key>          # Delete secret (hybrid)
+│
+├── mcp                        # MCP server management (Formation API, hybrid)
+│   ├── add                   # Add MCP server (wizard or file, context-aware)
+│   ├── list                  # List MCP servers (hybrid)
+│   ├── get <id>              # Get MCP server (hybrid)
+│   ├── update <id>           # Update MCP server (hybrid)
+│   └── delete <id>           # Delete MCP server (hybrid)
+│
+├── session                    # Session management (Formation API, hybrid)
+│   ├── list                  # List user sessions (hybrid)
+│   ├── get <session_id>      # Get session details (hybrid)
+│   └── delete <session_id>   # Delete session (hybrid)
+│
+├── sop                        # Standard Operating Procedures (Formation API, hybrid)
+│   ├── list                  # List available SOPs (hybrid)
+│   └── get <sop_name>        # Get SOP details (hybrid)
+│
+├── audit                      # Audit logs (Formation API, hybrid)
+│   ├── list                  # Get audit log entries (hybrid)
+│   └── clear                 # Clear audit log (hybrid)
+│
+├── server                     # Server management (Server API)
+│   ├── status                # Server status
+│   └── logs                  # Server audit logs
+│
+├── registry                   # Registry operations
+│   ├── login <registry>      # Authenticate to registry (wizard)
 │   ├── logout <registry>     # Remove registry credentials
-│   ├── push <type> <file>    # Push formation/agent/mcp schema
+│   ├── push                  # Push formation/agent/mcp (context-aware)
 │   ├── pull <ref>            # Pull schema by reference
 │   ├── search <term>         # Search registry
-│   ├── list                  # List user's schemas
-│   └── delete <ref>          # Delete schema version
+│   └── list                  # List user's schemas
 │
-├── formation                  # Formation lifecycle (Server API only)
-│   ├── deploy <bundle>       # Deploy new formation
-│   ├── list                  # List formations
-│   ├── get <id>              # Get formation details
-│   ├── update <id> <bundle>  # Update formation (new version)
-│   ├── delete <id>           # Delete formation
-│   ├── start <id>            # Start stopped formation
-│   ├── stop <id>             # Stop running formation
-│   ├── restart <id>          # Restart formation
-│   ├── rollback <id>         # Rollback to previous version
-│   └── logs <id>             # Stream formation logs
-│
-├── status                     # Get formation status (Formation API)
-│   └── [--profile <name>]    # Server profile requires --formation flag
-│
-├── config                     # Get formation config (Formation API)
-│   └── [--profile <name>]    # Server profile requires --formation flag
-│
-├── agent                      # Agent management (Formation API)
-│   ├── list                  # List agents in formation
-│   ├── add                   # Add new agent (API-defined)
-│   ├── get <agent_id>        # Get agent details
-│   ├── update <agent_id>     # Update agent config
-│   └── delete <agent_id>     # Delete agent (API-defined only)
-│
-├── secret                     # Secret management (Formation API)
-│   ├── list                  # List secrets (masked values)
-│   ├── create <key>          # Create new secret
-│   ├── update <key>          # Update secret value
-│   └── delete <key>          # Delete secret
-│
-├── mcp                        # MCP server management (Formation API)
-│   ├── list                  # List MCP servers
-│   ├── add                   # Add new MCP server
-│   ├── get <server_id>       # Get MCP server details
-│   ├── update <server_id>    # Update MCP server config
-│   └── delete <server_id>    # Delete MCP server
-│
-├── chat                       # Interactive chat (Formation API)
-│   └── [<formation_id>]      # Formation ID required for server profiles
-│
-├── session                    # Session management (Formation API)
-│   ├── list                  # List user sessions
-│   ├── get <session_id>      # Get session details/history
-│   └── delete <session_id>   # Delete session
-│
-├── sop                        # Standard Operating Procedures (Formation API)
-│   ├── list                  # List available SOPs
-│   └── get <sop_name>        # Get SOP details
-│
-├── audit                      # Audit logs (Formation API)
-│   ├── list                  # Get audit log entries
-│   └── clear                 # Clear audit log (requires confirmation)
-│
-├── server                     # Server management (Server API only)
-│   ├── status                # Get server status & statistics
-│   └── logs                  # Get server audit logs
-│
-└── local                      # Local utilities (no API)
-    ├── validate <file>       # Validate schema file
-    ├── pack <file>           # Pack formation with resolved refs
-    ├── list                  # List local cache
+└── cache                      # Local cache utilities
+    ├── list                  # List cached schemas
     └── prune                 # Prune local cache
+
+# Notes:
+# - "hybrid" = works in formation dir (auto-detect) OR with --formation flag
+# - "context-aware" = requires formation directory OR --formation flag
+# - "wizard" = interactive prompts with helpful defaults
 ```
 
 ---
 
 ## Detailed Command Specifications
 
+### Formation Development (Context-Aware Commands)
+
+#### `muxi init [formation-id]` or `muxi formation init [formation-id]`
+
+Create new formation from boilerplate.
+
+**Context:** Works anywhere (creates new directory)
+
+**Interactive wizard:**
+```bash
+muxi init
+
+Formation ID: my-bot
+Formation name: My Bot
+Description: A helpful assistant bot
+
+Select template:
+  1. Basic (single agent)
+  2. Multi-agent (orchestrator + specialists)
+  3. Workflow (SOP-driven)
+> 1
+
+Creating formation 'my-bot'...
+  ✓ Created my-bot/
+  ✓ Created formation.yaml
+  ✓ Created agents/main.yaml
+  ✓ Generated encryption key (.key)
+  ✓ Generated secrets (secrets.enc with ADMIN_KEY, CLIENT_KEY)
+  ✓ Updated .gitignore (excluded .key, secrets.enc)
+  ✓ Created README.md
+
+⚠️  IMPORTANT: Never commit .key to version control!
+   Share .key securely with your team via password manager.
+   secrets.enc is safe to commit (encrypted).
+
+Next steps:
+  cd my-bot
+  muxi validate
+  muxi deploy --profile <server-profile>
+```
+
+**Non-interactive:**
+```bash
+muxi init my-bot --template basic
+muxi formation init support-bot --template multi-agent
+```
+
+**Generated structure:**
+```
+my-bot/
+├── formation.yaml       # ID: my-bot, port: 8271, agents, etc.
+├── agents/
+│   └── main.yaml
+├── mcp/
+│   └── .gitkeep
+├── sops/
+│   └── .gitkeep
+├── secrets.enc          # Contains ADMIN_KEY, CLIENT_KEY, etc.
+├── .key                 # Encryption key (GITIGNORED)
+├── .gitignore           # Auto-configured
+├── .muxi                # Optional profile/registry config
+└── README.md
+```
+
+---
+
+#### `muxi validate`
+
+Validate local formation files.
+
+**Context:** MUST be in formation directory
+
+**Examples:**
+```bash
+cd my-formation/
+muxi validate
+
+✓ Formation valid
+  ID: my-bot
+  Schema version: 1.0
+  Agents: 3
+  MCP Servers: 2
+  Secrets: 5 encrypted
+```
+
+**Error when not in formation directory:**
+```bash
+muxi validate
+
+Error: Not in a formation directory.
+  formation.yaml not found.
+  
+  To validate a formation:
+    cd <formation-directory>
+    muxi validate
+  
+  Or create a new formation:
+    muxi init <formation-id>
+```
+
+---
+
+#### `muxi deploy [--profile <name>]`
+
+Deploy formation to server.
+
+**Context:** MUST be in formation directory
+
+**API Mapping:** `POST /rpc/formations` (Server API)
+
+**Examples:**
+```bash
+cd my-formation/
+muxi deploy --profile production
+
+Validating formation...
+  ✓ Formation valid
+Encrypting secrets...
+  ✓ Secrets encrypted
+Packaging formation...
+  ✓ Bundle created (2.3 MB)
+Deploying to production (https://api.company.com:7890)...
+  ✓ Uploaded
+  ✓ Formation 'my-bot' deployed
+  
+  URL: https://api.company.com:7890/api/my-bot
+  Status: running
+  Port: 8001
+```
+
+**Uses:**
+- Formation ID: from `formation.yaml`
+- Formation keys: from `secrets.enc` (decrypted)
+- Server credentials: from profile (HMAC)
+- Profile default: from `.muxi` file or global config
+
+**Error when not in formation directory:**
+```bash
+muxi deploy
+
+Error: Not in a formation directory.
+  This command requires a formation.yaml file.
+  
+  To deploy a formation:
+    cd <formation-directory>
+    muxi deploy --profile <server-profile>
+```
+
+---
+
+### Formation Credential Management (Operator Commands)
+
+#### `muxi formation add [formation-id]`
+
+Add formation credentials for operator access (no source needed).
+
+**Context:** Should NOT be in formation directory (error if inside)
+
+**Interactive wizard:**
+```bash
+muxi formation add my-bot
+
+Formation ID: my-bot
+
+Connection type:
+  1. Direct connection (standalone formation)
+  2. Via server (server-managed formation)
+  3. Both (hybrid - can use either)
+> 1
+
+Formation URL: https://my-bot.company.com
+
+Admin key: fma_...
+Client key: fmc_...
+
+Where should credentials be stored?
+  1. OS Keychain (secure, recommended)
+  2. Encrypted file (portable)
+> 1
+
+✓ Formation 'my-bot' added
+  URL: https://my-bot.company.com
+  Storage: macOS Keychain
+  
+  Access:
+    muxi agent list --formation my-bot
+    muxi status --formation my-bot
+    muxi chat --formation my-bot
+```
+
+**Non-interactive:**
+```bash
+muxi formation add my-bot \
+  --url https://my-bot.company.com \
+  --admin-key fma_... \
+  --client-key fmc_...
+
+# Server-managed (no URL)
+muxi formation add support-bot \
+  --admin-key fma_... \
+  --client-key fmc_...
+```
+
+**Error when in formation directory:**
+```bash
+cd my-formation/
+muxi formation add my-bot
+
+Error: Cannot add formation credentials from within formation directory.
+  You are currently in a formation directory (formation.yaml detected).
+  Credentials for local development are in secrets.enc.
+  
+  This command is for adding credentials for remote formation access.
+  Run this command from outside the formation directory.
+```
+
+---
+
+#### `muxi formation list-creds`
+
+List configured formation credentials.
+
+```bash
+muxi formation list-creds
+
+FORMATION     URL                          ADMIN KEY  CLIENT KEY  STORAGE
+my-bot        https://my-bot.company.com   ✓          ✓           keychain
+support-bot   (server-managed)             ✓          ✓           keychain
+chat-bot      https://chat-bot.company.com ✓          ✓           keychain
+```
+
+---
+
+#### `muxi formation remove-creds <formation-id>`
+
+Remove formation credentials.
+
+```bash
+muxi formation remove-creds old-bot --confirm
+✓ Formation 'old-bot' credentials removed from keychain
+```
+
+---
+
 ### Profile Management
 
 #### `muxi profile add <name>`
 
-Add a new profile (server or formation type).
+Add a server profile (interactive wizard).
 
 **Flags:**
 - `--type <type>` - Profile type: `server` or `formation` (auto-detected if not specified)
