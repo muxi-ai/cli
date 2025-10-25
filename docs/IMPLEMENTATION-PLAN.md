@@ -83,11 +83,12 @@ type FormationsFile struct {
 }
 
 type FormationCreds struct {
-    URL       string `yaml:"url,omitempty"`
-    AdminKey  string `yaml:"admin_key"`
-    ClientKey string `yaml:"client_key"`
-    AddedAt   string `yaml:"added_at"`
-    Notes     string `yaml:"notes,omitempty"`
+    URL            string `yaml:"url,omitempty"`
+    AdminKey       string `yaml:"admin_key"`
+    ClientKey      string `yaml:"client_key"`
+    DefaultProfile string `yaml:"default_profile,omitempty"`  // Per-formation default profile
+    AddedAt        string `yaml:"added_at"`
+    Notes          string `yaml:"notes,omitempty"`
 }
 
 // .muxi (per-formation)
@@ -443,33 +444,30 @@ Formation URL: https://my-bot.company.com
 Admin key: fma_...
 Client key: fmc_...
 
-Where should credentials be stored?
-  1. OS Keychain (secure, recommended)
-  2. Encrypted file (portable)
-> 1
+Default profile for this formation (optional): production
 
 ✓ Formation 'my-bot' added
   URL: https://my-bot.company.com
-  Storage: macOS Keychain
+  Default profile: production
+  Credentials: ~/.muxi/cli/formations.yaml
 ```
 
 **Tasks:**
 - [ ] Create `cmd/formation_add.go` wizard
-- [ ] Implement keychain storage (OS-specific)
-  - macOS: Use `security` command
-  - Windows: Use Windows Credential Manager API
-  - Linux: Use Secret Service API
+- [ ] Store credentials in plaintext in `~/.muxi/cli/formations.yaml` (like AWS credentials)
+- [ ] Set file permissions to 600 (owner read/write only)
 - [ ] Error if inside formation directory
-- [ ] Save reference to `~/.muxi/cli/formations.yaml`
+- [ ] Save formation with admin_key, client_key, default_profile
 - [ ] Implement `formation list-creds` table view
-- [ ] Implement `formation remove-creds` with keychain cleanup
+- [ ] Implement `formation remove-creds` (removes from YAML)
 
 **Acceptance criteria:**
 - Wizard guides through all options
-- Stores keys in OS keychain
+- Stores keys in plaintext YAML file
+- File has secure permissions (chmod 600)
 - Errors if in formation directory
-- `list-creds` shows all configured formations
-- `remove-creds` cleans up keychain entries
+- `list-creds` shows all configured formations with default_profile
+- `remove-creds` removes entry from YAML file
 
 ---
 
@@ -497,8 +495,8 @@ func ResolveConnection(cmd *cobra.Command) (*Connection, error) {
         formationID = formationCtx.FormationID
     }
     
-    // 3. Get profile (if specified)
-    profileName := cmd.Flag("profile").Value.String()
+    // 3. Get profile using resolution hierarchy
+    profileName := resolveProfile(cmd, formationCtx, formationID)
     
     // 4. Resolve connection
     if profileName != "" {
@@ -538,8 +536,42 @@ func ResolveConnection(cmd *cobra.Command) (*Connection, error) {
 }
 ```
 
+**Profile Resolution Function:**
+```go
+func resolveProfile(cmd *cobra.Command, formationCtx *FormationContext, formationID string) string {
+    // Priority 1: --profile flag (explicit)
+    if profileFlag := cmd.Flag("profile").Value.String(); profileFlag != "" {
+        return profileFlag
+    }
+    
+    // Priority 2: .muxi file (when in formation dir)
+    if formationCtx != nil && formationCtx.LocalConfig != nil {
+        if profile := formationCtx.LocalConfig.Profile; profile != "" {
+            return profile
+        }
+    }
+    
+    // Priority 3: Formation-specific default_profile (from formations.yaml)
+    if formationID != "" {
+        if formationCreds := LoadFormationCreds(formationID); formationCreds != nil {
+            if profile := formationCreds.DefaultProfile; profile != "" {
+                return profile
+            }
+        }
+    }
+    
+    // Priority 4: Global default_profile (from profiles.yaml)
+    if globalDefault := LoadGlobalDefaultProfile(); globalDefault != "" {
+        return globalDefault
+    }
+    
+    return "" // No profile found
+}
+```
+
 **Tasks:**
 - [ ] Implement `ResolveConnection()` logic
+- [ ] Implement `resolveProfile()` with 4-tier hierarchy
 - [ ] Implement HMAC authentication for Server API
 - [ ] Implement Formation API key authentication
 - [ ] Add connection caching
@@ -547,6 +579,7 @@ func ResolveConnection(cmd *cobra.Command) (*Connection, error) {
 
 **Acceptance criteria:**
 - Correctly resolves all 4 connection scenarios
+- Profile resolution follows correct priority order
 - Uses correct auth for each scenario
 - Clear error messages when missing info
 

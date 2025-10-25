@@ -106,7 +106,7 @@ muxi formation restart my-bot --profile production
 muxi agent list --formation my-bot --profile production
 ```
 
-**Credentials:** From `~/.muxi/cli/formations.yaml` (keychain-backed)
+**Credentials:** From `~/.muxi/cli/formations.yaml` (plaintext, like AWS credentials)
 
 ---
 
@@ -159,28 +159,42 @@ formations:
   # Standalone formation (direct connection)
   my-bot:
     url: https://my-bot.company.com
-    admin_key: "keychain:my-bot-admin"
-    client_key: "keychain:my-bot-client"
+    admin_key: "fma_abc123..."
+    client_key: "fmc_xyz789..."
+    default_profile: "production"  # Default profile for this formation
     added_at: "2025-10-24T12:00:00Z"
   
   # Server-managed formation (requires --profile)
   support-bot:
     # No URL - must use --profile to access via server
-    admin_key: "keychain:support-bot-admin"
-    client_key: "keychain:support-bot-client"
+    admin_key: "fma_def456..."
+    client_key: "fmc_uvw012..."
+    default_profile: "production"
     added_at: "2025-10-24T13:00:00Z"
   
   # Hybrid (can use both direct and via server)
   chat-bot:
     url: https://chat-bot.company.com
-    admin_key: "keychain:chat-bot-admin"
-    client_key: "keychain:chat-bot-client"
+    admin_key: "fma_ghi789..."
+    client_key: "fmc_rst345..."
+    default_profile: "staging"  # Different profile per formation
     added_at: "2025-10-24T14:00:00Z"
+  
+  # Local development formation
+  local-dev:
+    url: http://localhost:8271
+    admin_key: "fma_local..."
+    client_key: "fmc_local..."
+    default_profile: "localhost"
+    added_at: "2025-10-24T15:00:00Z"
 ```
 
 **Purpose:** Formation credentials for operator access (without source)
 
-**Security:** Keys stored in OS keychain, referenced by `keychain:` prefix
+**Security:** Keys stored in plaintext (like AWS `~/.aws/credentials`, Claude, OpenAI)
+- File permissions protect access (chmod 600 recommended)
+- Simpler, more portable than OS keychain
+- Industry-standard approach
 
 ### 4. Formation directory structure (Developer source)
 
@@ -233,6 +247,58 @@ env:
 | **In formation dir** | `muxi status -p prod` | `{server}/api/{id}` | secrets.enc + HMAC |
 | **Outside** | `muxi status --formation my-bot` | formations.yaml URL | formations.yaml keys |
 | **Outside** | `muxi status --formation my-bot -p prod` | `{server}/api/my-bot` | formations.yaml keys + HMAC |
+
+### Profile Resolution Hierarchy
+
+When determining which profile to use, the CLI follows this priority order:
+
+**Priority 1: Explicit `--profile` flag (highest)**
+```bash
+muxi status --formation my-bot --profile staging
+# → Uses staging (ignores all defaults)
+```
+
+**Priority 2: `.muxi` file (when in formation directory)**
+```bash
+cd my-formation/
+cat .muxi
+# profile: production
+
+muxi status
+# → Uses production from .muxi
+```
+
+**Priority 3: Formation-specific `default_profile` (from formations.yaml)**
+```bash
+cat ~/.muxi/cli/formations.yaml
+# formations:
+#   my-bot:
+#     default_profile: "production"
+
+muxi status --formation my-bot
+# → Uses production (my-bot's default)
+
+muxi agent list --formation test-bot
+# → Uses staging (test-bot's default_profile: "staging")
+```
+
+**Priority 4: Global `default_profile` (fallback from profiles.yaml)**
+```bash
+cat ~/.muxi/cli/profiles.yaml
+# default_profile: localhost
+
+muxi formation list
+# → No formation context, no --profile flag
+# → Uses localhost (global default)
+```
+
+**Summary:**
+```
+--profile flag  >  .muxi file  >  formation.default_profile  >  global default_profile
+   (explicit)    (local dev)     (per-formation default)       (global fallback)
+```
+
+---
 
 ### Deployment Models Supported
 
@@ -620,14 +686,12 @@ Formation URL: https://my-bot.company.com
 Admin key: fma_...
 Client key: fmc_...
 
-Where should credentials be stored?
-  1. OS Keychain (secure, recommended)
-  2. Encrypted file (portable)
-> 1
+Default profile for this formation (optional): production
 
 ✓ Formation 'my-bot' added
   URL: https://my-bot.company.com
-  Storage: macOS Keychain
+  Default profile: production
+  Credentials: ~/.muxi/cli/formations.yaml
   
   Access:
     muxi agent list --formation my-bot
@@ -640,12 +704,14 @@ Where should credentials be stored?
 muxi formation add my-bot \
   --url https://my-bot.company.com \
   --admin-key fma_... \
-  --client-key fmc_...
+  --client-key fmc_... \
+  --default-profile production
 
 # Server-managed (no URL)
 muxi formation add support-bot \
   --admin-key fma_... \
-  --client-key fmc_...
+  --client-key fmc_... \
+  --default-profile production
 ```
 
 **Error when in formation directory:**
@@ -670,10 +736,11 @@ List configured formation credentials.
 ```bash
 muxi formation list-creds
 
-FORMATION     URL                          ADMIN KEY  CLIENT KEY  STORAGE
-my-bot        https://my-bot.company.com   ✓          ✓           keychain
-support-bot   (server-managed)             ✓          ✓           keychain
-chat-bot      https://chat-bot.company.com ✓          ✓           keychain
+FORMATION     URL                          ADMIN KEY  CLIENT KEY  DEFAULT PROFILE
+my-bot        https://my-bot.company.com   ✓          ✓           production
+support-bot   (server-managed)             ✓          ✓           production
+chat-bot      https://chat-bot.company.com ✓          ✓           staging
+local-dev     http://localhost:8271        ✓          ✓           localhost
 ```
 
 ---
@@ -684,7 +751,7 @@ Remove formation credentials.
 
 ```bash
 muxi formation remove-creds old-bot --confirm
-✓ Formation 'old-bot' credentials removed from keychain
+✓ Formation 'old-bot' credentials removed from ~/.muxi/cli/formations.yaml
 ```
 
 ---
