@@ -17,6 +17,9 @@
 - [Common Workflows](#common-workflows)
 - [Implementation Notes](#implementation-notes)
 
+**See Also:**
+- [REGISTRY.md](./REGISTRY.md) - Registry commands (`muxi login`, `muxi push`, `muxi pull`, `muxi search`)
+
 ---
 
 ## Design Philosophy
