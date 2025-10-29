@@ -1,8 +1,8 @@
-# MUXI CLI - Registry Commands
+# MUXI CLI - Registry API Reference
 
 **Version:** Alpha (v0.1.0)  
-**Status:** Specification  
-**Last Updated:** 2025-01-15
+**Registry Status:** ✅ Production Ready  
+**Last Updated:** 2025-10-29
 
 ---
 
@@ -11,43 +11,54 @@
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Authentication](#authentication)
-4. [Publishing Commands](#publishing-commands)
-5. [Discovery Commands](#discovery-commands)
-6. [Configuration](#configuration)
-7. [Error Handling](#error-handling)
-8. [Implementation Notes](#implementation-notes)
+4. [API Endpoints](#api-endpoints)
+5. [Publishing Flow](#publishing-flow)
+6. [Discovery Flow](#discovery-flow)
+7. [Data Structures](#data-structures)
+8. [Error Handling](#error-handling)
+9. [Rate Limiting](#rate-limiting)
+10. [Implementation Notes](#implementation-notes)
 
 ---
 
 ## Overview
 
-### Purpose
+### Registry Status
 
-Registry commands enable developers to:
-- **Publish** formations to the MUXI Registry (backed by GitHub)
-- **Discover** formations published by others
-- **Install** formations with a single command
-- **Search** for formations by name/description
+**✅ Production Ready** - All core registry features are complete and tested.
 
-### Design Philosophy
+The MUXI Registry provides a complete backend API for:
+- ✅ Formation publishing (with GitHub integration)
+- ✅ Formation discovery (lazy loading from GitHub)
+- ✅ Organization support
+- ✅ Stats collection and tracking
+- ✅ Version management
+- ✅ Download tracking
 
-**GitHub-Backed Model:**
-- Registry uses GitHub repos as storage backend
-- Formations published to `github.com/username/muxi-formation-name`
-- Registry is a lightweight UX/discovery layer
-- GitHub handles versioning, releases, CDN
+### Architecture Shift (Important!)
 
-**Key Principles:**
-1. **Zero friction for users** - No auth needed to pull
-2. **Minimal trust burden** - GitHub App with fine-grained permissions
-3. **Git-native workflow** - Devs can use git directly on repos
-4. **Lazy discovery** - Any `muxi-*` repo is automatically discoverable
+**The registry is now the gatekeeper** for all GitHub operations:
+
+**OLD Approach** (Previously):
+- ❌ CLI creates GitHub repo
+- ❌ CLI creates releases
+- ❌ CLI uploads assets
+- ❌ Problem: CLI needs GitHub OAuth token
+
+**NEW Approach** (Current - Production):
+- ✅ CLI only needs `mxr_` token (simple authentication)
+- ✅ CLI zips formation and uploads to registry
+- ✅ **Registry** has users' GitHub OAuth tokens (stored encrypted)
+- ✅ **Registry** handles all GitHub operations
+- ✅ **Registry** creates repos, pushes files, creates releases
+
+**This means the CLI is simpler**: Just authenticate, zip, and upload!
 
 ---
 
 ## Architecture
 
-### Command Flow
+### System Overview
 
 ```
 ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
@@ -55,32 +66,39 @@ Registry commands enable developers to:
 │              │         │     API      │         │              │
 └──────┬───────┘         └──────┬───────┘         └──────┬───────┘
        │                        │                        │
-       │ muxi login             │                        │
-       │─────────────────────────>                       │
+       │ 1. muxi login          │                        │
+       │───────────────────────>│                        │
+       │                        │ GitHub OAuth flow      │
+       │                        │<──────────────────────>│
+       │<───────────────────────│                        │
+       │ Token: mxr_xxx         │                        │
        │                        │                        │
-       │                        │ GitHub App Install     │
+       │ 2. muxi push           │                        │
+       │ (sends formation.zip)  │                        │
+       │───────────────────────>│                        │
+       │                        │ Create repo            │
        │                        │───────────────────────>│
-       │                        │<───────────────────────│
-       │                        │                        │
-       │<─────────────────────────                       │
-       │ Token saved            │                        │
-       │                        │                        │
-       │ muxi push              │                        │
-       │─────────────────────────>                       │
-       │                        │ Create repo + release  │
+       │                        │ Push files             │
        │                        │───────────────────────>│
+       │                        │ Create release         │
+       │                        │───────────────────────>│
+       │                        │ Upload asset           │
+       │                        │───────────────────────>│
+       │<───────────────────────│                        │
+       │ Success!               │                        │
        │                        │                        │
-       │<─────────────────────────                       │
-       │ Published!             │                        │
-       │                        │                        │
-       │ muxi pull @user/form   │                        │
-       │─────────────────────────>                       │
+       │ 3. muxi pull @user/f   │                        │
+       │───────────────────────>│                        │
        │ Get metadata           │                        │
-       │<─────────────────────────                       │
+       │<───────────────────────│                        │
        │                        │                        │
-       │ Download bundle.zip                             │
+       │ 4. Download bundle.zip directly from GitHub    │
        │────────────────────────────────────────────────>│
        │<────────────────────────────────────────────────│
+       │                        │                        │
+       │ 5. Track download      │                        │
+       │───────────────────────>│                        │
+       │<───────────────────────│                        │
 ```
 
 ### Naming Conventions
@@ -89,342 +107,525 @@ Registry commands enable developers to:
 ```
 @username/formation-name              # Latest version
 @username/formation-name:1.0.0        # Specific version
-@username/formation-name:1.x          # Version range (future)
 ```
 
 **GitHub Repo Mapping:**
 ```
 @ranaroussi/customer-support  →  github.com/ranaroussi/muxi-customer-support
+@muxi/customer-support        →  github.com/muxi-ai/muxi-customer-support
 ```
 
-**Repo Prefix:** All formation repos use `muxi-` prefix
+**Reserved Usernames:**
+Some organizations have reserved/shortened registry usernames:
+
+| GitHub Account | Registry Username | Example Formation |
+|----------------|-------------------|-------------------|
+| `muxi-ai` | `@muxi` | `@muxi/customer-support` |
+| `ranaroussi` | `@ranaroussi` | `@ranaroussi/my-formation` |
+
+**Repo Prefix:** All formation repos use `muxi-` prefix on GitHub.
 
 ---
 
 ## Authentication
 
-### `muxi login`
+### Flow Overview
 
-Authenticate with MUXI Registry via GitHub App installation.
+The CLI authenticates with the registry via GitHub OAuth, but the user experience is streamlined:
 
-**Syntax:**
-```bash
-muxi login [options]
+1. **User runs** `muxi login`
+2. **CLI opens browser** to registry OAuth page
+3. **User authenticates** with GitHub
+4. **Registry** stores GitHub OAuth token (encrypted) and returns CLI token
+5. **CLI** saves `mxr_` token locally
+
+### CLI Token Format
+
+```
+mxr_{60_random_alphanumeric_chars}
 ```
 
-**Options:**
-- `--registry <url>` - Registry URL (default: `registry.muxi.org`)
-- `--browser <command>` - Custom browser command (default: auto-detect)
-- `--no-browser` - Print URL instead of opening browser
+Example: `mxr_5Jw9k2Lp8Nm4Qr6Ts1Uv3Wx7Yz0Ab2Cd4Ef6Gh8Ij0Kl2Mn4Op6Qr8St0`
 
-**Behavior:**
+### Storage
 
-1. **Check existing authentication:**
-   ```bash
-   $ muxi login
-   
-   ✓ Already authenticated as @ranaroussi
-     Token expires: 2025-12-31
-   
-   Continue to refresh? [y/N]
-   ```
+**Credentials File:** `~/.muxi/credentials.json`
 
-2. **GitHub App Installation:**
-   ```bash
-   $ muxi login
-   
-   Opening browser to install MUXI GitHub App...
-   → https://github.com/apps/muxi-registry/installations/new
-   
-   Waiting for authentication...
-   ```
-
-3. **User sees in browser:**
-   ```
-   GitHub: "Install MUXI Registry"
-   
-   Permissions:
-   ✓ Create repositories
-   ✓ Read and write code in selected repositories
-   
-   Repository access:
-   ○ All repositories
-   ● Only select repositories (recommended)
-   
-   [Install]
-   ```
-
-4. **After install:**
-   ```
-   Browser shows:
-   ┌─────────────────────────────────────────┐
-   │  ✓ MUXI Registry Installed              │
-   │                                         │
-   │  You're authenticated as @ranaroussi    │
-   │                                         │
-   │  Return to your terminal to continue.   │
-   └─────────────────────────────────────────┘
-   
-   Terminal shows:
-   ✓ Authenticated as @ranaroussi
-     Token saved to ~/.muxi/credentials.json
-     
-   You can now publish formations with: muxi push
-   ```
-
-**Credentials Storage:**
-
-Creates/updates `~/.muxi/credentials.json`:
 ```json
 {
   "registry": {
     "url": "https://registry.muxi.org",
-    "token": "mxr_abc123def456...",
-    "github_installation_id": 12345678,
-    "github_username": "ranaroussi",
-    "created_at": "2025-01-15T10:30:00Z",
-    "expires_at": "2025-12-31T23:59:59Z"
+    "token": "mxr_5Jw9k2Lp8Nm4Qr6Ts1Uv3Wx7Yz0Ab2Cd4Ef6Gh8Ij0Kl2Mn4Op6Qr8St0",
+    "username": "ranaroussi",
+    "created_at": "2025-10-29T10:30:00Z",
+    "expires_at": "2099-12-31T23:59:59Z"
   }
 }
 ```
 
-**Permissions (600):** Only user-readable
+**Permissions:** `600` (user read/write only)
 
-**Exit Codes:**
-- `0` - Success
-- `1` - Authentication failed
-- `2` - Browser failed to open
-- `3` - Timeout waiting for callback
+**Token Expiration:** Tokens currently don't expire (far future date), but this may change.
 
 ---
 
-### `muxi logout`
+## API Endpoints
 
-Clear registry authentication.
+### Base URL
 
-**Syntax:**
-```bash
-muxi logout [options]
+```
+Production: https://registry.muxi.org
+Development: http://localhost:8080 (or https://muxi.registry)
 ```
 
-**Options:**
-- `--registry <url>` - Registry URL (default: `registry.muxi.org`)
+### Authentication Header
 
-**Behavior:**
-
-```bash
-$ muxi logout
-
-Logged out from registry.muxi.org
-Token removed from ~/.muxi/credentials.json
-
-Note: MUXI GitHub App is still installed.
-To fully revoke access, visit:
-  https://github.com/settings/installations
+```http
+Authorization: Bearer mxr_5Jw9k2Lp8Nm4Qr6Ts1Uv3Wx7Yz0Ab2Cd4Ef6Gh8Ij0Kl2Mn4Op6Qr8St0
 ```
-
-**Exit Codes:**
-- `0` - Success (even if not logged in)
 
 ---
 
-## Publishing Commands
+### 1. Authentication Endpoints
 
-### `muxi push`
+#### `GET /auth/cli/authorize`
 
-Publish formation to registry (creates/updates GitHub repo).
+Start CLI authentication flow.
 
-**Syntax:**
-```bash
-muxi push [path] [options]
+**Request:**
+```http
+GET /auth/cli/authorize HTTP/1.1
+Host: registry.muxi.org
 ```
 
-**Arguments:**
-- `path` - Formation directory (default: current directory)
+**Response:** HTML page with GitHub OAuth flow
 
-**Options:**
-- `--registry <url>` - Registry URL (default: `registry.muxi.org`)
-- `--tag <version>` - Override version from formation.yaml (future)
-- `--dry-run` - Show what would be published without pushing
-- `--force` - Force push even if version exists (requires confirmation)
-- `-y, --yes` - Skip confirmation prompts
+**CLI Usage:**
+1. Open browser to this URL
+2. User logs in with GitHub
+3. User redirects to callback URL
+4. CLI receives token via callback or polling
 
-**Behavior:**
+---
 
-#### 1. **Validation Phase**
+### 2. Formation Discovery (Public)
 
-```bash
-$ muxi push
+#### `GET /api/formations/@:user/:name`
 
-Validating formation...
-→ Checking formation.yaml exists... ✓
-→ Reading formation.yaml... ✓
-→ Formation: customer-support v1.0.0
-→ Validating schema... ✓
-→ Checking required files... ✓
-  • formation.yaml ✓
-  • README.md ✓
-  • agents/ ✓ (3 files)
+Get formation metadata (info only, no download tracking).
+
+**Authentication:** Optional (higher rate limits if authenticated)
+
+**Request:**
+```http
+GET /api/formations/@ranaroussi/customer-support HTTP/1.1
+Host: registry.muxi.org
+Authorization: Bearer mxr_xxx (optional)
 ```
 
-**Validation Checks:**
-- `formation.yaml` exists and is valid
-- `version` field is present and valid semver
-- `id` field matches repo naming conventions
-- Required directories exist (agents/, mcps/, etc.)
-- No secrets in files (warns about `secrets.enc`)
-
-#### 2. **Authentication Check**
-
-```bash
-→ Checking authentication... ✓
-→ Authenticated as @ranaroussi
-```
-
-**If not authenticated:**
-```bash
-→ Checking authentication... ✗
-
-You need to authenticate first:
-  muxi login
-
-Then try again: muxi push
-```
-
-#### 3. **Repository Check**
-
-**Case A: Repo doesn't exist**
-
-```bash
-→ Checking github.com/ranaroussi/muxi-customer-support...
-→ Repository doesn't exist
-
-MUXI will create a new PUBLIC repository:
-
-  📦 github.com/ranaroussi/muxi-customer-support
-
-This repository will:
-  • Be publicly visible on GitHub
-  • Contain your formation source code
-  • Be managed by MUXI GitHub App
-  • Be used for distribution via registry.muxi.org
-
-Continue? [Y/n]
-```
-
-**Case B: Repo exists, checking version**
-
-```bash
-→ Checking github.com/ranaroussi/muxi-customer-support... ✓
-→ Repository exists
-
-→ Checking if v1.0.0 already exists...
-→ Tag v1.0.0 found
-
-✗ Error: Version 1.0.0 already published
-
-Options:
-  • Increment version in formation.yaml
-  • Use --force to overwrite (not recommended)
-  
-Current versions:
-  v1.0.0 (published 2 weeks ago)
-  v0.9.0 (published 1 month ago)
-```
-
-#### 4. **Bundling Phase**
-
-```bash
-→ Bundling formation files...
-
-Including:
-  • formation.yaml (2.1 KB)
-  • README.md (5.3 KB)
-  • agents/ (3 files, 12.4 KB)
-  • mcps/ (2 files, 3.2 KB)
-  • sops/ (1 file, 1.8 KB)
-  • triggers/ (2 files, 4.1 KB)
-
-Excluding:
-  • .git/
-  • .muxi/
-  • secrets.enc (🔒 secrets should not be published)
-  • node_modules/
-  • __pycache__/
-  • .DS_Store
-
-→ Created bundle.zip (28.9 KB) ✓
-→ SHA256: abc123def456...
-```
-
-**Bundle Contents:**
-- All formation files
-- Compressed as ZIP
-- Excludes: `.git`, secrets, build artifacts
-
-#### 5. **Publishing Phase**
-
-**If creating new repo:**
-
-```bash
-→ Creating repository via GitHub API... ✓
-→ Repository: github.com/ranaroussi/muxi-customer-support
-
-→ Initializing local git repository... ✓
-→ Adding files... ✓
-→ Committing... ✓
-  Commit: Initial formation: customer-support v1.0.0
-  
-→ Adding remote 'origin'... ✓
-→ Pushing to GitHub... ✓
-```
-
-**If updating existing repo:**
-
-```bash
-→ Cloning existing repository... ✓
-→ Updating files... ✓
-→ Committing changes... ✓
-  Commit: Update to v1.1.0
-  
-→ Pushing to GitHub... ✓
-```
-
-#### 6. **Release Phase**
-
-```bash
-→ Creating tag v1.0.0... ✓
-→ Pushing tag... ✓
-
-→ Creating GitHub release v1.0.0... ✓
-→ Uploading bundle.zip (28.9 KB)... ✓
-
-Release URL: github.com/ranaroussi/muxi-customer-support/releases/tag/v1.0.0
-```
-
-#### 7. **Registry Notification**
-
-```bash
-→ Notifying registry.muxi.org... ✓
-→ Registry cached metadata ✓
-```
-
-**API Call:**
-```
-POST https://registry.muxi.org/api/formations/publish
-Authorization: Bearer <token>
-
+**Response:**
+```json
 {
-  "github_repo": "ranaroussi/muxi-customer-support",
-  "version": "1.0.0",
-  "formation_id": "customer-support"
+  "success": true,
+  "formation": {
+    "user": "ranaroussi",
+    "name": "customer-support",
+    "description": "AI-powered customer support with intelligent escalation",
+    "latest_version": "1.2.0",
+    "github_repo": "ranaroussi/muxi-customer-support",
+    "github_stars": 45,
+    "total_downloads": 1234,
+    "created_at": "2025-01-10T14:30:00Z",
+    "updated_at": "2025-01-15T10:20:00Z"
+  },
+  "stats": {
+    "agents_count": 3,
+    "mcps_count": 2,
+    "sops_count": 1,
+    "triggers_count": 2,
+    "knowledge_count": 0
+  },
+  "latest_version": {
+    "version": "1.2.0",
+    "download_url": "https://github.com/ranaroussi/muxi-customer-support/releases/download/v1.2.0/bundle.zip",
+    "size_bytes": 29593,
+    "published_at": "2025-01-15T10:20:00Z"
+  }
 }
 ```
 
-#### 8. **Success Message**
+**Use Case:** Check formation info before pulling, display metadata.
 
-```bash
-✓ Published @ranaroussi/customer-support v1.0.0!
+**Note:** This does NOT increment download counter. Use `?pull=true` for that.
+
+---
+
+#### `GET /api/formations/@:user/:name?pull=true`
+
+Get formation metadata AND track download.
+
+**Authentication:** Optional (but recommended for higher rate limits)
+
+**Request:**
+```http
+GET /api/formations/@ranaroussi/customer-support?pull=true HTTP/1.1
+Host: registry.muxi.org
+Authorization: Bearer mxr_xxx (optional)
+```
+
+**Response:** Same as above, but increments download counter.
+
+**Use Case:** When user actually pulls/downloads formation.
+
+---
+
+#### `GET /api/formations/@:user/:name:version`
+
+Get specific version metadata.
+
+**Authentication:** Optional
+
+**Request:**
+```http
+GET /api/formations/@ranaroussi/customer-support:1.0.0 HTTP/1.1
+Host: registry.muxi.org
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "formation": {
+    "user": "ranaroussi",
+    "name": "customer-support",
+    "description": "...",
+    "latest_version": "1.2.0",
+    "github_repo": "ranaroussi/muxi-customer-support",
+    "github_stars": 45,
+    "total_downloads": 1234
+  },
+  "version": {
+    "version": "1.0.0",
+    "download_url": "https://github.com/ranaroussi/muxi-customer-support/releases/download/v1.0.0/bundle.zip",
+    "size_bytes": 28500,
+    "published_at": "2024-12-10T09:15:00Z"
+  },
+  "stats": {
+    "agents_count": 2,
+    "mcps_count": 1,
+    "sops_count": 1,
+    "triggers_count": 1,
+    "knowledge_count": 0
+  }
+}
+```
+
+**With Pull Tracking:**
+```http
+GET /api/formations/@ranaroussi/customer-support:1.0.0?pull=true
+```
+
+---
+
+#### `GET /api/formations/@:user/:name/versions`
+
+List all versions of a formation.
+
+**Authentication:** Optional
+
+**Request:**
+```http
+GET /api/formations/@ranaroussi/customer-support/versions HTTP/1.1
+Host: registry.muxi.org
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "formation": {
+    "user": "ranaroussi",
+    "name": "customer-support",
+    "latest_version": "1.2.0"
+  },
+  "versions": [
+    {
+      "version": "1.2.0",
+      "download_url": "https://github.com/ranaroussi/muxi-customer-support/releases/download/v1.2.0/bundle.zip",
+      "size_bytes": 29593,
+      "download_count": 234,
+      "published_at": "2025-01-15T10:20:00Z"
+    },
+    {
+      "version": "1.1.0",
+      "download_url": "https://github.com/ranaroussi/muxi-customer-support/releases/download/v1.1.0/bundle.zip",
+      "size_bytes": 28900,
+      "download_count": 456,
+      "published_at": "2025-01-01T08:00:00Z"
+    },
+    {
+      "version": "1.0.0",
+      "download_url": "https://github.com/ranaroussi/muxi-customer-support/releases/download/v1.0.0/bundle.zip",
+      "size_bytes": 28500,
+      "download_count": 544,
+      "published_at": "2024-12-10T09:15:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /api/search`
+
+Search for formations.
+
+**Authentication:** Optional
+
+**Request:**
+```http
+GET /api/search?q=customer+support&limit=20&sort=downloads HTTP/1.1
+Host: registry.muxi.org
+```
+
+**Query Parameters:**
+- `q` - Search query (required)
+- `limit` - Max results (default: 20, max: 100)
+- `sort` - Sort by: `relevance`, `downloads`, `stars`, `updated` (default: `relevance`)
+
+**Response:**
+```json
+{
+  "success": true,
+  "query": "customer support",
+  "total": 3,
+  "results": [
+    {
+      "user": "ranaroussi",
+      "name": "customer-support",
+      "description": "AI-powered customer support with intelligent escalation",
+      "latest_version": "1.2.0",
+      "github_repo": "ranaroussi/muxi-customer-support",
+      "github_stars": 45,
+      "total_downloads": 1234,
+      "size_bytes": 29593
+    },
+    {
+      "user": "somedev",
+      "name": "support-bot",
+      "description": "Simple support automation bot",
+      "latest_version": "2.1.0",
+      "github_repo": "somedev/muxi-support-bot",
+      "github_stars": 12,
+      "total_downloads": 450,
+      "size_bytes": 15200
+    }
+  ]
+}
+```
+
+---
+
+### 3. Formation Publishing (Authenticated)
+
+#### `POST /api/formations/publish`
+
+Publish formation to registry (creates/updates GitHub repo).
+
+**Authentication:** Required
+
+**Request:**
+```http
+POST /api/formations/publish HTTP/1.1
+Host: registry.muxi.org
+Authorization: Bearer mxr_xxx
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="formation.zip"
+Content-Type: application/zip
+
+[binary zip data]
+------WebKitFormBoundary
+Content-Disposition: form-data; name="org"
+
+muxi-ai
+------WebKitFormBoundary--
+```
+
+**Form Fields:**
+- `file` - Formation ZIP file (required)
+- `org` - GitHub organization name (optional, for org publishing)
+
+**ZIP Contents Requirements:**
+- `formation.yaml` - Must exist and be valid
+- `formation.version` - Must be valid semver (e.g., "1.0.0")
+- Other files: agents/, mcps/, sops/, triggers/, knowledge/, README.md
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "message": "Formation published successfully",
+  "formation": {
+    "user": "ranaroussi",
+    "name": "customer-support",
+    "version": "1.2.0",
+    "github_repo": "ranaroussi/muxi-customer-support",
+    "registry_url": "https://registry.muxi.org/@ranaroussi/customer-support",
+    "github_url": "https://github.com/ranaroussi/muxi-customer-support",
+    "release_url": "https://github.com/ranaroussi/muxi-customer-support/releases/tag/v1.2.0"
+  },
+  "stats": {
+    "agents_count": 3,
+    "mcps_count": 2,
+    "sops_count": 1,
+    "triggers_count": 2,
+    "knowledge_count": 0
+  }
+}
+```
+
+**Response (Organization Publishing):**
+```json
+{
+  "success": true,
+  "message": "Formation published to organization",
+  "formation": {
+    "user": "muxi",
+    "name": "customer-support",
+    "version": "1.0.0",
+    "github_repo": "muxi-ai/muxi-customer-support",
+    "registry_url": "https://registry.muxi.org/@muxi/customer-support",
+    "github_url": "https://github.com/muxi-ai/muxi-customer-support",
+    "release_url": "https://github.com/muxi-ai/muxi-customer-support/releases/tag/v1.0.0",
+    "published_by": "ranaroussi"
+  }
+}
+```
+
+**What the Registry Does:**
+1. ✅ Validates ZIP and formation.yaml
+2. ✅ Checks version doesn't already exist
+3. ✅ Creates/verifies GitHub repository
+4. ✅ Pushes all formation files to GitHub
+5. ✅ Creates git tag (e.g., `v1.0.0`)
+6. ✅ Creates GitHub release
+7. ✅ Uploads formation.zip as release asset
+8. ✅ Analyzes formation structure
+9. ✅ Stores metadata in registry database
+10. ✅ Returns success with URLs
+
+**Error Responses:**
+
+**Not Authenticated:**
+```json
+{
+  "success": false,
+  "error": "Authentication required",
+  "message": "Please provide a valid Bearer token"
+}
+```
+Status: `401 Unauthorized`
+
+**Invalid formation.yaml:**
+```json
+{
+  "success": false,
+  "error": "Invalid formation.yaml",
+  "message": "Missing required field: version"
+}
+```
+Status: `400 Bad Request`
+
+**Version Already Exists:**
+```json
+{
+  "success": false,
+  "error": "Version already exists",
+  "message": "Version 1.0.0 already exists for @ranaroussi/customer-support",
+  "existing_version": {
+    "version": "1.0.0",
+    "published_at": "2024-12-10T09:15:00Z",
+    "release_url": "https://github.com/ranaroussi/muxi-customer-support/releases/tag/v1.0.0"
+  }
+}
+```
+Status: `409 Conflict`
+
+**GitHub API Error:**
+```json
+{
+  "success": false,
+  "error": "GitHub API error",
+  "message": "Failed to create repository: API rate limit exceeded"
+}
+```
+Status: `502 Bad Gateway`
+
+---
+
+## Publishing Flow
+
+### Step-by-Step CLI Flow
+
+**1. Validate Formation Locally**
+```
+Check formation.yaml exists
+Parse formation.yaml
+Validate version is semver
+Check required files exist
+```
+
+**2. Create ZIP Bundle**
+```
+Include:
+  - formation.yaml
+  - README.md
+  - agents/
+  - mcps/
+  - sops/
+  - triggers/
+  - knowledge/
+
+Exclude:
+  - .git/
+  - .muxi/
+  - secrets.enc (warn if present!)
+  - node_modules/
+  - __pycache__/
+  - .DS_Store
+  - *.pyc
+```
+
+**3. Upload to Registry**
+```http
+POST /api/formations/publish
+Authorization: Bearer mxr_xxx
+Content-Type: multipart/form-data
+
+[formation.zip]
+```
+
+**4. Registry Processes (Behind the Scenes)**
+```
+Registry:
+  → Validates ZIP
+  → Parses formation.yaml
+  → Checks user's GitHub OAuth token
+  → Creates/updates GitHub repo
+  → Pushes files via GitHub Contents API
+  → Creates tag v{version}
+  → Creates GitHub release
+  → Uploads ZIP as release asset
+  → Analyzes structure (counts agents, MCPs, etc.)
+  → Stores in database
+  → Returns success
+```
+
+**5. Display Success to User**
+```
+✓ Published @ranaroussi/customer-support v1.2.0!
 
 View at:
   Registry: https://registry.muxi.org/@ranaroussi/customer-support
@@ -432,674 +633,409 @@ View at:
 
 Share with:
   muxi pull @ranaroussi/customer-support
-
-Install with:
-  muxi pull @ranaroussi/customer-support
-  cd customer-support/
-  muxi deploy
 ```
-
-**Exit Codes:**
-- `0` - Success
-- `1` - Validation failed
-- `2` - Not authenticated
-- `3` - Version already exists
-- `4` - GitHub API error
-- `5` - Network error
 
 ---
 
-### `muxi push --dry-run`
+### Organization Publishing
 
-Preview what would be published without actually pushing.
+To publish to an organization, include the `org` form field:
+
+```http
+POST /api/formations/publish
+Authorization: Bearer mxr_xxx
+Content-Type: multipart/form-data
+
+file=formation.zip
+org=muxi-ai
+```
+
+**Requirements:**
+- User must have access to the organization on GitHub
+- Organization must exist in registry (or be mappable via reserved_usernames)
 
 **Example:**
-
 ```bash
-$ muxi push --dry-run
-
-DRY RUN MODE - No changes will be made
-
-Formation: customer-support v1.0.0
-
-Would create repository:
-  github.com/ranaroussi/muxi-customer-support
-
-Would bundle files (28.9 KB):
-  • formation.yaml (2.1 KB)
-  • README.md (5.3 KB)
-  • agents/ (3 files, 12.4 KB)
-  • mcps/ (2 files, 3.2 KB)
-  • sops/ (1 file, 1.8 KB)
-  • triggers/ (2 files, 4.1 KB)
-
-Would create:
-  • Git repository
-  • Tag v1.0.0
-  • GitHub release
-  • Registry entry
-
-To publish for real:
-  muxi push
+# Publishes to github.com/muxi-ai/muxi-customer-support
+# Shows as @muxi/customer-support on registry
 ```
 
 ---
 
-## Discovery Commands
+## Discovery Flow
 
-### `muxi pull`
+### Pulling a Formation
 
-Download and extract a formation from the registry.
-
-**Syntax:**
-```bash
-muxi pull <formation-ref> [options]
+**1. CLI Requests Metadata**
+```http
+GET /api/formations/@ranaroussi/customer-support?pull=true
+Authorization: Bearer mxr_xxx (optional but recommended)
 ```
 
-**Arguments:**
-- `<formation-ref>` - Formation reference (e.g., `@user/name` or `@user/name:version`)
-
-**Options:**
-- `--registry <url>` - Registry URL (default: `registry.muxi.org`)
-- `--output <path>` - Output directory (default: formation name)
-- `--no-extract` - Download bundle.zip without extracting
-- `--version <ver>` - Specific version (alternative to `@user/name:ver` syntax)
-
-**Behavior:**
-
-#### 1. **Parse Formation Reference**
-
-```bash
-$ muxi pull @ranaroussi/customer-support
-
-Parsing formation reference...
-→ User: ranaroussi
-→ Formation: customer-support
-→ Version: latest (not specified)
-```
-
-#### 2. **Query Registry**
-
-```bash
-→ Querying registry.muxi.org...
-→ Formation found ✓
-
-Formation: @ranaroussi/customer-support
-Latest version: 1.2.0
-Description: AI-powered customer support with escalation
-GitHub: github.com/ranaroussi/muxi-customer-support
-Downloads: 1,234
-```
-
-**API Call:**
-```
-GET https://registry.muxi.org/api/formations/@ranaroussi/customer-support
-```
-
-**If not in registry cache (lazy discovery):**
-```bash
-→ Not found in registry, checking GitHub...
-→ Found github.com/ranaroussi/muxi-customer-support ✓
-→ Registering formation... ✓
-```
-
-#### 3. **Download Bundle**
-
-```bash
-→ Downloading from GitHub...
-→ URL: github.com/ranaroussi/muxi-customer-support/releases/download/v1.2.0/bundle.zip
-→ Size: 28.9 KB
-
-Downloading... ████████████████████ 100% (28.9 KB)
-→ Download complete ✓
-→ SHA256: abc123def456... ✓
-```
-
-**Direct GitHub download** (doesn't count against registry rate limits)
-
-#### 4. **Extract**
-
-```bash
-→ Extracting to ./customer-support/...
-
-Extracted:
-  • formation.yaml
-  • README.md
-  • agents/ (3 files)
-  • mcps/ (2 files)
-  • sops/ (1 file)
-  • triggers/ (2 files)
-
-✓ Downloaded @ranaroussi/customer-support v1.2.0
-```
-
-#### 5. **Record Download**
-
-```bash
-→ Recording download... ✓
-```
-
-**API Call:**
-```
-POST https://registry.muxi.org/api/formations/@ranaroussi/customer-support/1.2.0/download
-```
-
-Increments download counter (for stats).
-
-#### 6. **Success Message**
-
-```bash
-✓ Formation ready!
-
-Location: ./customer-support/
-
-Next steps:
-  cd customer-support/
-  
-  # Review the formation
-  cat README.md
-  
-  # Configure secrets (if needed)
-  cp secrets.enc.example secrets.enc
-  # Edit secrets.enc with your credentials
-  
-  # Deploy
-  muxi deploy --profile local
-```
-
-**Exit Codes:**
-- `0` - Success
-- `1` - Formation not found
-- `2` - Invalid formation reference
-- `3` - Download failed
-- `4` - Extraction failed
-- `5` - Network error
-
----
-
-### `muxi pull` - Specific Version
-
-```bash
-$ muxi pull @ranaroussi/customer-support:1.0.0
-
-Parsing formation reference...
-→ User: ranaroussi
-→ Formation: customer-support
-→ Version: 1.0.0 (explicitly specified)
-
-→ Querying registry.muxi.org...
-→ Version 1.0.0 found ✓
-
-→ Downloading from GitHub...
-# (same flow as above)
-
-✓ Downloaded @ranaroussi/customer-support v1.0.0
-```
-
----
-
-### `muxi search`
-
-Search for formations in the registry.
-
-**Syntax:**
-```bash
-muxi search <query> [options]
-```
-
-**Arguments:**
-- `<query>` - Search query (matches name, description, README)
-
-**Options:**
-- `--registry <url>` - Registry URL (default: `registry.muxi.org`)
-- `--limit <n>` - Max results (default: 20)
-- `--sort <field>` - Sort by: `relevance`, `downloads`, `stars`, `updated` (default: `relevance`)
-- `-o, --output <format>` - Output format: `text`, `json`, `yaml`
-
-**Behavior:**
-
-```bash
-$ muxi search "customer support"
-
-Searching registry.muxi.org for "customer support"...
-
-Found 3 formations:
-
-┌────────────────────────────────────────────────────────────────┐
-│ @ranaroussi/customer-support                          v1.2.0   │
-├────────────────────────────────────────────────────────────────┤
-│ AI-powered customer support with escalation                    │
-│ ⬇ 1.2K pulls  ⭐ 45 stars  📦 28.9 KB                         │
-│                                                                │
-│ muxi pull @ranaroussi/customer-support                         │
-└────────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────────┐
-│ @somedev/support-bot                                  v2.1.0   │
-├────────────────────────────────────────────────────────────────┤
-│ Simple support automation bot                                  │
-│ ⬇ 450 pulls  ⭐ 12 stars  📦 15.2 KB                          │
-│                                                                │
-│ muxi pull @somedev/support-bot                                 │
-└────────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────────┐
-│ @anotherdev/zendesk-integration                       v1.0.0   │
-├────────────────────────────────────────────────────────────────┤
-│ Zendesk integration for customer support                       │
-│ ⬇ 89 pulls  ⭐ 3 stars  📦 8.1 KB                             │
-│                                                                │
-│ muxi pull @anotherdev/zendesk-integration                      │
-└────────────────────────────────────────────────────────────────┘
-
-Showing 3 of 3 results
-```
-
-**API Call:**
-```
-GET https://registry.muxi.org/api/search?q=customer+support&limit=20&sort=relevance
-```
-
-**JSON Output:**
-
-```bash
-$ muxi search "customer support" --output json
-
-[
-  {
-    "ref": "@ranaroussi/customer-support",
+**2. Registry Returns Metadata**
+```json
+{
+  "success": true,
+  "formation": {...},
+  "latest_version": {
     "version": "1.2.0",
-    "description": "AI-powered customer support with escalation",
-    "downloads": 1234,
-    "stars": 45,
-    "size_bytes": 29593,
-    "github_repo": "ranaroussi/muxi-customer-support",
-    "registry_url": "https://registry.muxi.org/@ranaroussi/customer-support"
-  },
-  ...
-]
+    "download_url": "https://github.com/ranaroussi/muxi-customer-support/releases/download/v1.2.0/bundle.zip",
+    "size_bytes": 29593
+  }
+}
 ```
 
-**Exit Codes:**
-- `0` - Success (even if no results)
-- `1` - Invalid query
-- `2` - Network error
+**3. CLI Downloads ZIP Directly from GitHub**
+```http
+GET https://github.com/ranaroussi/muxi-customer-support/releases/download/v1.2.0/bundle.zip
+```
+
+This is a direct GitHub download, doesn't go through registry bandwidth.
+
+**4. CLI Extracts ZIP**
+```
+Extract to ./customer-support/
+  - formation.yaml
+  - README.md
+  - agents/
+  - mcps/
+  - sops/
+  - triggers/
+```
+
+**5. Done!**
+```
+✓ Downloaded @ranaroussi/customer-support v1.2.0
+  Location: ./customer-support/
+```
 
 ---
 
-### `muxi show`
+### Lazy Discovery
 
-Display detailed information about a formation.
+If formation not in registry database:
 
-**Syntax:**
-```bash
-muxi show <formation-ref> [options]
+**1. Registry Checks GitHub**
+```
+User visits: @ranaroussi/formation-name
+  ↓
+Registry: Not in database
+  ↓
+Check: github.com/ranaroussi/muxi-formation-name
+  ↓
+Found! Fetch metadata
+  ↓
+Cache in database
+  ↓
+Return to user
 ```
 
-**Arguments:**
-- `<formation-ref>` - Formation reference (e.g., `@user/name`)
+**2. What Registry Fetches**
+- Repo description
+- Latest release info
+- README.md
+- Star count
+- Downloads release asset (or main branch if no releases)
+- Analyzes formation structure
+- Stores stats
 
-**Options:**
-- `--registry <url>` - Registry URL (default: `registry.muxi.org`)
-- `--version <ver>` - Show specific version info
-- `-o, --output <format>` - Output format: `text`, `json`, `yaml`
-
-**Behavior:**
-
-```bash
-$ muxi show @ranaroussi/customer-support
-
-Formation: @ranaroussi/customer-support
-Version:   1.2.0 (latest)
-Author:    @ranaroussi
-
-Description:
-  AI-powered customer support with intelligent escalation,
-  sentiment analysis, and multi-channel integration.
-
-Stats:
-  Downloads:   1,234 total
-  Stars:       45
-  Size:        28.9 KB
-  Published:   2025-01-10 (5 days ago)
-
-Components:
-  • 3 agents (escalation, sentiment, router)
-  • 2 MCPs (zendesk, slack)
-  • 1 SOP (escalation-procedure)
-  • 2 triggers (new-ticket, urgent-keyword)
-
-Links:
-  Registry:  https://registry.muxi.org/@ranaroussi/customer-support
-  GitHub:    https://github.com/ranaroussi/muxi-customer-support
-  Issues:    https://github.com/ranaroussi/muxi-customer-support/issues
-
-Versions:
-  v1.2.0  (latest, 5 days ago)   - 234 downloads
-  v1.1.0  (2 weeks ago)          - 456 downloads
-  v1.0.0  (1 month ago)          - 544 downloads
-
-Installation:
-  muxi pull @ranaroussi/customer-support
+**3. Next Request**
 ```
-
-**API Call:**
+Served instantly from cache!
 ```
-GET https://registry.muxi.org/api/formations/@ranaroussi/customer-support
-GET https://registry.muxi.org/api/formations/@ranaroussi/customer-support/versions
-```
-
-**Exit Codes:**
-- `0` - Success
-- `1` - Formation not found
-- `2` - Network error
 
 ---
 
-## Configuration
+## Data Structures
 
-### Credentials File
+### Formation Object
 
-**Location:** `~/.muxi/credentials.json`
+```typescript
+interface Formation {
+  user: string;              // Registry username (e.g., "ranaroussi", "muxi")
+  name: string;              // Formation name (e.g., "customer-support")
+  description: string;       // From formation.yaml
+  latest_version: string;    // Semver (e.g., "1.2.0")
+  github_repo: string;       // Full repo (e.g., "ranaroussi/muxi-customer-support")
+  github_stars: number;      // Star count from GitHub
+  total_downloads: number;   // All-time download count
+  created_at: string;        // ISO 8601 timestamp
+  updated_at: string;        // ISO 8601 timestamp
+}
+```
 
-**Structure:**
+### Version Object
+
+```typescript
+interface Version {
+  version: string;           // Semver (e.g., "1.0.0")
+  download_url: string;      // GitHub release asset URL
+  size_bytes: number;        // Bundle size
+  download_count: number;    // Downloads of this version
+  published_at: string;      // ISO 8601 timestamp
+}
+```
+
+### Formation Stats
+
+```typescript
+interface FormationStats {
+  agents_count: number;      // Number of agent files in agents/
+  mcps_count: number;        // Number of MCP files in mcps/
+  sops_count: number;        // Number of SOP files in sops/
+  triggers_count: number;    // Number of trigger files in triggers/
+  knowledge_count: number;   // Number of .md files in knowledge/
+}
+```
+
+**Pattern Matching:**
+- Agents: `.py` files in `agents/` directory
+- MCPs: `.py` files in `mcps/` directory  
+- SOPs: `.md` files in `sops/` directory
+- Triggers: `.py` files in `triggers/` directory
+- Knowledge: `.md` files in `knowledge/` directory (excluding README.md)
+
+---
+
+## Error Handling
+
+### HTTP Status Codes
+
+| Status | Meaning | Example |
+|--------|---------|---------|
+| `200` | Success | Formation found and returned |
+| `201` | Created | Formation published successfully |
+| `400` | Bad Request | Invalid formation.yaml |
+| `401` | Unauthorized | Missing or invalid token |
+| `403` | Forbidden | Token valid but insufficient permissions |
+| `404` | Not Found | Formation doesn't exist |
+| `409` | Conflict | Version already exists |
+| `429` | Too Many Requests | Rate limit exceeded |
+| `500` | Internal Server Error | Server error |
+| `502` | Bad Gateway | GitHub API error |
+
+### Error Response Format
+
+```json
+{
+  "success": false,
+  "error": "Error type",
+  "message": "Human-readable error message",
+  "details": {
+    // Optional additional context
+  }
+}
+```
+
+### Common Errors
+
+**Not Authenticated:**
+```json
+{
+  "success": false,
+  "error": "Authentication required",
+  "message": "Please authenticate with: muxi login"
+}
+```
+
+**Formation Not Found:**
+```json
+{
+  "success": false,
+  "error": "Formation not found",
+  "message": "Formation @ranaroussi/nonexistent not found in registry or GitHub"
+}
+```
+
+**Rate Limited:**
+```json
+{
+  "success": false,
+  "error": "Rate limit exceeded",
+  "message": "You have exceeded the rate limit. Try again in 45 minutes.",
+  "details": {
+    "limit": 60,
+    "remaining": 0,
+    "reset_at": "2025-10-29T12:00:00Z"
+  }
+}
+```
+
+---
+
+## Rate Limiting
+
+### Anonymous Requests (by IP)
+
+**Limits:**
+- 5 requests per second
+- 100 requests per 10 minutes
+
+**Applies to:**
+- GET /api/formations/...
+- GET /api/search
+
+**Headers:**
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 87
+X-RateLimit-Reset: 1698765432
+```
+
+### Authenticated Requests (by user)
+
+**Limits:**
+- 10 requests per second
+- 1000 requests per 10 minutes
+
+**Applies to:**
+- All endpoints with valid Bearer token
+
+**Headers:**
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 945
+X-RateLimit-Reset: 1698765432
+X-RateLimit-User: ranaroussi
+```
+
+### Recommendation
+
+**Always send Bearer token**, even for public endpoints, to get higher rate limits:
+
+```http
+GET /api/formations/@user/name
+Authorization: Bearer mxr_xxx
+```
+
+---
+
+## Implementation Notes
+
+### Credential Storage
+
+**File:** `~/.muxi/credentials.json`
+
 ```json
 {
   "registry": {
     "url": "https://registry.muxi.org",
-    "token": "mxr_abc123def456...",
-    "github_installation_id": 12345678,
-    "github_username": "ranaroussi",
-    "created_at": "2025-01-15T10:30:00Z",
-    "expires_at": "2025-12-31T23:59:59Z"
+    "token": "mxr_...",
+    "username": "ranaroussi",
+    "created_at": "2025-10-29T10:30:00Z",
+    "expires_at": "2099-12-31T23:59:59Z"
   }
 }
 ```
 
 **Permissions:** `600` (user read/write only)
 
-**Token Format:** `mxr_` prefix + random alphanumeric
-
----
-
-### Environment Variables
-
-**Override registry URL:**
-```bash
-export MUXI_REGISTRY_URL=https://registry.example.com
-muxi pull @user/formation
-```
-
-**Override credentials path:**
-```bash
-export MUXI_CREDENTIALS_FILE=/path/to/credentials.json
-```
-
----
-
-## Error Handling
-
-### Common Errors
-
-#### Not Authenticated
-
-```bash
-$ muxi push
-
-✗ Error: Not authenticated
-
-You need to authenticate with the registry first:
-  muxi login
-
-Then try again: muxi push
-```
-
-**Exit Code:** `2`
-
----
-
-#### Formation Not Found
-
-```bash
-$ muxi pull @nonexistent/formation
-
-✗ Error: Formation not found
-
-"@nonexistent/formation" doesn't exist in:
-  • Registry: registry.muxi.org
-  • GitHub: github.com/nonexistent/muxi-formation
-
-Check for typos, or search:
-  muxi search "formation"
-```
-
-**Exit Code:** `1`
-
----
-
-#### Version Already Exists
-
-```bash
-$ muxi push
-
-✗ Error: Version 1.0.0 already published
-
-The tag v1.0.0 already exists in:
-  github.com/ranaroussi/muxi-customer-support
-
-Options:
-  1. Increment version in formation.yaml
-  2. Use --force to overwrite (not recommended)
-
-Current versions:
-  v1.0.0 (published 2 weeks ago)
-  v0.9.0 (published 1 month ago)
-```
-
-**Exit Code:** `3`
-
----
-
-#### Invalid formation.yaml
-
-```bash
-$ muxi push
-
-✗ Error: Invalid formation.yaml
-
-Missing required field: version
-
-Your formation.yaml must include:
-  formation:
-    id: my-formation
-    version: "1.0.0"    # ← Required for publishing
-    ...
-
-See: https://docs.muxi.org/formations/schema
-```
-
-**Exit Code:** `1`
-
----
-
-#### Network Error
-
-```bash
-$ muxi pull @user/formation
-
-Querying registry.muxi.org...
-✗ Error: Network error
-
-Could not connect to registry.muxi.org
-  • Check your internet connection
-  • Check if registry is down: https://status.muxi.org
-
-Details: dial tcp: lookup registry.muxi.org: no such host
-```
-
-**Exit Code:** `5`
-
----
-
-#### GitHub API Rate Limit
-
-```bash
-$ muxi pull @user/formation
-
-✗ Error: GitHub API rate limit exceeded
-
-You've exceeded GitHub's rate limit.
-
-Options:
-  1. Wait 47 minutes for reset
-  2. Authenticate with GitHub (increases limit):
-       muxi login
-
-Rate limit info:
-  Limit:      60 requests/hour (anonymous)
-  Used:       60
-  Resets:     2025-01-15 11:30:00 (in 47 minutes)
-```
-
-**Exit Code:** `4`
-
----
-
-## Implementation Notes
-
-### GitHub API Integration
-
-**Endpoints Used:**
-
-```go
-// Create repository
-POST /user/repos
-{
-  "name": "muxi-formation-name",
-  "description": "Formation description from formation.yaml",
-  "homepage": "https://registry.muxi.org/@user/formation-name",
-  "private": false,
-  "auto_init": false
-}
-
-// Create tag
-POST /repos/:owner/:repo/git/refs
-{
-  "ref": "refs/tags/v1.0.0",
-  "sha": "<commit-sha>"
-}
-
-// Create release
-POST /repos/:owner/:repo/releases
-{
-  "tag_name": "v1.0.0",
-  "name": "v1.0.0",
-  "body": "Release notes from formation changelog",
-  "draft": false,
-  "prerelease": false
-}
-
-// Upload release asset
-POST /repos/:owner/:repo/releases/:release_id/assets?name=bundle.zip
-Content-Type: application/zip
-[binary data]
-
-// Get release info
-GET /repos/:owner/:repo/releases/tags/v1.0.0
-
-// Get repo info
-GET /repos/:owner/:repo
-
-// List releases
-GET /repos/:owner/:repo/releases
-```
-
-### Registry API Integration
-
-**Endpoints Used:**
-
-```go
-// Publish notification
-POST /api/formations/publish
-Authorization: Bearer <token>
-{
-  "github_repo": "user/muxi-formation",
-  "version": "1.0.0",
-  "formation_id": "formation-name"
-}
-
-// Get formation metadata
-GET /api/formations/@:user/:name
-Response: {
-  "user": "ranaroussi",
-  "name": "customer-support",
-  "latest_version": "1.2.0",
-  "description": "...",
-  "github_repo": "ranaroussi/muxi-customer-support",
-  "downloads": 1234,
-  "stars": 45
-}
-
-// Get specific version
-GET /api/formations/@:user/:name/:version
-
-// Record download
-POST /api/formations/@:user/:name/:version/download
-
-// Search
-GET /api/search?q=customer+support&limit=20
-```
-
-### Bundling Logic
+### Bundle Creation
 
 **Files to Include:**
-- `formation.yaml` (required)
-- `README.md` (recommended)
-- `agents/` (all files)
-- `mcps/` (all files)
-- `sops/` (all files)
-- `triggers/` (all files)
-- `knowledge/` (future: may need size limits)
+```
+formation.yaml          # Required
+README.md              # Recommended
+agents/*.py            # All Python files
+mcps/*.py              # All Python files
+sops/*.md              # All Markdown files
+triggers/*.py          # All Python files
+knowledge/*.md         # All Markdown files
+```
 
 **Files to Exclude:**
-- `.git/`
-- `.muxi/`
-- `secrets.enc` (warn if found)
-- `node_modules/`
-- `__pycache__/`
-- `.DS_Store`
-- `*.pyc`
-- `.env`
+```
+.git/                  # Git directory
+.muxi/                 # CLI cache
+secrets.enc            # ⚠️ Warn user if present!
+.env                   # Environment files
+node_modules/          # Dependencies
+__pycache__/           # Python cache
+*.pyc                  # Compiled Python
+.DS_Store              # macOS files
+```
 
-**Bundle Format:**
-- ZIP compression
-- Preserve directory structure
-- Include SHA256 hash in metadata
+**Compression:** Standard ZIP format
 
 ### Version Resolution
 
-**Latest:**
 ```
-@user/formation          → Query registry for latest_version
-                          → Download that version from GitHub
-```
-
-**Specific:**
-```
-@user/formation:1.0.0    → Download v1.0.0 from GitHub
+@user/formation              → latest_version from registry
+@user/formation:1.0.0        → specific version
+@user/formation:1.x          → (future) resolve to latest 1.x
 ```
 
-**Semver Range (Future):**
+### Error Recovery
+
+**Network Errors:**
 ```
-@user/formation:^1.0.0   → Resolve to highest 1.x version
-@user/formation:~1.2.0   → Resolve to highest 1.2.x version
+Retry with exponential backoff:
+  - Wait 1s, retry
+  - Wait 2s, retry
+  - Wait 4s, retry
+  - Give up after 3 attempts
+```
+
+**GitHub Rate Limits:**
+```
+If GitHub rate limited:
+  - Display remaining time to reset
+  - Suggest authentication (higher limits)
+  - Exit gracefully
 ```
 
 ---
 
-**End of Registry CLI Specification**
+## Quick Reference
 
-See also:
-- [ALPHA-PRD.md](../../registry/ALPHA-PRD.md) - Overall registry product requirements
-- [CLI-COMMAND-DESIGN.md](./CLI-COMMAND-DESIGN.md) - Main CLI command design
-- [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) - CLI implementation plan
+### CLI Commands (Recommended)
+
+```bash
+# Authenticate
+muxi login
+
+# Publish
+muxi push                          # Personal account
+muxi push --org muxi-ai            # Organization
+
+# Discovery
+muxi pull @user/formation          # Latest version
+muxi pull @user/formation:1.0.0    # Specific version
+muxi search "customer support"     # Search
+
+# Info
+muxi show @user/formation          # Formation details
+```
+
+### API Endpoints (Summary)
+
+```
+Authentication:
+  GET  /auth/cli/authorize
+
+Discovery (Public):
+  GET  /api/formations/@:user/:name
+  GET  /api/formations/@:user/:name?pull=true
+  GET  /api/formations/@:user/:name:version
+  GET  /api/formations/@:user/:name/versions
+  GET  /api/search?q=query
+
+Publishing (Authenticated):
+  POST /api/formations/publish
+```
+
+---
+
+## See Also
+
+- [CLI Command Design](./CLI-COMMAND-DESIGN.md) - Complete CLI specification
+- [Implementation Plan](./IMPLEMENTATION-PLAN.md) - CLI development roadmap
+- [Registry Documentation](../../registry/docs/) - Full registry documentation
+
+---
+
+**End of Registry API Reference**
+
+**Status:** ✅ Registry is production-ready  
+**Last Updated:** 2025-10-29  
+**Registry Version:** v1.0 (Phase 2 Complete)
