@@ -1,16 +1,16 @@
 # Complete CLI Command Reference
 
-**Date:** 2025-11-25  
-**Timeline:** 1 Week  
+**Date:** 2025-11-25
+**Timeline:** 1 Week
 **Total Commands:** ~80
 
 ---
 
 ## Implementation Priority
 
-**Day 1-2: Core** - Formation dev, secrets, profiles  
-**Day 3: Server** - Lifecycle, management  
-**Day 4-5: Formation API** - Agents, MCPs, chat, monitoring  
+**Day 1-2: Core** - Formation dev, secrets, profiles
+**Day 3: Server** - Lifecycle, management
+**Day 4-5: Formation API** - Agents, MCPs, chat, monitoring
 **Day 6-7: Polish** - Testing, docs, UX
 
 ---
@@ -21,7 +21,12 @@
 muxi
 │
 ├── 🏗️  FORMATION DEVELOPMENT (Local)
-│   ├── init <name>                    # Create formation (wizard)
+│   ├── new formation my-bot           # Creates my-bot/ directory
+│   ├── new agent weather              # Creates agents/weather.yaml
+│   ├── new mcp postgres               # Creates mcps/postgres.yaml
+│   ├── new sop onboarding             # Creates sops/onboarding.md
+│   ├── new trigger webhook            # Creates triggers/webhook.md
+│   ├── new a2a external-api           # Creates a2a/external-api.yaml
 │   ├── validate                       # Validate formation files
 │   └── deploy [--profile <name>]      # Deploy to server(s)
 │
@@ -32,11 +37,11 @@ muxi
 │   └── secrets setup                  # Setup wizard (from secrets.example)
 │
 ├── 🌐 REGISTRY
-│   ├── login [registry]               # Authenticate (default: registry.muxi.org)
-│   ├── logout [registry]              # Logout
-│   ├── push [--registry <url>]        # Publish formation
-│   ├── pull <ref> [--registry <url>]  # Download formation
-│   └── search <query> [--registry <url>] # Search formations
+│   ├── registry login [--registry <url>]          # Authenticate (default: registry.muxi.org)
+│   ├── registry logout [--registry <url>]         # Logout
+│   ├── registry search <query> [--registry <url>] # Search formations
+│   ├── push [--registry <url>]                    # Publish formation
+│   └── pull <ref> [--registry <url>]              # Download formation
 │
 ├── 🖥️  PROFILE MANAGEMENT
 │   ├── profile add <name>             # Add server profile (wizard)
@@ -155,5 +160,5 @@ muxi
 
 ---
 
-**Status:** Complete command reference  
+**Status:** Complete command reference
 **Next:** Implement in priority order

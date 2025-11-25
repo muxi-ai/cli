@@ -11,12 +11,71 @@
 Command-line tool for MUXI formation development and server management. Supports local development, multi-server deployment, and complete formation lifecycle management.
 
 **Key Features:**
-- 🏗️ Local formation development (init, validate, secrets)
+- 🏗️ Local formation scaffolding (new, validate, secrets)
 - 🚀 Multi-server deployment (deploy to all servers in profile)
 - 🔐 Smart secrets management (validation, sync, wizard)
 - 🌐 Registry integration (push/pull formations)
 - ⚙️ Complete Formation API coverage (~80 commands)
 - 🖥️ Server operations (lifecycle, monitoring)
+
+---
+
+## Local vs Remote Commands
+
+### Clear Distinction
+
+**Local File Generation** (Scaffolding)
+```bash
+muxi new formation my-bot            # Creates my-bot/ directory
+muxi new agent weather               # Creates agents/weather.yaml
+muxi new mcp postgres                # Creates mcps/postgres.yaml
+muxi new sop onboarding              # Creates sops/onboarding.md
+muxi new trigger webhook             # Creates triggers/webhook.yaml
+muxi new a2a external-api            # Creates a2a/external-api.yaml
+```
+
+**Remote API Management**
+```bash
+muxi agent add weather               # POST /v1/agents (via server)
+muxi mcp add postgres                # POST /v1/mcp/servers (via server)
+muxi formation list                  # GET /rpc/formations (Server API)
+```
+
+### Command Pattern
+
+| Command | Action | Context |
+|---------|--------|---------|
+| `muxi new X <name>` | Creates local file | Must be in formation dir (except formation) |
+| `muxi X add/list/update` | Calls remote API | Requires `--formation` or `--profile` |
+
+### Workflow Example
+
+```bash
+# 1. Create formation (local scaffolding)
+muxi new formation my-bot
+cd my-bot/
+
+# 2. Add components (local files)
+muxi new agent weather
+muxi new mcp postgres
+muxi new sop customer-onboarding
+
+# 3. Edit files
+vim agents/weather.yaml
+vim mcps/postgres.yaml
+
+# 4. Configure secrets
+muxi secrets setup
+
+# 5. Validate & deploy
+muxi validate
+muxi deploy --profile production
+
+# 6. Manage deployed formation (remote API)
+muxi agent list                      # Lists deployed agents
+muxi agent update weather --active false
+muxi mcp add new-server --file new.yaml
+```
 
 ---
 
@@ -140,6 +199,294 @@ muxi deploy  # Uses global default from servers.yaml
 
 ---
 
+## Context Management (Session-Scoped)
+
+### The Multi-Terminal Problem
+
+Operators often work on multiple formations simultaneously in different terminal windows. Persistent context (stored in config file) breaks this workflow:
+
+**Problem with persistent config:**
+```bash
+# Terminal 1
+muxi formation use my-bot       # Saved to config.yaml
+muxi logs --follow              # Working on my-bot
+
+# Terminal 2 (same time)
+muxi formation use support-bot  # Overwrites config.yaml
+muxi agent list                 # Working on support-bot
+
+# Back to Terminal 1
+muxi status                     # 💥 Now on support-bot! (config changed)
+```
+
+### Solution: Session-Scoped Context (Environment Variables)
+
+Each terminal session has independent context using environment variables. Requires one-time shell integration.
+
+---
+
+### Setup (One-Time)
+
+**Install shell integration:**
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+eval "$(muxi completion zsh)"
+
+# Reload shell
+source ~/.zshrc
+```
+
+This installs:
+- Shell completions
+- Helper functions for `muxi formation/profile/registry use`
+- Context management via environment variables
+
+---
+
+### Context Commands
+
+#### Formation Context
+
+```bash
+# Set formation context (this session only)
+muxi formation use my-bot
+# ✓ Using formation 'my-bot' (this session)
+# Behind the scenes: export MUXI_FORMATION=my-bot
+
+# Show current formation context
+muxi formation current
+# Formation: my-bot (production)
+
+# Clear formation context
+muxi formation unset
+# ✓ Formation context cleared
+# Behind the scenes: unset MUXI_FORMATION
+```
+
+#### Profile Context
+
+```bash
+# Set profile context (this session only)
+muxi profile use production
+# ✓ Using profile 'production' (this session)
+# Behind the scenes: export MUXI_PROFILE=production
+
+# Show current profile
+muxi profile current
+# Profile: production
+
+# Clear profile context
+muxi profile unset
+# ✓ Profile context cleared
+# Behind the scenes: unset MUXI_PROFILE
+```
+
+#### Registry Context
+
+```bash
+# Set registry context (this session only)
+muxi registry use private.company.com
+# ✓ Using registry 'private.company.com' (this session)
+# Behind the scenes: export MUXI_REGISTRY=private.company.com
+
+# Show current registry
+muxi registry current
+# Registry: private.company.com
+
+# Clear registry context
+muxi registry unset
+# ✓ Registry context cleared
+# Behind the scenes: unset MUXI_REGISTRY
+```
+
+---
+
+### Complete Resolution Hierarchy
+
+#### Formation Resolution (for Formation API commands)
+
+**Priority (highest to lowest):**
+1. `--formation` flag (explicit)
+2. Formation directory detection (if in formation.yaml dir)
+3. `$MUXI_FORMATION` env var (session context)
+4. Error with suggestion
+
+**Example:**
+```bash
+export MUXI_FORMATION=my-bot      # Session context
+
+muxi agent list                   # Uses my-bot
+muxi agent list --formation other # Uses other (override)
+cd ~/my-bot && muxi agent list    # Uses my-bot from directory
+```
+
+#### Profile Resolution (for all commands)
+
+**Priority (highest to lowest):**
+1. `--profile` flag (explicit)
+2. `.muxi` file (if in formation dir)
+3. `$MUXI_PROFILE` env var (session context)
+4. `default_profile` from config.yaml
+5. `default_profile` from servers.yaml
+6. Error with suggestion
+
+#### Registry Resolution (for registry commands)
+
+**Priority (highest to lowest):**
+1. `--registry` flag (explicit)
+2. `.muxi` file (if in formation dir)
+3. `$MUXI_REGISTRY` env var (session context)
+4. `default_registry` from config.yaml (registry.muxi.org)
+
+---
+
+### Multi-Terminal Workflow
+
+**Terminal 1: Working on my-bot**
+```bash
+muxi formation use my-bot
+muxi profile use production
+
+muxi agent list              # my-bot
+muxi status                  # my-bot
+muxi logs --follow           # my-bot
+# ... leave running ...
+```
+
+**Terminal 2: Working on support-bot (same time!)**
+```bash
+muxi formation use support-bot
+muxi profile use staging
+
+muxi agent list              # support-bot
+muxi mcp add postgres        # support-bot
+```
+
+**Back to Terminal 1:**
+```bash
+muxi status                  # ✅ Still my-bot!
+```
+
+---
+
+### Manual Context (Without Shell Integration)
+
+If shell integration isn't installed, users can set context manually:
+
+```bash
+# Set context manually
+export MUXI_FORMATION=my-bot
+export MUXI_PROFILE=production
+export MUXI_REGISTRY=private.company.com
+
+# Now commands use these
+muxi agent list              # Uses my-bot @ production
+
+# Clear manually
+unset MUXI_FORMATION
+unset MUXI_PROFILE
+unset MUXI_REGISTRY
+```
+
+---
+
+### Shell Integration Implementation
+
+The `muxi completion` command generates shell functions:
+
+```bash
+# Example: Zsh integration (generated by muxi completion zsh)
+muxi() {
+    case "$1" in
+        formation)
+            case "$2" in
+                use)
+                    export MUXI_FORMATION="$3"
+                    echo "✓ Using formation '$3' (this session)"
+                    ;;
+                unset)
+                    unset MUXI_FORMATION
+                    echo "✓ Formation context cleared"
+                    ;;
+                current)
+                    if [ -n "$MUXI_FORMATION" ]; then
+                        echo "Formation: $MUXI_FORMATION${MUXI_PROFILE:+ ($MUXI_PROFILE)}"
+                    else
+                        echo "No formation context set"
+                        echo "Set with: muxi formation use <name>"
+                    fi
+                    ;;
+                *)
+                    command muxi "$@"
+                    ;;
+            esac
+            ;;
+        profile)
+            case "$2" in
+                use)
+                    export MUXI_PROFILE="$3"
+                    echo "✓ Using profile '$3' (this session)"
+                    ;;
+                unset)
+                    unset MUXI_PROFILE
+                    echo "✓ Profile context cleared"
+                    ;;
+                current)
+                    if [ -n "$MUXI_PROFILE" ]; then
+                        echo "Profile: $MUXI_PROFILE"
+                    else
+                        echo "No profile context set"
+                    fi
+                    ;;
+                *)
+                    command muxi "$@"
+                    ;;
+            esac
+            ;;
+        registry)
+            case "$2" in
+                use)
+                    export MUXI_REGISTRY="$3"
+                    echo "✓ Using registry '$3' (this session)"
+                    ;;
+                unset)
+                    unset MUXI_REGISTRY
+                    echo "✓ Registry context cleared"
+                    ;;
+                current)
+                    if [ -n "$MUXI_REGISTRY" ]; then
+                        echo "Registry: $MUXI_REGISTRY"
+                    else
+                        echo "Using default: registry.muxi.org"
+                    fi
+                    ;;
+                *)
+                    command muxi "$@"
+                    ;;
+            esac
+            ;;
+        *)
+            command muxi "$@"
+            ;;
+    esac
+}
+
+# Shell completions follow...
+```
+
+---
+
+### Benefits
+
+✅ **Independent terminals** - Each session has its own context  
+✅ **Session-scoped** - Clean slate when terminal closes  
+✅ **No shared state** - No config.yaml conflicts  
+✅ **Standard pattern** - Like nvm, rvm, direnv, kubectl contexts  
+✅ **Optional** - Works without shell integration (manual export)  
+✅ **Visible** - Can check with `echo $MUXI_FORMATION`  
+
+---
+
 ## Connection Model
 
 ### CLI is a SERVER Tool
@@ -225,7 +572,7 @@ Setting up 2 required secrets...
 - ✅ Cannot delete secrets referenced in formation files
 - ✅ Validates all references during `muxi validate`
 - ✅ Keeps secrets.example in sync
-- ✅ Auto-generates ADMIN_KEY and CLIENT_KEY on `muxi init`
+- ✅ Auto-generates ADMIN_KEY and CLIENT_KEY on `muxi new formation`
 
 ---
 
@@ -330,13 +677,20 @@ Uploading to registry...
 
 ---
 
-## Command Structure
+## Command Reference
 
 ### Core Commands (Priority 1 - Day 1-2)
 
 ```bash
+# Formation Scaffolding (Local Files)
+muxi new formation <name>           # Create formation scaffold
+muxi new agent <name>               # Create agents/<name>.yaml
+muxi new mcp <name>                 # Create mcps/<name>.yaml
+muxi new a2a <name>                 # Create a2a/<name>.yaml
+muxi new sop <name>                 # Create sops/<name>.md
+muxi new trigger <name>             # Create triggers/<name>.yaml
+
 # Formation Development
-muxi init <name>                    # Create formation
 muxi validate                       # Validate files
 muxi deploy [--profile <name>]      # Deploy to server(s)
 
@@ -365,6 +719,7 @@ muxi search <query> [--registry <url>] # Search formations
 ```bash
 # Formation Lifecycle (Server API)
 muxi formation list [--profile <name>]
+muxi formation get <id> [--profile <name>]
 muxi formation stop <id> [--profile <name>]
 muxi formation restart <id> [--profile <name>]
 muxi formation rollback <id> [--profile <name>]
@@ -379,18 +734,18 @@ muxi server ping [--profile <name>]
 ### Formation Configuration (Priority 3 - Day 4-5)
 
 ```bash
-# Status & Config
+# Status & Config (Formation API - Remote)
 muxi status [--formation <id>] [--profile <name>]
 muxi config show [--formation <id>] [--profile <name>]
 
-# Agents
+# Agents (Remote API)
 muxi agent list [--formation <id>] [--profile <name>]
 muxi agent add [--formation <id>] [--profile <name>] [--file <yaml>]
 muxi agent get <id> [--formation <id>] [--profile <name>]
 muxi agent update <id> [--formation <id>] [--profile <name>]
 muxi agent delete <id> [--formation <id>] [--profile <name>]
 
-# MCPs
+# MCPs (Remote API)
 muxi mcp list [--formation <id>] [--profile <name>]
 muxi mcp add [--formation <id>] [--profile <name>] [--file <yaml>]
 muxi mcp get <id> [--formation <id>] [--profile <name>]
@@ -446,6 +801,14 @@ pkg/
 │   ├── store.go        # Load/save secrets
 │   └── validate.go     # Reference validation
 │
+├── scaffold/           # Formation scaffolding
+│   ├── formation.go    # Generate formation structure
+│   ├── agent.go        # Generate agent YAML
+│   ├── mcp.go          # Generate MCP YAML
+│   ├── sop.go          # Generate SOP markdown
+│   ├── trigger.go      # Generate trigger YAML
+│   └── templates.go    # File templates
+│
 ├── context/            # Formation context detection
 │   └── formation.go    # Walk up directory tree
 │
@@ -459,7 +822,7 @@ pkg/
 
 cmd/
 ├── root.go             # Root command + global flags
-├── init.go             # muxi init
+├── new.go              # muxi new *
 ├── validate.go         # muxi validate
 ├── deploy.go           # muxi deploy
 ├── secrets.go          # muxi secrets *
@@ -470,10 +833,6 @@ cmd/
 ├── agent.go            # muxi agent *
 ├── mcp.go              # muxi mcp *
 ├── chat.go             # muxi chat
-├── session.go          # muxi session *
-├── trigger.go          # muxi trigger *
-├── job.go              # muxi job *
-├── logs.go             # muxi logs
 └── ... (other commands)
 ```
 
@@ -536,11 +895,16 @@ cd my-formation/
 muxi validate           # ✓ Works
 muxi deploy             # ✓ Works
 muxi secrets set KEY    # ✓ Works
+muxi new agent weather  # ✓ Works
 
 # Outside formation directory
 cd ~/projects
 muxi validate           # ✗ Error: Not in formation directory
 muxi deploy             # ✗ Error: Not in formation directory
+muxi new agent weather  # ✗ Error: Not in formation directory
+
+# muxi new formation works anywhere
+muxi new formation my-bot  # ✓ Works (creates directory)
 
 # Server operations work anywhere
 muxi formation list     # ✓ Works (server operation)
@@ -562,6 +926,7 @@ muxi server status      # ✓ Works (server operation)
 - HMAC signing
 - Profile resolution
 - Secret reference validation
+- Template generation
 
 ### Integration Tests
 - Server API calls (mocked)
@@ -580,7 +945,7 @@ muxi server status      # ✓ Works (server operation)
 ## Success Criteria
 
 **Week 1 Complete When:**
-- [ ] All core commands working (init, validate, deploy, secrets)
+- [ ] All core commands working (new, validate, deploy, secrets)
 - [ ] Multi-server deployment working
 - [ ] Registry integration working (push/pull)
 - [ ] Server operations working (list, stop, restart)

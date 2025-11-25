@@ -29,7 +29,7 @@
 - [ ] Tests
 
 ### Basic Commands (6 hours)
-- [ ] `muxi init` - Formation scaffolding
+- [ ] `muxi new formation` - Formation scaffolding
   - Create directory structure
   - Generate formation.yaml
   - Auto-generate ADMIN_KEY + CLIENT_KEY
@@ -291,7 +291,7 @@ go test -race ./...
 go build -o muxi ./src
 
 # Test command
-./muxi init test-formation
+./muxi new formation test-formation
 cd test-formation
 ./muxi validate
 ```
@@ -317,7 +317,7 @@ defer server.Close()
 1. `pkg/config` - Configuration
 2. `pkg/secrets` - Encryption
 3. `pkg/context` - Formation detection
-4. `cmd/init` - muxi init
+4. `cmd/init` - muxi new formation
 5. `cmd/validate` - muxi validate
 6. `cmd/secrets` - muxi secrets
 
