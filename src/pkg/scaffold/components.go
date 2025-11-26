@@ -19,8 +19,8 @@ func CreateAgent(name string, noWizard bool) error {
 	if err != nil {
 		ui.ErrorBlock(
 			"Not in formation directory",
-			"",
 			"Run this command from inside a formation directory:\n  cd my-formation\n  muxi new agent weather\n\nOr create a new formation:\n  muxi new formation",
+			"",
 		)
 		os.Exit(1)
 	}
