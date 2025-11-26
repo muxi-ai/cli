@@ -218,10 +218,17 @@ system_message: |
 #   enabled: true
 knowledge: []
 
-# Add MCP servers by editing below:
+# Add MCP servers by editing below (agent-specific MCP servers):
 # mcp_servers:
-#   - server_id: weather-api
-#     description: "Weather data and forecasting tools"
+#   - id: "weather_service"
+#     description: "External weather service"
+#     active: true
+#     type: "http"
+#     endpoint: "http://localhost:3000"
+#     auth:
+#       type: "api_key"
+#       header: "X-API-Key"
+#       key: "${{ secrets.WEATHER_API_KEY }}"
 mcp_servers: []
 `, id, name, description, role, specialtiesYAML, systemMsg)
 }
