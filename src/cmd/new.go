@@ -75,11 +75,8 @@ Examples:
 			name = args[0]
 		}
 
-		if err := scaffold.CreateAgent(name, noWizard); err != nil {
-			return fmt.Errorf("failed to create agent: %w", err)
-		}
-
-		return nil
+		// Don't wrap error - ErrorBlock already shown
+		return scaffold.CreateAgent(name, noWizard)
 	},
 }
 

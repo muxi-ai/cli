@@ -17,8 +17,12 @@ func CreateAgent(name string, noWizard bool) error {
 	// Must be in formation directory - check FIRST
 	ctx, err := context.MustDetectFormation()
 	if err != nil {
-		ui.ErrorBlock("Not in formation directory", err.Error(), "")
-		return fmt.Errorf("not in formation directory")
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"",
+			"Run this command from inside a formation directory:\n  cd my-formation\n  muxi new agent weather\n\nOr create a new formation:\n  muxi new formation",
+		)
+		os.Exit(1)
 	}
 
 	// If no name provided, handle based on mode
@@ -51,7 +55,7 @@ func CreateAgent(name string, noWizard bool) error {
 		// Name provided as argument - validate it
 		if err := validateComponentName(name); err != nil {
 			ui.ErrorBlock("Invalid agent ID", err.Error(), "Example: weather-assistant")
-			return fmt.Errorf("invalid name")
+			os.Exit(1)
 		}
 		
 		// Check if file already exists
@@ -62,7 +66,7 @@ func CreateAgent(name string, noWizard bool) error {
 				fmt.Sprintf("File 'agents/%s.yaml' already exists", name),
 				fmt.Sprintf("Choose a different name or remove:\n  rm agents/%s.yaml", name),
 			)
-			return fmt.Errorf("file exists")
+			os.Exit(1)
 		}
 		
 		// If interactive mode, show ID success
