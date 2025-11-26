@@ -81,24 +81,28 @@ Examples:
 }
 
 var newMcpCmd = &cobra.Command{
-	Use:   "mcp <name>",
+	Use:   "mcp [name]",
 	Short: "Create a new MCP server",
 	Long: `Create a new MCP server configuration file in mcps/ directory.
 
 Must be run inside a formation directory.
 
 Examples:
-  muxi new mcp postgres
-  muxi new mcp postgres --no-wizard`,
-	Args: cobra.ExactArgs(1),
+  muxi new mcp                        # Interactive wizard (prompts for ID)
+  muxi new mcp weather-api            # Create formation-level MCP
+  muxi new mcp --agent weather-bot    # Create agent-specific MCP
+  muxi new mcp postgres --no-wizard   # Non-interactive`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-
-		if err := scaffold.CreateMCP(name, noWizard); err != nil {
-			return fmt.Errorf("failed to create MCP server: %w", err)
+		var name string
+		if len(args) > 0 {
+			name = args[0]
 		}
 
-		return nil
+		agentID, _ := cmd.Flags().GetString("agent")
+
+		// Don't wrap error - ErrorBlock already shown
+		return scaffold.CreateMCP(name, agentID, noWizard)
 	},
 }
 
@@ -176,6 +180,9 @@ func init() {
 	newSopCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 	newTriggerCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 	newA2ACmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
+
+	// Add MCP-specific flags
+	newMcpCmd.Flags().String("agent", "", "Create MCP for specific agent (agent-specific MCP)")
 
 	// Add subcommands to new
 	newCmd.AddCommand(newFormationCmd)

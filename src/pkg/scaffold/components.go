@@ -234,59 +234,241 @@ mcp_servers: []
 }
 
 // CreateMCP creates a new MCP server configuration file
-func CreateMCP(name string, noWizard bool) error {
+func CreateMCP(name, agentID string, noWizard bool) error {
+	// Must be in formation directory - check FIRST
 	ctx, err := context.MustDetectFormation()
 	if err != nil {
-		ui.ErrorBlock("Not in formation directory", err.Error(), "")
-		return fmt.Errorf("not in formation directory")
-	}
-
-	if err := validateComponentName(name); err != nil {
-		ui.ErrorBlock("Invalid MCP server name", err.Error(), "Example: postgres-db")
-		return fmt.Errorf("invalid name")
-	}
-
-	mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-	if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
 		ui.ErrorBlock(
-			"MCP file exists",
-			fmt.Sprintf("File 'mcps/%s.yaml' already exists", name),
-			fmt.Sprintf("Choose a different name or remove:\n  rm mcps/%s.yaml", name),
+			"Not in formation directory",
+			"Run this command from inside a formation directory:\n  cd my-formation\n  muxi new mcp weather-api\n\nOr create a new formation:\n  muxi new formation",
+			"",
 		)
-		return fmt.Errorf("file exists")
+		os.Exit(1)
 	}
 
-	var description, mcpType, command string
+	// Show banner (formation-level or agent-specific)
+	if agentID != "" {
+		// Agent-specific banner
+		agentFile := filepath.Join(ctx.RootDir, "agents", agentID+".yaml")
+		if _, err := os.Stat(agentFile); os.IsNotExist(err) {
+			ui.ErrorBlock(
+				"Agent not found",
+				fmt.Sprintf("Agent '%s' does not exist", agentID),
+				"Create the agent first:\n  muxi new agent "+agentID,
+			)
+			os.Exit(1)
+		}
+		
+		// Load agent to get name
+		agentName := titleCase(agentID) // Fallback to ID
+		ui.InfoBanner(fmt.Sprintf("[i] MCP for: %s", agentName))
+	} else {
+		// Formation-level banner
+		ui.InfoBanner("[i] Formation-level MCPs can be used by all agents.\n\nFor tools that are going to be used primarily by a\nspecific agent, it is recommended to add the MCP on\nthe agent-level using:\n  $ muxi new mcp --agent <agent-id>")
+	}
+
+	// If no name provided, handle based on mode
+	if name == "" {
+		if noWizard {
+			return fmt.Errorf("MCP ID required (provide as argument or run without --no-wizard)")
+		}
+		
+		// Interactive mode - prompt for ID
+		for {
+			var err error
+			name, err = wizard.PromptString("MCP ID", "", validateComponentName)
+			if err != nil {
+				return err
+			}
+			
+			// Check if file already exists
+			mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+			if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+				ui.PromptError("MCP ID", name, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm mcps/%s.yaml", name))
+				continue
+			}
+			
+			ui.PromptSuccess("MCP ID", name)
+			break
+		}
+	} else {
+		// Name provided as argument - validate it
+		if err := validateComponentName(name); err != nil {
+			ui.ErrorBlock("Invalid MCP ID", err.Error(), "Example: weather-api")
+			os.Exit(1)
+		}
+		
+		// Check if file already exists
+		mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+		if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+			ui.ErrorBlock(
+				"MCP file exists",
+				fmt.Sprintf("File 'mcps/%s.yaml' already exists", name),
+				fmt.Sprintf("Choose a different name or remove:\n  rm mcps/%s.yaml", name),
+			)
+			os.Exit(1)
+		}
+		
+		if !noWizard {
+			ui.PromptSuccess("MCP ID", name)
+		}
+	}
+
+	// Interactive wizard
+	var description, transport, endpoint, command, args string
+	var authType, authHeader string
+	var envVars []string
+	var secrets []string // Secrets to add to secrets file
+
 	if !noWizard {
-		description, _ = wizard.PromptString("Description (optional, press Enter to skip)", "", nil)
-		if description != "" {
-			ui.PromptSuccess("Description", description)
-		} else {
-			ui.PromptSkipped("Description")
+		// Description
+		description, _ = wizard.PromptString("Description", "", nil)
+		ui.PromptSuccess("Description", description)
+
+		// Transport type selection
+		transportOptions := []wizard.SelectOption{
+			{Value: "http", Label: "HTTP", Description: "Streamable HTTP server"},
+			{Value: "stdio", Label: "Stdio", Description: "Local command-line tool"},
+		}
+		
+		fmt.Println()
+		transport, err = wizard.PromptSelect("Transport", transportOptions, 0)
+		if err != nil {
+			return fmt.Errorf("failed to select transport: %w", err)
+		}
+		
+		// Find the label for display
+		for _, opt := range transportOptions {
+			if opt.Value == transport {
+				ui.PromptSuccess("Transport", opt.Label)
+				break
+			}
 		}
 
-		mcpType, _ = wizard.PromptString("Type", "stdio", nil)
-		ui.PromptSuccess("Type", mcpType)
+		if transport == "http" {
+			// HTTP-specific prompts
+			endpoint, _ = wizard.PromptString("Endpoint URL", "", nil)
+			ui.PromptSuccess("Endpoint", endpoint)
 
-		command, _ = wizard.PromptString("Command", "", nil)
-		ui.PromptSuccess("Command", command)
+			// Auth selection
+			authOptions := []wizard.SelectOption{
+				{Value: "none", Label: "None", Description: "No authentication"},
+				{Value: "api_key", Label: "API Key", Description: "API key in header"},
+				{Value: "bearer", Label: "Bearer Token", Description: "Bearer token authentication"},
+				{Value: "basic", Label: "Basic Auth", Description: "Username and password"},
+			}
+			
+			fmt.Println()
+			authType, err = wizard.PromptSelect("Authentication", authOptions, 0)
+			if err != nil {
+				return fmt.Errorf("failed to select auth: %w", err)
+			}
+			
+			// Find the label for display
+			for _, opt := range authOptions {
+				if opt.Value == authType {
+					ui.PromptSuccess("Authentication", opt.Label)
+					break
+				}
+			}
+
+			// Auth-specific prompts
+			secretPrefix := generateMCPSecretPrefix(name)
+			
+			switch authType {
+			case "api_key":
+				authHeader, _ = wizard.PromptString("API Key header", "X-API-Key", nil)
+				ui.PromptSuccess("Header", authHeader)
+				secrets = append(secrets, secretPrefix+"_API_KEY")
+				
+			case "bearer":
+				// No additional prompts needed
+				secrets = append(secrets, secretPrefix+"_BEARER_TOKEN")
+				
+			case "basic":
+				// No prompts - username/password go in secrets
+				secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
+			}
+
+		} else {
+			// Stdio-specific prompts
+			command, _ = wizard.PromptString("Command", "", nil)
+			ui.PromptSuccess("Command", command)
+
+			args, _ = wizard.PromptString("Arguments (space-separated, or Enter to skip)", "", nil)
+			if args != "" {
+				ui.PromptSuccess("Arguments", args)
+			} else {
+				ui.PromptSkipped("Arguments")
+			}
+
+			// Environment variables
+			envInput, _ := wizard.PromptString("Environment variables (comma/space/newline separated, or Enter to skip)", "", nil)
+			if envInput != "" {
+				envVars = parseEnvironmentVariables(envInput)
+				ui.PromptSuccess("Environment", strings.Join(envVars, ", "))
+				
+				// Add each env var as a secret
+				secretPrefix := generateMCPSecretPrefix(name)
+				for _, envVar := range envVars {
+					secrets = append(secrets, secretPrefix+"_"+envVar)
+				}
+			} else {
+				ui.PromptSkipped("Environment")
+			}
+		}
 	} else {
-		description = ""
-		mcpType = "stdio"
+		// Non-interactive defaults
+		description = fmt.Sprintf("%s MCP server", titleCase(name))
+		transport = "stdio"
 		command = "mcp-server"
+		args = ""
+		authType = "none"
+		envVars = []string{}
 	}
 
-	content := mcpTemplate(name, description, mcpType, command)
+	// Generate template
+	content := mcpTemplateNew(name, description, transport, endpoint, command, args, authType, authHeader, envVars)
+	
+	// Write MCP file
+	mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
 	if err := os.WriteFile(mcpFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create MCP file: %w", err)
 	}
 
+	// Append secrets to secrets file
+	if len(secrets) > 0 {
+		secretsFile := filepath.Join(ctx.RootDir, "secrets")
+		secretsContent := "\n"
+		for _, secret := range secrets {
+			secretsContent += secret + "=\n"
+		}
+		
+		f, err := os.OpenFile(secretsFile, os.O_APPEND|os.O_WRONLY, 0644)
+		if err == nil {
+			f.WriteString(secretsContent)
+			f.Close()
+		}
+	}
+
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Created mcps/%s.yaml", name))
+	
+	if len(secrets) > 0 {
+		secretsList := strings.Join(secrets, ", ")
+		ui.Success(fmt.Sprintf("Added %d secret(s) to configure: %s", len(secrets), secretsList))
+	}
 
 	if !noWizard {
 		fmt.Println()
-		ui.Dimmed("Edit the file to configure connection details")
+		ui.Dimmed("Next steps:")
+		ui.Dimmed("  • Configure secrets: muxi secrets setup")
+		ui.Dimmed("  • Adjust retry/timeout: Edit 'retry_attempts' and 'timeout_seconds'")
+		if transport == "http" {
+			ui.Dimmed("  • Add headers: Edit 'headers' section")
+		} else {
+			ui.Dimmed("  • Set working directory: Edit 'cwd' field")
+		}
 	}
 
 	return nil
@@ -513,22 +695,118 @@ func parseEnvironmentVariables(input string) []string {
 	return result
 }
 
-func mcpTemplate(name, description, mcpType, command string) string {
+func mcpTemplateNew(id, description, transport, endpoint, command, args, authType, authHeader string, envVars []string) string {
 	if description == "" {
-		description = fmt.Sprintf("%s MCP server", titleCase(name))
+		description = fmt.Sprintf("%s MCP server", titleCase(id))
 	}
 
-	return fmt.Sprintf(`id: %s
+	secretPrefix := generateMCPSecretPrefix(id)
+	
+	// Build the template
+	var tmpl strings.Builder
+	
+	// Header
+	tmpl.WriteString(fmt.Sprintf(`id: %s
 description: "%s"
-type: %s
-
-connection:
-  command: %s
-  args: []
-  env: {}
-
 active: true
-`, name, description, mcpType, command)
+
+type: %s
+`, id, description, transport))
+
+	if transport == "http" {
+		// HTTP transport
+		tmpl.WriteString(fmt.Sprintf(`endpoint: "%s"
+`, endpoint))
+
+		// Optional: retry/timeout comments
+		tmpl.WriteString(`
+# Optional: Override default retry/timeout settings
+# retry_attempts: 3
+# timeout_seconds: 30
+`)
+
+		// Auth section
+		if authType != "none" {
+			tmpl.WriteString("\nauth:\n")
+			
+			switch authType {
+			case "api_key":
+				tmpl.WriteString(fmt.Sprintf(`  type: api_key
+  header: "%s"
+  key: "${{ secrets.%s_API_KEY }}"
+`, authHeader, secretPrefix))
+				
+			case "bearer":
+				tmpl.WriteString(fmt.Sprintf(`  type: bearer
+  token: "${{ secrets.%s_BEARER_TOKEN }}"
+`, secretPrefix))
+				
+			case "basic":
+				tmpl.WriteString(fmt.Sprintf(`  type: basic
+  username: "${{ secrets.%s_USERNAME }}"
+  password: "${{ secrets.%s_PASSWORD }}"
+`, secretPrefix, secretPrefix))
+			}
+		}
+
+		// Optional headers comment
+		tmpl.WriteString(`
+# Optional: Additional headers
+# headers:
+#   User-Agent: "MUXI/1.0"
+#   Accept: "application/json"
+`)
+
+	} else {
+		// Stdio transport
+		tmpl.WriteString(fmt.Sprintf(`command: "%s"
+`, command))
+
+		// Args
+		if args != "" {
+			// Parse args into array
+			argsList := strings.Fields(args)
+			if len(argsList) > 0 {
+				tmpl.WriteString("args:")
+				for _, arg := range argsList {
+					tmpl.WriteString(fmt.Sprintf("\n  - \"%s\"", arg))
+				}
+				tmpl.WriteString("\n")
+			}
+		} else {
+			tmpl.WriteString("args: []\n")
+		}
+
+		// Optional: retry/timeout comments
+		tmpl.WriteString(`
+# Optional: Override default retry/timeout settings
+# retry_attempts: 3
+# timeout_seconds: 30
+`)
+
+		// Env vars
+		if len(envVars) > 0 {
+			tmpl.WriteString("\nenv:\n")
+			for _, envVar := range envVars {
+				tmpl.WriteString(fmt.Sprintf("  %s: \"${{ secrets.%s_%s }}\"\n", envVar, secretPrefix, envVar))
+			}
+		} else {
+			// Show example
+			tmpl.WriteString(`
+# Optional: Environment variables
+# env:
+#   NODE_ENV: "${{ secrets.MCP_<ID>_NODE_ENV }}"
+`)
+		}
+
+		// Optional: cwd comment
+		tmpl.WriteString(`
+# Optional: Working directory
+# cwd: "/path/to/working/dir"
+`)
+	}
+
+	return tmpl.String()
 }
 
 func sopTemplate(title, description string) string {
