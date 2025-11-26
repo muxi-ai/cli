@@ -215,7 +215,7 @@ system_message: |
 # knowledge:
 #   - source: knowledge/weather-data.md
 #     description: "Historical weather patterns and climate trends"
-#   enabled: true
+#     enabled: true
 knowledge: []
 
 # Add MCP servers by editing below (agent-specific MCP servers):
