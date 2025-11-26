@@ -82,7 +82,7 @@ func CreateAgent(name string, noWizard bool) error {
 	if !noWizard {
 		// Agent name (inferred from ID)
 		inferredName := titleCase(name)
-		agentName, _ = wizard.PromptString(fmt.Sprintf("Name [%s]", inferredName), inferredName, nil)
+		agentName, _ = wizard.PromptString("Name", inferredName, nil)
 		ui.PromptSuccess("Name", agentName)
 
 		// System message (optional)
