@@ -21,9 +21,9 @@ func CreateAgent(name string, noWizard bool) error {
 		return fmt.Errorf("not in formation directory")
 	}
 
-	// Validate name
+	// Validate name (agent ID)
 	if err := validateComponentName(name); err != nil {
-		ui.ErrorBlock("Invalid agent name", err.Error(), "Example: weather-agent")
+		ui.ErrorBlock("Invalid agent ID", err.Error(), "Example: weather-assistant")
 		return fmt.Errorf("invalid name")
 	}
 
@@ -38,36 +38,82 @@ func CreateAgent(name string, noWizard bool) error {
 		return fmt.Errorf("file exists")
 	}
 
-	// Interactive mode - get optional fields
-	var description, model string
-	var maxTokens int
+	// Interactive mode - full wizard
+	var agentName, systemMessage, role string
+	var specialties []string
 
 	if !noWizard {
-		description, _ = wizard.PromptString("Description (optional, press Enter to skip)", "", nil)
-		if description != "" {
-			ui.PromptSuccess("Description", description)
+		// Show Agent ID success
+		ui.PromptSuccess("Agent ID", name)
+
+		// Agent name (inferred from ID)
+		inferredName := titleCase(name)
+		agentName, _ = wizard.PromptString(fmt.Sprintf("Name [%s]", inferredName), inferredName, nil)
+		ui.PromptSuccess("Name", agentName)
+
+		// System message (optional)
+		systemMessage, _ = wizard.PromptString("System message (optional, press Enter to skip)", "", nil)
+		if systemMessage != "" {
+			ui.PromptSuccess("System message", "configured")
 		} else {
-			ui.PromptSkipped("Description")
+			ui.PromptSkipped("System message")
 		}
 
-		model, _ = wizard.PromptString("Model", "gpt-4o", nil)
-		ui.PromptSuccess("Model", model)
-
-		maxTokensStr, _ := wizard.PromptString("Max tokens", "4000", nil)
-		fmt.Sscanf(maxTokensStr, "%d", &maxTokens)
-		if maxTokens == 0 {
-			maxTokens = 4000
+		// Role selection (interactive)
+		roleOptions := []wizard.SelectOption{
+			{Value: "generalist", Label: "Generalist", Description: "General-purpose assistant"},
+			{Value: "specialist", Label: "Specialist", Description: "Domain expert with specific skills"},
+			{Value: "assistant", Label: "Assistant", Description: "Supports other agents"},
+			{Value: "custom", Label: "Custom", Description: "Specify your own role"},
 		}
-		ui.PromptSuccess("Max tokens", fmt.Sprintf("%d", maxTokens))
+		
+		fmt.Println()
+		selectedRole, err := wizard.PromptSelect("Role", roleOptions, 0)
+		if err != nil {
+			return fmt.Errorf("failed to select role: %w", err)
+		}
+		
+		// If custom, prompt for custom role name
+		if selectedRole == "custom" {
+			customRole, _ := wizard.PromptString("Custom role name", "", nil)
+			role = customRole
+			ui.PromptSuccess("Role", customRole)
+		} else {
+			role = selectedRole
+			// Find the label for display
+			for _, opt := range roleOptions {
+				if opt.Value == selectedRole {
+					ui.PromptSuccess("Role", opt.Label)
+					break
+				}
+			}
+		}
+
+		// Specialties (comma-separated, optional)
+		specialtiesStr, _ := wizard.PromptString("Specialties (comma-separated, optional)", "", nil)
+		if specialtiesStr != "" {
+			// Split and trim
+			parts := strings.Split(specialtiesStr, ",")
+			for _, part := range parts {
+				trimmed := strings.TrimSpace(part)
+				if trimmed != "" {
+					specialties = append(specialties, trimmed)
+				}
+			}
+			ui.PromptSuccess("Specialties", strings.Join(specialties, ", "))
+		} else {
+			ui.PromptSkipped("Specialties")
+		}
 	} else {
 		// Non-interactive defaults
-		description = ""
-		model = "gpt-4o"
-		maxTokens = 4000
+		agentName = titleCase(name)
+		systemMessage = ""
+		role = "generalist"
+		specialties = []string{}
 	}
 
 	// Create agent file
-	content := agentTemplate(name, description, model, maxTokens)
+	content := agentTemplate(name, agentName, systemMessage, role, specialties)
 	if err := os.WriteFile(agentFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create agent file: %w", err)
 	}
@@ -77,10 +123,10 @@ func CreateAgent(name string, noWizard bool) error {
 
 	if !noWizard {
 		fmt.Println()
-		ui.Dimmed("Edit the file to:")
-		ui.Dimmed("  • Add tools and capabilities")
-		ui.Dimmed("  • Configure prompts and persona")
-		ui.Dimmed("  • Set up workflows")
+		ui.Dimmed("Next steps:")
+		ui.Dimmed("  • Add knowledge: Edit the 'knowledge' section")
+		ui.Dimmed("  • Configure model: Adjust 'model' settings")
+		ui.Dimmed("  • Add tools: Edit the 'tools' section")
 	}
 
 	return nil
@@ -101,26 +147,60 @@ func validateComponentName(name string) error {
 	return nil
 }
 
-func agentTemplate(name, description, model string, maxTokens int) string {
-	if description == "" {
-		description = fmt.Sprintf("%s agent", strings.ReplaceAll(name, "-", " "))
+func agentTemplate(id, name, systemMessage, role string, specialties []string) string {
+	description := fmt.Sprintf("%s agent", name)
+	
+	// System message
+	systemMsg := systemMessage
+	if systemMsg == "" {
+		systemMsg = "You are a helpful AI assistant."
 	}
-
+	
+	// Specialties
+	specialtiesYAML := ""
+	if len(specialties) > 0 {
+		specialtiesYAML = "specialties:\n"
+		for _, s := range specialties {
+			specialtiesYAML += fmt.Sprintf("  - %s\n", s)
+		}
+	} else {
+		specialtiesYAML = "specialties: []\n"
+	}
+	
 	return fmt.Sprintf(`id: %s
+name: %s
 description: "%s"
 active: true
+role: %s
+%s
+system_message: |
+  %s
 
 model:
-  name: "openai/%s"
-  max_tokens: %d
+  name: "openai/gpt-4o"
+  max_tokens: 4000
   temperature: 0.7
 
-persona: |
-  You are a helpful AI assistant.
+# Add knowledge sources by editing below:
+# knowledge:
+#   - source: knowledge/weather-data.md
+#     description: "Historical weather patterns and climate trends"
+#   - source: knowledge/api-reference.md
+#     description: "Weather API documentation and usage examples"
+knowledge: []
 
+# Add tools by editing below:
+# tools:
+#   - name: get_weather
+#     description: "Get current weather for a location"
+#     parameters:
+#       location:
+#         type: string
+#         description: "City name or coordinates"
 tools: []
+
 workflows: []
-`, name, description, model, maxTokens)
+`, id, name, description, role, specialtiesYAML, systemMsg)
 }
 
 // CreateMCP creates a new MCP server configuration file
