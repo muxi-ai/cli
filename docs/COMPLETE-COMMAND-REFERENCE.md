@@ -36,10 +36,11 @@ muxi
 │   └── deploy [--profile <name>]      # Deploy to server(s)
 │
 ├── 🔐 SECRET MANAGEMENT (Local)
+│   ├── secrets setup                  # Setup wizard (only prompts for new secrets)
+│   ├── secrets sync                   # Sync secrets file with formation YAMLs
 │   ├── secrets set <key>              # Set secret (prompt for value)
 │   ├── secrets list                   # List secret keys (no values)
-│   ├── secrets delete <key>           # Delete secret (with validation)
-│   └── secrets setup                  # Setup wizard (from secrets.example)
+│   └── secrets delete <key>           # Delete secret (with validation)
 │
 ├── 🌐 REGISTRY
 │   ├── registry login [--registry <url>]          # Authenticate (default: registry.muxi.org)
@@ -297,6 +298,188 @@ muxi server version --profile production
 # 
 #   Server: production (https://api.company.com:7890)
 #   Error: connection refused
+```
+
+---
+
+### Secret Management Commands
+
+#### `muxi secrets setup`
+
+**Purpose:** Interactive wizard to configure secrets (only prompts for secrets NOT already in secrets.enc)
+
+**Behavior:**
+- Scans all YAML files for `${{ secrets.* }}` references
+- Only prompts for secrets that don't exist in `secrets.enc`
+- Shows which secrets are already configured
+- Encrypts new secrets to `secrets.enc`
+
+**Output:**
+```
+Configuring secrets...
+
+New secrets (3):
+  OPENAI_API_KEY: sk-proj-***
+  MCP_WEATHER_API_KEY: ***
+  DATABASE_PASSWORD: ***
+
+Already configured (5):
+  ✓ ANTHROPIC_API_KEY
+  ✓ SLACK_TOKEN
+  ✓ MCP_POSTGRES_PASSWORD
+  ...
+
+✓ 3 new secrets encrypted
+```
+
+**Examples:**
+```bash
+# First time setup
+muxi secrets setup
+# Configuring secrets...
+# New secrets (8):
+#   OPENAI_API_KEY: ***
+#   ANTHROPIC_API_KEY: ***
+#   ...
+# ✓ 8 secrets encrypted
+
+# After some secrets are configured
+muxi secrets setup
+# Configuring secrets...
+# New secrets (2):
+#   NEW_SERVICE_KEY: ***
+#   MCP_WEATHER_API_KEY: ***
+# Already configured (6):
+#   ✓ OPENAI_API_KEY
+#   ✓ SLACK_TOKEN
+#   ...
+# ✓ 2 new secrets encrypted
+
+# No new secrets needed
+muxi secrets setup
+# Configuring secrets...
+# All secrets configured (8)
+# ✓ No new secrets to configure
+```
+
+---
+
+#### `muxi secrets sync`
+
+**Purpose:** Sync secrets file with formation YAML files (scan for `${{ secrets.* }}` and update secrets template)
+
+**Behavior:**
+- Scans all YAML files for `${{ secrets.* }}` references
+- Removes unused secrets from `secrets` file (not referenced in any YAML)
+- Adds new secrets found in YAMLs to `secrets` file
+- Does NOT modify `secrets.enc` (only updates the `secrets` template)
+
+**Output:**
+```
+Syncing secrets...
+
+Added 2 new secrets:
+  • MCP_WEATHER_API_KEY
+  • OPENAI_API_KEY
+
+Removed 1 unused secret:
+  • OLD_SERVICE_TOKEN
+
+✓ Secrets synced! Run 'muxi secrets setup' to configure new secrets.
+```
+
+**Examples:**
+```bash
+# After adding new MCP with auth
+muxi new mcp weather-api  # Adds MCP_WEATHER_API_KEY to formation
+muxi secrets sync
+# Syncing secrets...
+# Added 1 new secret:
+#   • MCP_WEATHER_API_KEY
+# ✓ Secrets synced! Run 'muxi secrets setup' to configure.
+
+# After removing an agent that used secrets
+# (Removed agents/slack.yaml which used SLACK_TOKEN)
+muxi secrets sync
+# Syncing secrets...
+# Removed 1 unused secret:
+#   • SLACK_TOKEN
+# ✓ Secrets synced!
+
+# When everything is in sync
+muxi secrets sync
+# Syncing secrets...
+# ✓ Secrets already in sync
+```
+
+---
+
+#### `muxi secrets set <key>`
+
+**Purpose:** Set or update a single secret value
+
+**Examples:**
+```bash
+muxi secrets set OPENAI_API_KEY
+# Value: sk-proj-***
+# ✓ Secret 'OPENAI_API_KEY' encrypted
+
+# Update existing secret
+muxi secrets set DATABASE_PASSWORD
+# Current value: ****** (8 characters)
+# New value: ***
+# ✓ Secret 'DATABASE_PASSWORD' updated
+```
+
+---
+
+#### `muxi secrets list`
+
+**Purpose:** List all secret keys (without values)
+
+**Output:**
+```bash
+muxi secrets list
+# Configured secrets (8):
+#   • OPENAI_API_KEY
+#   • ANTHROPIC_API_KEY
+#   • SLACK_TOKEN
+#   • DATABASE_PASSWORD
+#   • MCP_WEATHER_API_KEY
+#   • MCP_POSTGRES_PGHOST
+#   • MCP_POSTGRES_PGPORT
+#   • MCP_POSTGRES_PGDATABASE
+```
+
+---
+
+#### `muxi secrets delete <key>`
+
+**Purpose:** Delete a secret with validation
+
+**Behavior:**
+- Warns if secret is still referenced in YAML files
+- Requires confirmation before deleting
+- Removes from both `secrets` and `secrets.enc`
+
+**Examples:**
+```bash
+# Delete unused secret
+muxi secrets delete OLD_API_KEY
+# ⚠ Secret 'OLD_API_KEY' is not referenced in any YAML files.
+# Delete? [y/N]: y
+# ✓ Secret 'OLD_API_KEY' deleted
+
+# Try to delete referenced secret
+muxi secrets delete OPENAI_API_KEY
+# ✗ Cannot delete secret 'OPENAI_API_KEY'
+# 
+#   Referenced in:
+#     • formation.yaml (line 15)
+#     • agents/assistant.yaml (line 42)
+# 
+#   Remove these references first, then run:
+#     muxi secrets sync
 ```
 
 ---
