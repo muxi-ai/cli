@@ -86,7 +86,7 @@ func CreateAgent(name string, noWizard bool) error {
 		ui.PromptSuccess("Name", agentName)
 
 		// System message (optional)
-		systemMessage, _ = wizard.PromptString("System message (optional, press Enter to skip)", "", nil)
+		systemMessage, _ = wizard.PromptString("System message (Enter to skip, you can add it later)", "", nil)
 		if systemMessage != "" {
 			ui.PromptSuccess("System message", "configured")
 		} else {
