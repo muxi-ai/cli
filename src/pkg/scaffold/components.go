@@ -14,28 +14,61 @@ import (
 
 // CreateAgent creates a new agent configuration file
 func CreateAgent(name string, noWizard bool) error {
-	// Must be in formation directory
+	// Must be in formation directory - check FIRST
 	ctx, err := context.MustDetectFormation()
 	if err != nil {
 		ui.ErrorBlock("Not in formation directory", err.Error(), "")
 		return fmt.Errorf("not in formation directory")
 	}
 
-	// Validate name (agent ID)
-	if err := validateComponentName(name); err != nil {
-		ui.ErrorBlock("Invalid agent ID", err.Error(), "Example: weather-assistant")
-		return fmt.Errorf("invalid name")
-	}
-
-	// Check if file already exists
-	agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
-	if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
-		ui.ErrorBlock(
-			"Agent file exists",
-			fmt.Sprintf("File 'agents/%s.yaml' already exists", name),
-			fmt.Sprintf("Choose a different name or remove:\n  rm agents/%s.yaml", name),
-		)
-		return fmt.Errorf("file exists")
+	// If no name provided, handle based on mode
+	if name == "" {
+		if noWizard {
+			return fmt.Errorf("agent ID required (provide as argument or run without --no-wizard)")
+		}
+		
+		// Interactive mode - prompt for ID with validation loop
+		for {
+			var err error
+			name, err = wizard.PromptString("Agent ID", "", validateComponentName)
+			if err != nil {
+				return err
+			}
+			
+			// Check if file already exists
+			agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
+			if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
+				// Show error and re-prompt
+				ui.PromptError("Agent ID", name, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm agents/%s.yaml", name))
+				continue
+			}
+			
+			// All good - show success and break
+			ui.PromptSuccess("Agent ID", name)
+			break
+		}
+	} else {
+		// Name provided as argument - validate it
+		if err := validateComponentName(name); err != nil {
+			ui.ErrorBlock("Invalid agent ID", err.Error(), "Example: weather-assistant")
+			return fmt.Errorf("invalid name")
+		}
+		
+		// Check if file already exists
+		agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
+		if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
+			ui.ErrorBlock(
+				"Agent file exists",
+				fmt.Sprintf("File 'agents/%s.yaml' already exists", name),
+				fmt.Sprintf("Choose a different name or remove:\n  rm agents/%s.yaml", name),
+			)
+			return fmt.Errorf("file exists")
+		}
+		
+		// If interactive mode, show ID success
+		if !noWizard {
+			ui.PromptSuccess("Agent ID", name)
+		}
 	}
 
 	// Interactive mode - full wizard
@@ -43,9 +76,6 @@ func CreateAgent(name string, noWizard bool) error {
 	var specialties []string
 
 	if !noWizard {
-		// Show Agent ID success
-		ui.PromptSuccess("Agent ID", name)
-
 		// Agent name (inferred from ID)
 		inferredName := titleCase(name)
 		agentName, _ = wizard.PromptString(fmt.Sprintf("Name [%s]", inferredName), inferredName, nil)
@@ -113,6 +143,7 @@ func CreateAgent(name string, noWizard bool) error {
 	}
 
 	// Create agent file
+	agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
 	content := agentTemplate(name, agentName, systemMessage, role, specialties)
 	if err := os.WriteFile(agentFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create agent file: %w", err)

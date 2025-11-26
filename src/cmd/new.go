@@ -58,18 +58,22 @@ Examples:
 }
 
 var newAgentCmd = &cobra.Command{
-	Use:   "agent <name>",
+	Use:   "agent [name]",
 	Short: "Create a new agent",
 	Long: `Create a new agent configuration file in agents/ directory.
 
 Must be run inside a formation directory.
 
 Examples:
-  muxi new agent weather
+  muxi new agent              # Interactive wizard (prompts for ID)
+  muxi new agent weather      # Create with ID
   muxi new agent weather --no-wizard`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
+		var name string
+		if len(args) > 0 {
+			name = args[0]
+		}
 
 		if err := scaffold.CreateAgent(name, noWizard); err != nil {
 			return fmt.Errorf("failed to create agent: %w", err)
