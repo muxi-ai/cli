@@ -29,7 +29,7 @@ Creates a complete formation directory with all necessary files and structure.
 muxi new formation
 
 Create new formation:
-  Formation name: my-bot
+  Formation ID: my-bot
   Description (optional): My awesome chatbot
 
 Creating formation 'my-bot'...
@@ -190,7 +190,7 @@ llm:
 ```
 
 **Notes:**
-- `id` field uses user-provided formation name
+- `id` field uses user-provided formation ID
 - `description` uses user-provided description (wizard mode) or default
 - FORMATION_* keys are auto-generated and stored in secrets.enc
 
@@ -272,7 +272,7 @@ muxi deploy --profile localhost  # Test locally
 **1. Formation Name (if not provided as arg)**
 
 ```
-Formation name: _
+Formation ID: _
 ```
 
 **Validation:**
@@ -337,14 +337,14 @@ muxi new formation my-bot
     rm -rf my-bot
 ```
 
-**Invalid formation name:**
+**Invalid formation ID:**
 
 ```bash
 muxi new formation My-Bot
 
-✗ Invalid formation name 'My-Bot'
+✗ Invalid formation ID 'My-Bot'
 
-  Formation names must:
+  Formation IDs must:
     • Be lowercase
     • Start with a letter
     • Contain only letters, numbers, and hyphens
