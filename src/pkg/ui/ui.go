@@ -232,3 +232,29 @@ func Confirm(prompt string, defaultYes bool) {
 		fmt.Printf("%s [y/N]: ", prompt)
 	}
 }
+
+// InfoBanner displays an info message in a framed box
+func InfoBanner(message string) {
+	lines := strings.Split(message, "\n")
+	
+	// Find the longest line for width
+	maxWidth := 0
+	for _, line := range lines {
+		if len(line) > maxWidth {
+			maxWidth = len(line)
+		}
+	}
+	
+	// Top border
+	fmt.Printf("╭%s╮\n", strings.Repeat("─", maxWidth+2))
+	
+	// Content lines
+	for _, line := range lines {
+		padding := maxWidth - len(line)
+		fmt.Printf("│ %s%s │\n", line, strings.Repeat(" ", padding))
+	}
+	
+	// Bottom border
+	fmt.Printf("╰%s╯\n", strings.Repeat("─", maxWidth+2))
+	fmt.Println()
+}

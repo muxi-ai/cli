@@ -457,6 +457,62 @@ func titleCase(s string) string {
 	return strings.Join(words, " ")
 }
 
+// generateMCPSecretPrefix generates a secret prefix from MCP ID
+// Strips common words: mcp, server, api, tool(s), key
+// Example: weather-api -> MCP_WEATHER
+// Example: postgres-mcp-server -> MCP_POSTGRES
+func generateMCPSecretPrefix(mcpID string) string {
+	// Remove common suffixes/prefixes
+	stripped := mcpID
+	commonWords := []string{"-mcp", "mcp-", "-server", "server-", "-api", "api-", "-tools", "-tool", "tool-", "tools-", "-key", "key-"}
+	
+	for _, word := range commonWords {
+		stripped = strings.ReplaceAll(stripped, word, "")
+	}
+	
+	// Clean up multiple hyphens or leading/trailing hyphens
+	stripped = strings.Trim(stripped, "-")
+	for strings.Contains(stripped, "--") {
+		stripped = strings.ReplaceAll(stripped, "--", "-")
+	}
+	
+	// If nothing left after stripping, use original ID
+	if stripped == "" || stripped == "-" {
+		stripped = mcpID
+	}
+	
+	// Convert to uppercase and replace - with _
+	stripped = strings.ToUpper(strings.ReplaceAll(stripped, "-", "_"))
+	
+	return "MCP_" + stripped
+}
+
+// parseEnvironmentVariables parses comma/space/newline separated environment variable names
+// Accepts: "VAR1, VAR2, VAR3" or "VAR1 VAR2 VAR3" or "VAR1,\nVAR2,\nVAR3" or mixed
+func parseEnvironmentVariables(input string) []string {
+	if input == "" {
+		return []string{}
+	}
+	
+	// Replace newlines and commas with spaces
+	normalized := strings.ReplaceAll(input, "\n", " ")
+	normalized = strings.ReplaceAll(normalized, ",", " ")
+	normalized = strings.ReplaceAll(normalized, "\\", " ")
+	
+	// Split by whitespace and filter empties
+	parts := strings.Fields(normalized)
+	
+	var result []string
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	
+	return result
+}
+
 func mcpTemplate(name, description, mcpType, command string) string {
 	if description == "" {
 		description = fmt.Sprintf("%s MCP server", titleCase(name))
