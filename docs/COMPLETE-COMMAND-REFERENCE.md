@@ -20,6 +20,11 @@
 ```
 muxi
 │
+├── ℹ️  GLOBAL COMMANDS
+│   ├── --version                      # Show CLI version
+│   ├── --help                         # Show help and commands
+│   └── <command> --help               # Help for specific command
+│
 ├── 🏗️  FORMATION DEVELOPMENT (Local)
 │   ├── new formation my-bot           # Creates my-bot/ directory
 │   ├── new agent weather              # Creates agents/weather.yaml
@@ -57,6 +62,7 @@ muxi
 │   └── formation delete <id> [--profile <name>] # Delete formation
 │
 ├── 🖥️  SERVER MANAGEMENT (Server API)
+│   ├── server version [--profile <name>] # Server version info
 │   ├── server status [--profile <name>]  # Server status & stats
 │   ├── server logs [--profile <name>]    # Server audit logs
 │   └── server ping [--profile <name>]    # Test reachability
@@ -148,6 +154,149 @@ muxi
     ├── user identifiers add [--formation <id>] [--profile <name>]
     ├── user get <identifier> [--formation <id>] [--profile <name>]
     └── user delete <identifier> [--formation <id>] [--profile <name>]
+```
+
+---
+
+## Command Details
+
+### Global Commands
+
+#### `muxi --version`
+
+**Purpose:** Display CLI version information
+
+**Output:**
+```
+muxi version 1.0.0
+```
+
+**Example:**
+```bash
+muxi --version
+# muxi version 1.0.0
+```
+
+---
+
+#### `muxi --help`
+
+**Purpose:** Display help and list all available commands
+
+**Output:**
+```
+MUXI CLI - Formation development and server management
+
+Usage:
+  muxi [command]
+
+Available Commands:
+  new         Create formation or components
+  validate    Validate formation configuration
+  deploy      Deploy formation to server(s)
+  secrets     Manage formation secrets
+  profile     Manage server profiles
+  formation   Formation lifecycle operations
+  server      Server management
+  agent       Agent management (Formation API)
+  mcp         MCP server management (Formation API)
+  chat        Interactive chat
+  ...
+
+Flags:
+  -h, --help      Help for muxi
+  -v, --version   Version information
+
+Use "muxi [command] --help" for more information about a command.
+```
+
+---
+
+#### `muxi <command> --help`
+
+**Purpose:** Display help for specific command
+
+**Examples:**
+```bash
+muxi new --help
+# Create formation or components
+# 
+# Usage:
+#   muxi new formation [name] [flags]
+#   muxi new agent <name> [flags]
+#   muxi new mcp <name> [flags]
+#   ...
+
+muxi deploy --help
+# Deploy formation to server(s)
+# 
+# Usage:
+#   muxi deploy [flags]
+# 
+# Flags:
+#   --profile string   Server profile to deploy to
+#   --no-wizard        Skip interactive prompts
+```
+
+---
+
+### Server Commands
+
+#### `muxi server version [--profile <name>]`
+
+**Purpose:** Get server version information
+
+**Flags:**
+- `--profile <name>` - Server profile (optional, uses default if not specified)
+
+**API Endpoint:** `GET /health` (Server API)
+
+**Output:**
+```
+Server: production (https://api.company.com:7890)
+Version: 1.0.0
+Go: go1.21.0
+Build: 2025-11-25T10:30:00Z
+Uptime: 5d 12h 34m
+```
+
+**Examples:**
+```bash
+# Use default profile
+muxi server version
+# Using default profile: localhost
+# Server: localhost (http://localhost:7890)
+# Version: 1.0.0-dev
+
+# Specific profile
+muxi server version --profile production
+# Server: production (https://api.company.com:7890)
+# Version: 1.0.0
+# Go: go1.21.0
+# Build: 2025-11-25T10:30:00Z
+
+# Using context
+muxi profile use production
+muxi server version
+# Server: production (https://api.company.com:7890)
+# Version: 1.0.0
+```
+
+**Error Cases:**
+```bash
+# No profiles configured
+muxi server version
+# ✗ No server profiles configured
+# 
+#   Add one with:
+#     muxi profile add production
+
+# Server unreachable
+muxi server version --profile production
+# ✗ Cannot connect to server
+# 
+#   Server: production (https://api.company.com:7890)
+#   Error: connection refused
 ```
 
 ---

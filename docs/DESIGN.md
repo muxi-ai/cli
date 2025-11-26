@@ -679,6 +679,63 @@ Uploading to registry...
 
 ## Command Reference
 
+### Global Commands
+
+```bash
+# CLI Information
+muxi --version                      # Show CLI version
+muxi --help                         # Show help and available commands
+muxi <command> --help               # Show help for specific command
+
+# Examples:
+muxi --version
+# muxi version 1.0.0
+
+muxi --help
+# MUXI CLI - Formation development and server management
+# 
+# Usage:
+#   muxi [command]
+# 
+# Available Commands:
+#   new         Create formation or components
+#   validate    Validate formation configuration
+#   deploy      Deploy formation to server(s)
+#   ...
+
+muxi new --help
+# Create formation or components
+# 
+# Usage:
+#   muxi new formation [name] [flags]
+#   muxi new agent <name> [flags]
+#   ...
+```
+
+### Server Commands
+
+```bash
+# Server Information
+muxi server version [--profile <name>]   # Get server version
+muxi server status [--profile <name>]    # Get server status
+muxi server logs [--profile <name>]      # View server logs
+muxi server ping [--profile <name>]      # Ping server
+
+# Examples:
+muxi server version --profile production
+# Server: production (https://api.company.com:7890)
+# Version: 1.0.0
+# Go: go1.21.0
+# Build: 2025-11-25T10:30:00Z
+
+muxi server version
+# Using default profile: localhost
+# Server: localhost (http://localhost:7890)
+# Version: 1.0.0-dev
+```
+
+---
+
 ### Core Commands (Priority 1 - Day 1-2)
 
 ```bash
@@ -726,6 +783,7 @@ muxi formation rollback <id> [--profile <name>]
 muxi formation delete <id> [--profile <name>]
 
 # Server Management
+muxi server version [--profile <name>]
 muxi server status [--profile <name>]
 muxi server logs [--profile <name>]
 muxi server ping [--profile <name>]
