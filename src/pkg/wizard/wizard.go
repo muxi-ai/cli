@@ -185,9 +185,9 @@ func displayOptions(options []SelectOption, selected int) {
 		}
 
 		if opt.Description != "" {
-			fmt.Printf("  %s %s - %s\n", symbol, opt.Label, opt.Description)
+			fmt.Printf("  %s %s - %s\r\n", symbol, opt.Label, opt.Description)
 		} else {
-			fmt.Printf("  %s %s\n", symbol, opt.Label)
+			fmt.Printf("  %s %s\r\n", symbol, opt.Label)
 		}
 	}
 }
@@ -195,7 +195,7 @@ func displayOptions(options []SelectOption, selected int) {
 // clearLines clears n lines up from current cursor position
 func clearLines(n int) {
 	for i := 0; i < n; i++ {
-		fmt.Print("\033[1A\033[2K") // Move up and clear line
+		fmt.Print("\033[1A\033[2K\r") // Move up, clear line, move to column 0
 	}
 }
 
