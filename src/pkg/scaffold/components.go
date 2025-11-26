@@ -315,7 +315,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 	}
 
 	// Interactive wizard
-	var description, transport, endpoint, command, args string
+	var description, transport, endpoint, command, args, workingDir string
 	var authType, authHeader string
 	var envVars []string
 	var secrets []string // Secrets to add to secrets file
@@ -402,6 +402,14 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				ui.PromptSkipped("Arguments")
 			}
 
+			// Working directory (optional)
+			workingDir, _ := wizard.PromptString("Working directory (Enter to skip)", "", nil)
+			if workingDir != "" {
+				ui.PromptSuccess("Working directory", workingDir)
+			} else {
+				ui.PromptSkipped("Working directory")
+			}
+
 			// Environment variables
 			envInput, _ := wizard.PromptString("Environment variables (comma/space/newline separated, or Enter to skip)", "", nil)
 			if envInput != "" {
@@ -423,12 +431,13 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		transport = "stdio"
 		command = "mcp-server"
 		args = ""
+		workingDir = ""
 		authType = "none"
 		envVars = []string{}
 	}
 
 	// Generate template
-	content := mcpTemplateNew(name, description, transport, endpoint, command, args, authType, authHeader, envVars)
+	content := mcpTemplateNew(name, description, transport, endpoint, command, args, workingDir, authType, authHeader, envVars)
 	
 	// Write MCP file
 	mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
@@ -467,7 +476,9 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		if transport == "http" {
 			ui.Dimmed("  • Add headers: Edit 'headers' section")
 		} else {
-			ui.Dimmed("  • Set working directory: Edit 'cwd' field")
+			if workingDir == "" {
+				ui.Dimmed("  • Set working directory: Edit 'working_directory' field")
+			}
 		}
 	}
 
@@ -695,7 +706,7 @@ func parseEnvironmentVariables(input string) []string {
 	return result
 }
 
-func mcpTemplateNew(id, description, transport, endpoint, command, args, authType, authHeader string, envVars []string) string {
+func mcpTemplateNew(id, description, transport, endpoint, command, args, workingDir, authType, authHeader string, envVars []string) string {
 	if description == "" {
 		description = fmt.Sprintf("%s MCP server", titleCase(id))
 	}
@@ -762,19 +773,27 @@ type: %s
 		tmpl.WriteString(fmt.Sprintf(`command: "%s"
 `, command))
 
-		// Args
+		// Args (inline array format)
 		if args != "" {
-			// Parse args into array
+			// Parse args into inline array
 			argsList := strings.Fields(args)
 			if len(argsList) > 0 {
-				tmpl.WriteString("args:")
-				for _, arg := range argsList {
-					tmpl.WriteString(fmt.Sprintf("\n  - \"%s\"", arg))
+				tmpl.WriteString("args: [")
+				for i, arg := range argsList {
+					if i > 0 {
+						tmpl.WriteString(", ")
+					}
+					tmpl.WriteString(fmt.Sprintf("\"%s\"", arg))
 				}
-				tmpl.WriteString("\n")
+				tmpl.WriteString("]\n")
 			}
 		} else {
 			tmpl.WriteString("args: []\n")
+		}
+
+		// Working directory
+		if workingDir != "" {
+			tmpl.WriteString(fmt.Sprintf("working_directory: \"%s\"\n", workingDir))
 		}
 
 		// Optional: retry/timeout comments
@@ -799,11 +818,13 @@ type: %s
 `)
 		}
 
-		// Optional: cwd comment
-		tmpl.WriteString(`
+		// Optional: working directory comment (if not already set)
+		if workingDir == "" {
+			tmpl.WriteString(`
 # Optional: Working directory
-# cwd: "/path/to/working/dir"
+# working_directory: "/path/to/working/dir"
 `)
+		}
 	}
 
 	return tmpl.String()
