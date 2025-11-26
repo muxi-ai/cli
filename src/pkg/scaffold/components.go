@@ -160,8 +160,7 @@ func CreateAgent(name string, noWizard bool) error {
 		fmt.Println()
 		ui.Dimmed("Next steps:")
 		ui.Dimmed("  • Add knowledge: Edit the 'knowledge' section")
-		ui.Dimmed("  • Configure model: Adjust 'model' settings")
-		ui.Dimmed("  • Add tools: Edit the 'tools' section")
+		ui.Dimmed("  • Add MCP servers: Edit the 'mcp_servers' section")
 	}
 
 	return nil
@@ -206,35 +205,24 @@ func agentTemplate(id, name, systemMessage, role string, specialties []string) s
 name: %s
 description: "%s"
 active: true
+
 role: %s
 %s
 system_message: |
   %s
 
-model:
-  name: "openai/gpt-4o"
-  max_tokens: 4000
-  temperature: 0.7
-
 # Add knowledge sources by editing below:
 # knowledge:
 #   - source: knowledge/weather-data.md
 #     description: "Historical weather patterns and climate trends"
-#   - source: knowledge/api-reference.md
-#     description: "Weather API documentation and usage examples"
+#   enabled: true
 knowledge: []
 
-# Add tools by editing below:
-# tools:
-#   - name: get_weather
-#     description: "Get current weather for a location"
-#     parameters:
-#       location:
-#         type: string
-#         description: "City name or coordinates"
-tools: []
-
-workflows: []
+# Add MCP servers by editing below:
+# mcp_servers:
+#   - server_id: weather-api
+#     description: "Weather data and forecasting tools"
+mcp_servers: []
 `, id, name, description, role, specialtiesYAML, systemMsg)
 }
 
