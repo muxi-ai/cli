@@ -393,8 +393,19 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 
 		if transport == "http" {
 			// HTTP-specific prompts
-			endpoint, _ = wizard.PromptString("Endpoint URL", "", nil)
-			ui.PromptSuccess("Endpoint", endpoint)
+			// Endpoint URL with validation
+			for {
+				endpoint, _ = wizard.PromptString("Endpoint URL", "", nil)
+				
+				// Validate URL structure
+				if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+					ui.PromptError("Endpoint URL", endpoint, fmt.Errorf("must start with http:// or https://"))
+					continue
+				}
+				
+				ui.PromptSuccess("Endpoint URL", endpoint)
+				break
+			}
 
 			// Auth selection
 			authOptions := []wizard.SelectOption{
@@ -424,15 +435,17 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			switch authType {
 			case "api_key":
 				authHeader, _ = wizard.PromptString("API Key header", "X-API-Key", nil)
-				ui.PromptSuccess("Header", authHeader)
+				ui.PromptSuccess("API Key", fmt.Sprintf("Header: %s", authHeader))
 				secrets = append(secrets, secretPrefix+"_API_KEY")
 				
 			case "bearer":
-				// No additional prompts needed
+				// Show what secret will be needed
+				ui.PromptSuccess("Bearer Token", "Will use secret: "+secretPrefix+"_BEARER_TOKEN")
 				secrets = append(secrets, secretPrefix+"_BEARER_TOKEN")
 				
 			case "basic":
-				// No prompts - username/password go in secrets
+				// Show what secrets will be needed
+				ui.PromptSuccess("Basic Auth", "Will use secrets: "+secretPrefix+"_USERNAME, "+secretPrefix+"_PASSWORD")
 				secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
 			}
 
