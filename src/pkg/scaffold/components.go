@@ -34,25 +34,37 @@ func CreateAgent(name string, noWizard bool) error {
 		// Interactive mode - prompt for ID with validation loop
 		for {
 			var err error
-			name, err = wizard.PromptString("Agent ID", "", validateComponentName)
+			inputName, err := wizard.PromptString("Agent ID", "", nil)
 			if err != nil {
 				return err
+			}
+			
+			// Normalize the input
+			name = normalizeComponentName(inputName)
+			
+			// Validate normalized name
+			if err := validateComponentName(name); err != nil {
+				ui.PromptError("Agent ID", inputName, err)
+				continue
 			}
 			
 			// Check if file already exists
 			agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
 			if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
 				// Show error and re-prompt
-				ui.PromptError("Agent ID", name, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm agents/%s.yaml", name))
+				ui.PromptError("Agent ID", inputName, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm agents/%s.yaml", name))
 				continue
 			}
 			
-			// All good - show success and break
+			// All good - show success with normalized name
 			ui.PromptSuccess("Agent ID", name)
 			break
 		}
 	} else {
-		// Name provided as argument - validate it
+		// Name provided as argument - normalize it
+		name = normalizeComponentName(name)
+		
+		// Validate normalized name
 		if err := validateComponentName(name); err != nil {
 			ui.ErrorBlock("Invalid agent ID", err.Error(), "Example: weather-assistant")
 			os.Exit(1)
@@ -166,6 +178,26 @@ func CreateAgent(name string, noWizard bool) error {
 	return nil
 }
 
+// normalizeComponentName converts user input to valid component name format
+// Converts spaces to hyphens, lowercases, removes extra hyphens
+func normalizeComponentName(name string) string {
+	// Convert to lowercase
+	name = strings.ToLower(name)
+	
+	// Replace spaces with hyphens
+	name = strings.ReplaceAll(name, " ", "-")
+	
+	// Replace multiple hyphens with single hyphen
+	for strings.Contains(name, "--") {
+		name = strings.ReplaceAll(name, "--", "-")
+	}
+	
+	// Trim leading/trailing hyphens
+	name = strings.Trim(name, "-")
+	
+	return name
+}
+
 // validateComponentName validates component name format
 func validateComponentName(name string) error {
 	if name == "" {
@@ -175,7 +207,7 @@ func validateComponentName(name string) error {
 	// Pattern: lowercase letter, then lowercase letters/numbers/hyphens/underscores, 3-50 chars
 	pattern := regexp.MustCompile(`^[a-z][a-z0-9-_]{2,49}$`)
 	if !pattern.MatchString(name) {
-		return fmt.Errorf("component names must:\n  • Be lowercase\n  • Start with a letter\n  • Contain only letters, numbers, hyphens, and underscores\n  • Be 3-50 characters long")
+		return fmt.Errorf("component names must:\n  • Start with a letter\n  • Contain only letters, numbers, hyphens, and underscores\n  • Be 3-50 characters long")
 	}
 
 	return nil
@@ -276,15 +308,24 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		// Interactive mode - prompt for ID
 		for {
 			var err error
-			name, err = wizard.PromptString("MCP ID", "", validateComponentName)
+			inputName, err := wizard.PromptString("MCP ID", "", nil)
 			if err != nil {
 				return err
+			}
+			
+			// Normalize the input
+			name = normalizeComponentName(inputName)
+			
+			// Validate normalized name
+			if err := validateComponentName(name); err != nil {
+				ui.PromptError("MCP ID", inputName, err)
+				continue
 			}
 			
 			// Check if file already exists
 			mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
 			if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
-				ui.PromptError("MCP ID", name, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm mcps/%s.yaml", name))
+				ui.PromptError("MCP ID", inputName, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm mcps/%s.yaml", name))
 				continue
 			}
 			
@@ -292,7 +333,10 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			break
 		}
 	} else {
-		// Name provided as argument - validate it
+		// Name provided as argument - normalize it
+		name = normalizeComponentName(name)
+		
+		// Validate normalized name
 		if err := validateComponentName(name); err != nil {
 			ui.ErrorBlock("Invalid MCP ID", err.Error(), "Example: weather-api")
 			os.Exit(1)

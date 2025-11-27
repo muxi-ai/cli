@@ -24,28 +24,39 @@ func CreateFormation(name string, noWizard bool) error {
 		// Loop until we get a valid ID that doesn't conflict
 		for {
 			var err error
-			formationName, err = wizard.PromptString("Formation ID", "", validateFormationName)
+			inputName, err := wizard.PromptString("Formation ID", "", nil)
 			if err != nil {
 				return err
+			}
+			
+			// Normalize the input
+			formationName = normalizeFormationName(inputName)
+			
+			// Validate normalized name
+			if err := validateFormationName(formationName); err != nil {
+				ui.PromptError("Formation ID", inputName, err)
+				continue
 			}
 			
 			// Check if directory already exists
 			if _, err := os.Stat(formationName); !os.IsNotExist(err) {
 				// Show error and re-prompt
-				ui.PromptError("Formation ID", formationName, fmt.Errorf("directory already exists\n\nChoose a different ID or remove:\n  rm -rf %s", formationName))
+				ui.PromptError("Formation ID", inputName, fmt.Errorf("directory already exists\n\nChoose a different ID or remove:\n  rm -rf %s", formationName))
 				continue
 			}
 			
-			// All good - show success and break
+			// All good - show success with normalized name
 			ui.PromptSuccess("Formation ID", formationName)
 			break
 		}
 	} else if name != "" {
-		// Validate provided ID
-		if err := validateFormationName(name); err != nil {
+		// Normalize provided ID
+		formationName = normalizeFormationName(name)
+		
+		// Validate normalized name
+		if err := validateFormationName(formationName); err != nil {
 			return fmt.Errorf("invalid formation ID '%s': %w", name, err)
 		}
-		formationName = name
 		
 		// Check if directory already exists (non-interactive - just error out)
 		if _, err := os.Stat(formationName); !os.IsNotExist(err) {
@@ -188,6 +199,26 @@ func CreateFormation(name string, noWizard bool) error {
 	return nil
 }
 
+// normalizeFormationName converts user input to valid formation name format
+// Converts spaces to hyphens, lowercases, removes extra hyphens
+func normalizeFormationName(name string) string {
+	// Convert to lowercase
+	name = strings.ToLower(name)
+	
+	// Replace spaces with hyphens
+	name = strings.ReplaceAll(name, " ", "-")
+	
+	// Replace multiple hyphens with single hyphen
+	for strings.Contains(name, "--") {
+		name = strings.ReplaceAll(name, "--", "-")
+	}
+	
+	// Trim leading/trailing hyphens
+	name = strings.Trim(name, "-")
+	
+	return name
+}
+
 // validateFormationName validates formation ID format
 func validateFormationName(name string) error {
 	if name == "" {
@@ -197,7 +228,7 @@ func validateFormationName(name string) error {
 	// Pattern: lowercase letter, then lowercase letters/numbers/hyphens, 3-50 chars
 	pattern := regexp.MustCompile(`^[a-z][a-z0-9-]{2,49}$`)
 	if !pattern.MatchString(name) {
-		return fmt.Errorf("formation IDs must:\n  • Be lowercase\n  • Start with a letter\n  • Contain only letters, numbers, and hyphens\n  • Be 3-50 characters long\n\nExample: my-bot")
+		return fmt.Errorf("formation IDs must:\n  • Start with a letter\n  • Contain only letters, numbers, and hyphens\n  • Be 3-50 characters long\n\nExample: my-bot")
 	}
 
 	return nil
