@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -403,6 +404,13 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 					continue
 				}
 				
+				// Parse and validate URL
+				parsedURL, err := url.Parse(endpoint)
+				if err != nil || parsedURL.Host == "" {
+					ui.PromptError("Endpoint URL", endpoint, fmt.Errorf("invalid URL format"))
+					continue
+				}
+				
 				ui.PromptSuccess("Endpoint URL", endpoint)
 				break
 			}
@@ -415,7 +423,6 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				{Value: "basic", Label: "Basic Auth", Description: "Username and password"},
 			}
 			
-			fmt.Println()
 			authType, err = wizard.PromptSelect("Authentication", authOptions, 0)
 			if err != nil {
 				return fmt.Errorf("failed to select auth: %w", err)
@@ -429,30 +436,34 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				}
 			}
 
-			// Auth-specific prompts
-			secretPrefix := generateMCPSecretPrefix(name)
-			
-			switch authType {
-			case "api_key":
-				authHeader, _ = wizard.PromptString("API Key header", "X-API-Key", nil)
-				ui.PromptSuccess("API Key", authHeader)
-				secrets = append(secrets, secretPrefix+"_API_KEY")
+			// Auth-specific prompts (only for non-"none" auth types)
+			if authType != "none" {
+				fmt.Println() // Line break before auth prompts (not for "none")
 				
-			case "bearer":
-				// Prompt for bearer token value
-				bearerToken, _ := wizard.PromptString("Bearer Token", "", nil)
-				ui.PromptSuccess("Bearer Token", bearerToken)
-				secrets = append(secrets, secretPrefix+"_BEARER_TOKEN")
+				secretPrefix := generateMCPSecretPrefix(name)
 				
-			case "basic":
-				// Prompt for username and password separately
-				username, _ := wizard.PromptString("Username", "", nil)
-				ui.PromptSuccess("Username", username)
-				
-				password, _ := wizard.PromptString("Password", "", nil)
-				ui.PromptSuccess("Password", password)
-				
-				secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
+				switch authType {
+				case "api_key":
+					authHeader, _ = wizard.PromptString("API Key header", "X-API-Key", nil)
+					ui.PromptSuccess("API Key", authHeader)
+					secrets = append(secrets, secretPrefix+"_API_KEY")
+					
+				case "bearer":
+					// Prompt for bearer token value
+					bearerToken, _ := wizard.PromptString("Bearer Token", "", nil)
+					ui.PromptSuccess("Bearer Token", bearerToken)
+					secrets = append(secrets, secretPrefix+"_BEARER_TOKEN")
+					
+				case "basic":
+					// Prompt for username and password separately
+					username, _ := wizard.PromptString("Username", "", nil)
+					ui.PromptSuccess("Username", username)
+					
+					password, _ := wizard.PromptString("Password", "", nil)
+					ui.PromptSuccess("Password", password)
+					
+					secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
+				}
 			}
 
 		} else {
