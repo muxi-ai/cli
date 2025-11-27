@@ -315,7 +315,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 	}
 
 	// Interactive wizard
-	var description, transport, endpoint, command, args, workingDir string
+	var description, transport, endpoint, command, args, workingDir, installCmd string
 	var authType, authHeader string
 	var envVars []string
 	var secrets []string // Secrets to add to secrets file
@@ -392,6 +392,14 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 
 		} else {
 			// Stdio-specific prompts
+			// Install command (optional)
+			installCmd, _ = wizard.PromptString("Install command (Enter to skip)", "", nil)
+			if installCmd != "" {
+				ui.PromptSuccess("Install", installCmd)
+			} else {
+				ui.PromptSkipped("Install")
+			}
+
 			command, _ = wizard.PromptString("Command", "", nil)
 			ui.PromptSuccess("Command", command)
 
@@ -432,12 +440,13 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		command = "mcp-server"
 		args = ""
 		workingDir = ""
+		installCmd = ""
 		authType = "none"
 		envVars = []string{}
 	}
 
 	// Generate template
-	content := mcpTemplateNew(name, description, transport, endpoint, command, args, workingDir, authType, authHeader, envVars)
+	content := mcpTemplateNew(name, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader, envVars)
 	
 	// Write MCP file
 	mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
@@ -708,7 +717,7 @@ func parseEnvironmentVariables(input string) []string {
 	return result
 }
 
-func mcpTemplateNew(id, description, transport, endpoint, command, args, workingDir, authType, authHeader string, envVars []string) string {
+func mcpTemplateNew(id, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader string, envVars []string) string {
 	if description == "" {
 		description = fmt.Sprintf("%s MCP server", titleCase(id))
 	}
@@ -772,6 +781,13 @@ type: %s
 
 	} else {
 		// Stdio transport
+		// Install command (optional)
+		if installCmd != "" {
+			tmpl.WriteString(fmt.Sprintf(`install: "%s"
+
+`, installCmd))
+		}
+
 		tmpl.WriteString(fmt.Sprintf(`command: "%s"
 `, command))
 
@@ -817,6 +833,14 @@ type: %s
 # Optional: Environment variables
 # env:
 #   NODE_ENV: "${{ secrets.MCP_<ID>_NODE_ENV }}"
+`)
+		}
+
+		// Optional: install comment (if not already set)
+		if installCmd == "" {
+			tmpl.WriteString(`
+# Optional: Auto-install command (server will run this before starting)
+# install: "npm install -g @modelcontextprotocol/server-json-rpc"
 `)
 		}
 
