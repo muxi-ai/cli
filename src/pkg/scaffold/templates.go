@@ -45,6 +45,7 @@ func formationYAMLTemplate(name, description string) string {
 	}
 
 	return fmt.Sprintf(`schema: "1.0.0"
+
 id: "%s"
 description: "%s"
 version: "1.0.0"

@@ -233,7 +233,9 @@ func agentTemplate(id, name, systemMessage, role string, specialties []string) s
 		specialtiesYAML = "specialties: []\n"
 	}
 	
-	return fmt.Sprintf(`id: %s
+	return fmt.Sprintf(`schema: "1.0.0"
+
+id: %s
 name: %s
 description: "%s"
 active: true
@@ -776,7 +778,9 @@ func mcpTemplateNew(id, description, transport, endpoint, command, args, working
 	var tmpl strings.Builder
 	
 	// Header
-	tmpl.WriteString(fmt.Sprintf(`id: %s
+	tmpl.WriteString(fmt.Sprintf(`schema: "1.0.0"
+
+id: %s
 description: "%s"
 active: true
 
@@ -955,7 +959,9 @@ func triggerTemplate(name, description, triggerType string) string {
 		description = fmt.Sprintf("%s trigger", titleCase(name))
 	}
 
-	return fmt.Sprintf(`id: %s
+	return fmt.Sprintf(`schema: "1.0.0"
+
+id: %s
 description: "%s"
 type: %s
 
@@ -975,7 +981,9 @@ func a2aTemplate(name, description, a2aType, baseURL string) string {
 		description = fmt.Sprintf("%s integration", titleCase(name))
 	}
 
-	return fmt.Sprintf(`id: %s
+	return fmt.Sprintf(`schema: "1.0.0"
+
+id: %s
 description: "%s"
 type: %s
 
