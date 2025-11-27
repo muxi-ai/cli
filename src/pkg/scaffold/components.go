@@ -264,7 +264,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		ui.InfoBanner(fmt.Sprintf("[i] MCP for: %s", agentName))
 	} else {
 		// Formation-level banner
-		ui.InfoBanner("[i] Formation-level MCPs can be used by all agents.\n\nFor tools that are going to be used primarily by a\nspecific agent, it is recommended to add the MCP on\nthe agent-level using:\n  $ muxi new mcp --agent <agent-id>")
+		ui.InfoBanner("[i] Formation-level MCPs can be used by all agents.\n\nFor tools that are going to be used primarily by a specific\nagent, we recommend adding the MCP on the agent-level:\n  $ muxi new mcp --agent <agent-id>")
 	}
 
 	// If no name provided, handle based on mode

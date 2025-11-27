@@ -233,28 +233,27 @@ func Confirm(prompt string, defaultYes bool) {
 	}
 }
 
-// InfoBanner displays an info message in a framed box
+// InfoBanner displays an info message in a framed box with fixed width (64 chars)
 func InfoBanner(message string) {
+	const frameWidth = 64  // Total frame width including borders
+	const contentWidth = 60 // Content area width (frameWidth - 4 for borders and padding)
+	
 	lines := strings.Split(message, "\n")
 	
-	// Find the longest line for width
-	maxWidth := 0
-	for _, line := range lines {
-		if len(line) > maxWidth {
-			maxWidth = len(line)
-		}
-	}
-	
 	// Top border
-	fmt.Printf("╭%s╮\n", strings.Repeat("─", maxWidth+2))
+	fmt.Printf("╭%s╮\n", strings.Repeat("─", frameWidth-2))
 	
 	// Content lines
 	for _, line := range lines {
-		padding := maxWidth - len(line)
+		if len(line) > contentWidth {
+			// Truncate if too long (shouldn't happen with proper messages)
+			line = line[:contentWidth]
+		}
+		padding := contentWidth - len(line)
 		fmt.Printf("│ %s%s │\n", line, strings.Repeat(" ", padding))
 	}
 	
 	// Bottom border
-	fmt.Printf("╰%s╯\n", strings.Repeat("─", maxWidth+2))
+	fmt.Printf("╰%s╯\n", strings.Repeat("─", frameWidth-2))
 	fmt.Println()
 }
