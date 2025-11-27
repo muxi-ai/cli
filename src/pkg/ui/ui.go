@@ -233,6 +233,32 @@ func Confirm(prompt string, defaultYes bool) {
 	}
 }
 
+// Banner displays a pre-formatted banner with box drawing characters
+// The banner string should already include all formatting (newlines, borders, etc.)
+func Banner(banner string) {
+	fmt.Println(banner)
+	fmt.Println()
+}
+
+// FormationMCPBanner displays the formation-level MCP banner with red warning
+func FormationMCPBanner() {
+	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
+	fmt.Println("│ [+] Adding new MCP to formation                         MUXI │")
+	fmt.Println("│──────────────────────────────────────────────────────────────│")
+	
+	// Warning line in red
+	fmt.Print("│ ")
+	red.Print("⚠ Formation-level MCPs can be used by all agents.")
+	fmt.Println("            │")
+	
+	fmt.Println("│                                                              │")
+	fmt.Println("│ For tools that are going to be used primarily by a specific  │")
+	fmt.Println("│ agent, we recommend adding the MCP on the agent-level:       │")
+	fmt.Println("│   $ muxi new mcp --agent <agent-id>                          │")
+	fmt.Println("╰──────────────────────────────────────────────────────────────╯")
+	fmt.Println()
+}
+
 // InfoBanner displays an info message in a framed box with fixed width (64 chars)
 func InfoBanner(message string) {
 	const frameWidth = 64  // Total frame width including borders

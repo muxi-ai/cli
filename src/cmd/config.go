@@ -1,0 +1,66 @@
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/muxi-ai/cli/pkg/scaffold"
+	"github.com/spf13/cobra"
+)
+
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Configure formation settings",
+	Long: `Configure settings in formation.yaml.
+
+This command provides interactive wizards for configuring various
+formation-level settings like A2A communication, LLM providers,
+logging, and more.
+
+Must be run inside a formation directory.`,
+}
+
+var configA2ACmd = &cobra.Command{
+	Use:   "a2a",
+	Short: "Configure A2A (Agent-to-Agent) communication",
+	Long: `Configure Agent-to-Agent communication in formation.yaml.
+
+This command modifies the a2a section in formation.yaml to enable
+inbound or outbound A2A communication.
+
+Must be run inside a formation directory.
+
+Examples:
+  # Configure with interactive wizard (asks for direction)
+  muxi config a2a
+  
+  # Configure inbound A2A (skip direction question)
+  muxi config a2a --inbound
+  
+  # Configure outbound A2A (skip direction question)
+  muxi config a2a --outbound`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		inbound, _ := cmd.Flags().GetBool("inbound")
+		outbound, _ := cmd.Flags().GetBool("outbound")
+		noWizard, _ := cmd.Flags().GetBool("no-wizard")
+		
+		if err := scaffold.ConfigureA2A(inbound, outbound, noWizard); err != nil {
+			return fmt.Errorf("failed to configure A2A: %w", err)
+		}
+
+		return nil
+	},
+}
+
+func init() {
+	// Add flags to config a2a
+	configA2ACmd.Flags().Bool("inbound", false, "Configure inbound A2A (skip direction question)")
+	configA2ACmd.Flags().Bool("outbound", false, "Configure outbound A2A (skip direction question)")
+	configA2ACmd.Flags().Bool("no-wizard", false, "Skip interactive prompts")
+
+	// Add subcommands to config
+	configCmd.AddCommand(configA2ACmd)
+
+	// Add config to root
+	rootCmd.AddCommand(configCmd)
+}

@@ -1,50 +1,64 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-11-24  
-**Version:** 0.1.0-dev  
-**Status:** 🏗️ Early WIP - Planning Phase
+**Last Updated:** 2025-11-27  
+**Version:** 0.2.0-dev  
+**Status:** 🚀 Active Development - Scaffolding Complete
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI is in early planning stages with comprehensive design documents but no implementation yet. **Blocked by runtime API stabilization.**
+MUXI CLI has **complete scaffolding system** with interactive wizards for all formation components. Formation management commands are blocked pending runtime API stabilization.
 
-### What Exists
-- ✅ Design documents (CLI-COMMAND-DESIGN.md)
-- ✅ Implementation plan (IMPLEMENTATION-PLAN.md)
-- ✅ Registry integration plan (REGISTRY.md)
-- ✅ Repository structure
-- ❌ No code implementation yet
+### What Exists ✅
+- ✅ **Formation scaffolding** (`muxi new formation`) - Full wizard
+- ✅ **Agent scaffolding** (`muxi new agent`) - Full wizard with role selection, A2A visibility
+- ✅ **MCP scaffolding** (`muxi new mcp`) - Full wizard (HTTP/Stdio, formation/agent-level)
+- ✅ **SOP scaffolding** (`muxi new sop`) - Basic wizard (title, description)
+- ✅ **Trigger scaffolding** (`muxi new trigger`) - Basic wizard
+- ✅ **A2A configuration** (`muxi config a2a`) - Inbound wizard complete ⭐ NEW
+- ✅ **TUI design system** - Colors, symbols, prompts, banners
+- ✅ **Input history** - Arrow keys (↑/↓) for previous inputs with readline
+- ✅ **Smart validation** - URL validation, ID normalization, duplicate checking
+- ✅ **Auto-secrets** - Smart secret naming and auto-append to secrets file
+- ✅ Design documents (CLI-COMMAND-DESIGN.md, IMPLEMENTATION-PLAN.md, REGISTRY.md)
+- ✅ **Command semantics** - `muxi new` (create) vs `muxi config` (modify) ⭐ NEW
 
-### What's Planned
-- Formation management (`deploy`, `list`, `logs`, `stop`, `restart`, `delete`)
-- Server profile management (`add`, `list`, `set`, `remove`)
-- Auto-detection of local server
-- HMAC request signing
-- Formation scaffolding (`new`)
-- YAML validation
+### What's Planned (Blocked)
+- ⏳ Formation management (`deploy`, `list`, `logs`, `stop`, `restart`, `delete`) - **Blocked by runtime API**
+- ⏳ Server profile management (`add`, `list`, `set`, `remove`) - **Blocked by runtime API**
+- ⏳ HMAC request signing - **Blocked by runtime API**
+- ⏳ Formation validation (`muxi validate`)
+- ⏳ Secrets management (`muxi secrets`)
 
 ---
 
 ## 🚧 Current Work
 
+### Latest Changes (2025-11-27)
+1. ✅ **Command semantics refactor:**
+   - Moved A2A from `muxi new a2a` → `muxi config a2a`
+   - Established pattern: `muxi new` = create files, `muxi config` = modify formation.yaml
+   - Created `src/cmd/config.go` with config command structure
+   - Documented decision in `docs/COMMAND-SEMANTICS.md`
+
+2. ✅ **A2A inbound wizard complete:**
+   - Direction selection (inbound/outbound)
+   - Registry URL validation (must be https://)
+   - Auth wizard (None, API Key, Bearer, Basic)
+   - Trusted endpoints (optional)
+   - Smart secrets auto-append
+   - Formation.yaml modification
+
 ### Uncommitted Changes
-None - repository is clean.
+**35+ commits** ready for review (all scaffolding work)
 
-### BLOCKED: Waiting for Runtime API
-**Cannot start implementation until runtime API is finalized.**
-
-The CLI needs to:
-1. Deploy formations to server
-2. Interact with formations via server proxy
-3. Validate formation YAML against schemas
-
-All of this requires:
-- Stable runtime API contract
-- Server integration working
-- Formation bundle format defined
+### Current Focus
+**A2A configuration wizards:**
+- ✅ Inbound wizard (complete)
+- ⏳ Outbound wizard (next up)
+- ⏳ YAML merging improvement (handle existing a2a sections)
 
 ---
 

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
 )
@@ -18,6 +19,21 @@ func CreateFormation(name string, noWizard bool) error {
 	var formationName string
 	var description string
 	var openaiKey string
+
+	// Check if we're already inside a formation directory
+	if _, err := context.DetectFormation(); err == nil {
+		ui.ErrorBlock(
+			"Already in formation directory",
+			"Cannot create a formation inside another formation.",
+			"Navigate outside the current formation:\n  cd ..\n  muxi new formation",
+		)
+		os.Exit(1)
+	}
+
+	// Show banner in interactive mode
+	if !noWizard {
+		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Creating new formation                              MUXI │\n╰──────────────────────────────────────────────────────────────╯")
+	}
 
 	// Interactive mode - get formation ID if not provided
 	if name == "" && !noWizard {

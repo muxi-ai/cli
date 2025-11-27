@@ -57,9 +57,169 @@ Bold:     \033[1m / color.Bold
 
 ---
 
+## Selection Lists (Arrow Keys)
+
+### Visual Style
+
+**Selected option:** Green bold with filled circle (◉)  
+**Unselected options:** Normal color with empty circle (◯)
+
+```
+Transport (↑↓ to select, Enter to confirm):
+
+  ◉ HTTP - Remote web-based MCP server         ← Green bold (selected)
+  ◯ Stdio - Local command-based MCP server     ← Normal (unselected)
+```
+
+### Implementation
+```go
+// pkg/wizard/wizard.go
+func displayOptions(options []SelectOption, selected int) {
+    green := color.New(color.FgGreen, color.Bold)
+    
+    for i, opt := range options {
+        if i == selected {
+            // Selected: green bold
+            green.Printf("  ◉ %s - %s\r\n", opt.Label, opt.Description)
+        } else {
+            // Unselected: normal
+            fmt.Printf("  ◯ %s - %s\r\n", opt.Label, opt.Description)
+        }
+    }
+}
+```
+
+### Examples
+
+**Agent Role Selection:**
+```
+Role (↑↓ to select, Enter to confirm):
+
+  ◯ Generalist - General-purpose agent
+  ◉ Specialist - Domain expert               ← Green bold
+  ◯ Coordinator - Orchestrates multiple agents
+  ◯ Assistant - Focused on helping users
+```
+
+**MCP Transport:**
+```
+Transport (↑↓ to select, Enter to confirm):
+
+  ◉ HTTP - Remote web-based MCP server       ← Green bold
+  ◯ Stdio - Local command-based MCP server
+```
+
+**Authentication Type:**
+```
+Authentication (↑↓ to select, Enter to confirm):
+
+  ◯ None (not recommended)
+  ◉ API Key - API key in header              ← Green bold
+  ◯ Bearer Token - Bearer token authentication
+  ◯ Basic Auth - Username and password
+```
+
+---
+
+## Wizard Banners
+
+### Purpose
+Banners appear at the start of interactive wizards to provide context and helpful tips.
+
+### Format
+**Fixed Width:** 64 characters (including borders)
+
+**Standard Banner:**
+```
+╭──────────────────────────────────────────────────────────────╮
+│ [+] Add new agent                                            │
+╰──────────────────────────────────────────────────────────────╯
+
+```
+
+**Banner with Separator (colored warning):**
+```
+╭──────────────────────────────────────────────────────────────╮
+│ [+] Add new MCP to formation                                 │
+│──────────────────────────────────────────────────────────────│
+│ ⚠ Formation-level MCPs can be used by all agents.            │ (RED BOLD)
+│                                                              │
+│ For tools used primarily by a specific agent, we recommend:  │
+│   $ muxi new mcp --agent <agent-id>                          │
+╰──────────────────────────────────────────────────────────────╯
+
+```
+
+### Icons
+| Icon | Meaning | Usage |
+|------|---------|-------|
+| `[+]` | Add/Create | New files or resources |
+| `[✎]` | Edit | Modifying existing (future) |
+| `[⚙]` | Configure | Changing settings |
+| `⚠` | Warning | Important notices |
+| `ℹ` | Info | Helpful context |
+
+### Examples
+
+**Formation:**
+```
+╭──────────────────────────────────────────────────────────────╮
+│ [+] Create new formation                                     │
+╰──────────────────────────────────────────────────────────────╯
+```
+
+**Agent (with A2A):**
+```
+╭──────────────────────────────────────────────────────────────╮
+│ [+] Add new agent                                            │
+│──────────────────────────────────────────────────────────────│
+│ ℹ This formation has A2A enabled. You can make this agent    │
+│ visible externally for Agent-to-Agent communication.         │
+╰──────────────────────────────────────────────────────────────╯
+```
+
+**A2A Configuration:**
+```
+╭──────────────────────────────────────────────────────────────╮
+│ [⚙] Configure A2A inbound settings                           │
+│──────────────────────────────────────────────────────────────│
+│ ℹ Inbound A2A allows external formations to discover and     │
+│ connect to your agents.                                      │
+╰──────────────────────────────────────────────────────────────╯
+```
+
+### Implementation
+```go
+// src/pkg/ui/ui.go
+
+// Standard banner
+func Banner(banner string) {
+    fmt.Println(banner)
+    fmt.Println()  // Blank line after banner
+}
+
+// Special banner with colored warning (for formation-level MCP)
+func FormationMCPBanner() {
+    // Displays banner with warning line in red bold
+}
+
+// Usage in wizard
+if !noWizard {
+    // Simple banner
+    ui.Banner("╭─────...╮\n│ [+] Add new agent │\n╰─────...╯")
+    
+    // Or special colored banner for formation MCP
+    ui.FormationMCPBanner()
+}
+```
+
+**See:** [BANNERS.md](./BANNERS.md) for complete banner reference
+
+---
+
 ## Interactive Prompts (Next.js Style)
 
-### Standard Prompt
+### Standard Prompt (Short)
 
 **Before input:**
 ```
@@ -78,6 +238,51 @@ Formation ID: _
   IDs must be lowercase and start with a letter
 
 Formation ID: _
+```
+
+### Long Prompt (Multi-line)
+
+**For prompts over 60 characters, input appears on a new line:**
+
+**Before input:**
+```
+Registry URLs (comma or line-separated, must start with https://):
+  _
+```
+
+**After valid input:**
+```
+✓ Registries: 2 added
+```
+
+**After invalid input (loop):**
+```
+✗ Registry URLs: http://invalid.com
+
+  invalid URL: http://invalid.com (must start with https://)
+
+Registry URLs (comma or line-separated, must start with https://):
+  _
+```
+
+**Why:** Long prompts on the same line as input are hard to read. Breaking to a new line improves readability.
+
+**Implementation:**
+```go
+// pkg/wizard/wizard.go
+func PromptString(prompt, defaultValue string, validator func(string) error) (string, error) {
+    // For long prompts (>60 chars), put input on new line
+    useTwoLines := len(prompt) > 60
+    
+    if useTwoLines {
+        // Print prompt on first line, cursor on second (indented)
+        fmt.Printf("%s:\n  ", prompt)
+    } else {
+        // Traditional single-line prompt
+        fmt.Printf("%s: ", prompt)
+    }
+    // ... rest of implementation
+}
 ```
 
 ### Optional Prompt

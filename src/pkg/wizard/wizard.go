@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
+	"github.com/fatih/color"
 	"golang.org/x/term"
 )
 
@@ -21,9 +22,26 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 	// Try to use readline for better UX (arrow keys, history, etc.)
 	// Falls back to basic input if readline initialization fails
 	
-	promptText := prompt + ": "
-	if defaultValue != "" {
-		promptText = fmt.Sprintf("%s [%s]: ", prompt, defaultValue)
+	// For long prompts (>60 chars), put input on new line
+	useTwoLines := len(prompt) > 60
+	
+	var promptText string
+	if useTwoLines {
+		// Print prompt on first line, cursor on second
+		if defaultValue != "" {
+			fmt.Printf("%s [%s]:\n", prompt, defaultValue)
+			promptText = "  " // Indent input
+		} else {
+			fmt.Printf("%s:\n", prompt)
+			promptText = "  " // Indent input
+		}
+	} else {
+		// Traditional single-line prompt
+		if defaultValue != "" {
+			promptText = fmt.Sprintf("%s [%s]: ", prompt, defaultValue)
+		} else {
+			promptText = prompt + ": "
+		}
 	}
 	
 	rl, err := readline.NewEx(&readline.Config{
@@ -78,8 +96,14 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 		}
 		
 		// Clear the input line (so caller can replace with success message)
-		// Note: readline already has the line on screen, we need to clear it
-		fmt.Print("\033[1A\033[2K")
+		if useTwoLines {
+			// Clear input line and prompt line
+			fmt.Print("\033[1A\033[2K") // Clear input line
+			fmt.Print("\033[1A\033[2K") // Clear prompt line
+		} else {
+			// Clear single-line prompt
+			fmt.Print("\033[1A\033[2K")
+		}
 		
 		return input, nil
 	}
@@ -89,12 +113,25 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 // Used as fallback when readline initialization fails
 func promptStringFallback(prompt, defaultValue string, validator func(string) error) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
+	
+	// For long prompts (>60 chars), put input on new line
+	useTwoLines := len(prompt) > 60
 
 	for {
-		if defaultValue != "" {
-			fmt.Printf("%s [%s]: ", prompt, defaultValue)
+		if useTwoLines {
+			// Print prompt on first line, cursor on second
+			if defaultValue != "" {
+				fmt.Printf("%s [%s]:\n  ", prompt, defaultValue)
+			} else {
+				fmt.Printf("%s:\n  ", prompt)
+			}
 		} else {
-			fmt.Printf("%s: ", prompt)
+			// Traditional single-line prompt
+			if defaultValue != "" {
+				fmt.Printf("%s [%s]: ", prompt, defaultValue)
+			} else {
+				fmt.Printf("%s: ", prompt)
+			}
 		}
 
 		input, err := reader.ReadString('\n')
@@ -112,16 +149,34 @@ func promptStringFallback(prompt, defaultValue string, validator func(string) er
 		// Validate if validator provided
 		if validator != nil && input != "" {
 			if err := validator(input); err != nil {
-				// Move cursor up one line, clear it, and show error
-				fmt.Print("\033[1A\033[2K")
-				fmt.Printf("%s: %s\n", prompt, input)
-				fmt.Printf("%s\n\n", err.Error())
+				if useTwoLines {
+					// Clear input line, move up, clear prompt line, show error
+					fmt.Print("\033[1A\033[2K") // Clear input line
+					fmt.Print("\033[1A\033[2K") // Clear prompt line
+					if defaultValue != "" {
+						fmt.Printf("%s [%s]: %s\n", prompt, defaultValue, input)
+					} else {
+						fmt.Printf("%s: %s\n", prompt, input)
+					}
+					fmt.Printf("%s\n\n", err.Error())
+				} else {
+					// Move cursor up one line, clear it, and show error
+					fmt.Print("\033[1A\033[2K")
+					fmt.Printf("%s: %s\n", prompt, input)
+					fmt.Printf("%s\n\n", err.Error())
+				}
 				continue
 			}
 		}
 
-		// Move cursor up one line and clear it (so caller can replace with success)
-		fmt.Print("\033[1A\033[2K")
+		if useTwoLines {
+			// Clear input line and prompt line (so caller can replace with success)
+			fmt.Print("\033[1A\033[2K") // Clear input line
+			fmt.Print("\033[1A\033[2K") // Clear prompt line
+		} else {
+			// Move cursor up one line and clear it (so caller can replace with success)
+			fmt.Print("\033[1A\033[2K")
+		}
 		
 		return input, nil
 	}
@@ -253,16 +308,29 @@ func PromptSelect(prompt string, options []SelectOption, defaultIndex int) (stri
 
 // displayOptions displays the selection menu
 func displayOptions(options []SelectOption, selected int) {
+	green := color.New(color.FgGreen, color.Bold)
+	
 	for i, opt := range options {
 		symbol := "◯"
 		if i == selected {
 			symbol = "◉"
-		}
-
-		if opt.Description != "" {
-			fmt.Printf("  %s %s - %s\r\n", symbol, opt.Label, opt.Description)
+			// Selected option in green bold
+			if opt.Description != "" {
+				fmt.Print("  ")
+				green.Printf("%s %s - %s", symbol, opt.Label, opt.Description)
+				fmt.Print("\r\n")
+			} else {
+				fmt.Print("  ")
+				green.Printf("%s %s", symbol, opt.Label)
+				fmt.Print("\r\n")
+			}
 		} else {
-			fmt.Printf("  %s %s\r\n", symbol, opt.Label)
+			// Unselected option in normal color
+			if opt.Description != "" {
+				fmt.Printf("  %s %s - %s\r\n", symbol, opt.Label, opt.Description)
+			} else {
+				fmt.Printf("  %s %s\r\n", symbol, opt.Label)
+			}
 		}
 	}
 }

@@ -150,28 +150,6 @@ Examples:
 	},
 }
 
-var newA2ACmd = &cobra.Command{
-	Use:   "a2a <name>",
-	Short: "Create a new A2A configuration",
-	Long: `Create a new Agent-to-Agent communication configuration in a2a/ directory.
-
-Must be run inside a formation directory.
-
-Examples:
-  muxi new a2a external-api
-  muxi new a2a external-api --no-wizard`,
-	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-
-		if err := scaffold.CreateA2A(name, noWizard); err != nil {
-			return fmt.Errorf("failed to create A2A config: %w", err)
-		}
-
-		return nil
-	},
-}
-
 func init() {
 	// Add --no-wizard flag to all new commands
 	newFormationCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
@@ -179,7 +157,6 @@ func init() {
 	newMcpCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 	newSopCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 	newTriggerCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
-	newA2ACmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 
 	// Add MCP-specific flags
 	newMcpCmd.Flags().String("agent", "", "Create MCP for specific agent (agent-specific MCP)")
@@ -190,5 +167,4 @@ func init() {
 	newCmd.AddCommand(newMcpCmd)
 	newCmd.AddCommand(newSopCmd)
 	newCmd.AddCommand(newTriggerCmd)
-	newCmd.AddCommand(newA2ACmd)
 }
