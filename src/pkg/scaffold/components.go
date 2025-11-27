@@ -435,7 +435,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			switch authType {
 			case "api_key":
 				authHeader, _ = wizard.PromptString("API Key header", "X-API-Key", nil)
-				ui.PromptSuccess("API Key", fmt.Sprintf("Header: %s", authHeader))
+				ui.PromptSuccess("API Key", authHeader)
 				secrets = append(secrets, secretPrefix+"_API_KEY")
 				
 			case "bearer":
