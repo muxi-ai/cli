@@ -853,14 +853,6 @@ type: %s
 			}
 		}
 
-		// Optional headers comment
-		tmpl.WriteString(`
-# Optional: Additional headers
-# headers:
-#   User-Agent: "MUXI/1.0"
-#   Accept: "application/json"
-`)
-
 	} else {
 		// Stdio transport
 		// Install command (optional)
@@ -899,22 +891,25 @@ type: %s
 		// Optional: retry/timeout comments
 		tmpl.WriteString(`
 # Optional: Override default retry/timeout settings
-# retry_attempts: 3
+# max_retries: 3
 # timeout_seconds: 30
 `)
 
-		// Env vars
+		// Env vars via auth.type="env" (as per spec)
 		if len(envVars) > 0 {
-			tmpl.WriteString("\nenv:\n")
+			tmpl.WriteString("\nauth:\n")
+			tmpl.WriteString("  type: \"env\"\n")
 			for _, envVar := range envVars {
 				tmpl.WriteString(fmt.Sprintf("  %s: \"${{ secrets.%s_%s }}\"\n", envVar, secretPrefix, envVar))
 			}
 		} else {
 			// Show example
 			tmpl.WriteString(`
-# Optional: Environment variables
-# env:
+# Optional: Environment variables (passed to command)
+# auth:
+#   type: "env"
 #   NODE_ENV: "${{ secrets.MCP_<ID>_NODE_ENV }}"
+#   API_KEY: "${{ secrets.MCP_<ID>_API_KEY }}"
 `)
 		}
 
