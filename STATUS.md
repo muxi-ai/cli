@@ -25,10 +25,22 @@ MUXI CLI has **complete scaffolding system** with interactive wizards for all fo
 - ✅ Design documents (CLI-COMMAND-DESIGN.md, IMPLEMENTATION-PLAN.md, REGISTRY.md)
 - ✅ **Command semantics** - `muxi new` (create) vs `muxi config` (modify) ⭐ NEW
 
-### What's Planned (Blocked)
-- ⏳ Formation management (`deploy`, `list`, `logs`, `stop`, `restart`, `delete`) - **Blocked by runtime API**
-- ⏳ Server profile management (`add`, `list`, `set`, `remove`) - **Blocked by runtime API**
-- ⏳ HMAC request signing - **Blocked by runtime API**
+### What's Planned
+**Configuration Commands (Not Blocked):**
+- ⏳ `muxi config llm` - Configure LLM provider (OpenAI, Anthropic, etc.)
+- ⏳ `muxi config observability` - Configure logging, metrics, tracing
+- ⏳ `muxi config runtime` - Configure runtime settings (timeouts, retries, etc.)
+- ⏳ `muxi config security` - Configure API keys, rate limits, CORS
+- ⏳ A2A service configuration (`muxi new a2a-service`) - Configure remote services
+
+**Note:** Follow A2A wizard pattern - smart enable/disable, validation loops, natural language
+
+**Blocked by Runtime API:**
+- ⏳ Formation management (`deploy`, `list`, `logs`, `stop`, `restart`, `delete`)
+- ⏳ Server profile management (`add`, `list`, `set`, `remove`)
+- ⏳ HMAC request signing
+
+**Other:**
 - ⏳ Formation validation (`muxi validate`)
 - ⏳ Secrets management (`muxi secrets`)
 
@@ -37,28 +49,44 @@ MUXI CLI has **complete scaffolding system** with interactive wizards for all fo
 ## 🚧 Current Work
 
 ### Latest Changes (2025-11-27)
-1. ✅ **Command semantics refactor:**
-   - Moved A2A from `muxi new a2a` → `muxi config a2a`
-   - Established pattern: `muxi new` = create files, `muxi config` = modify formation.yaml
-   - Created `src/cmd/config.go` with config command structure
-   - Documented decision in `docs/COMMAND-SEMANTICS.md`
+1. ✅ **A2A Configuration Complete:**
+   - Inbound wizard: registries, auth (None/API Key/Bearer/Basic), trusted endpoints
+   - Outbound wizard: registries with next-step guidance
+   - Smart enable/disable flow (asymmetric: disable exits, enable continues)
+   - Pre-fill existing values when editing
+   - Validation loops (re-prompt on error, not exit)
+   - Ctrl+C graceful exit at all prompts
+   - Auto-add `https://`, reject `http://`
+   - Space-separated input support (undocumented feature)
 
-2. ✅ **A2A inbound wizard complete:**
-   - Direction selection (inbound/outbound)
-   - Registry URL validation (must be https://)
-   - Auth wizard (None, API Key, Bearer, Basic)
-   - Trusted endpoints (optional)
-   - Smart secrets auto-append
-   - Formation.yaml modification
+2. ✅ **UX Polish:**
+   - MUXI branding in all banners
+   - Green bold selection highlighting
+   - Multi-line prompts for long text (>60 chars)
+   - Natural language ("the formation" not "formation.yaml")
+   - Error message line length (max 70 chars)
+   - Masked secret display (***5678)
 
-### Uncommitted Changes
-**35+ commits** ready for review (all scaffolding work)
+3. ✅ **Edit Command:**
+   - `muxi edit formation` - Opens formation.yaml in $EDITOR
+   - `muxi edit agent <name>` - Opens agent file
+   - `muxi edit mcp <name>` - Smart MCP detection (formation or agent-level)
+   - Falls back to vim/notepad if $EDITOR not set
+
+4. ✅ **Documentation:**
+   - docs/UX-PATTERNS.md - Complete design patterns guide
+   - docs/A2A-WIZARD.md - A2A configuration guide
+   - docs/BANNERS.md - Banner reference
+   - docs/COMMAND-SEMANTICS.md - Command structure rationale
 
 ### Current Focus
-**A2A configuration wizards:**
-- ✅ Inbound wizard (complete)
-- ⏳ Outbound wizard (next up)
-- ⏳ YAML merging improvement (handle existing a2a sections)
+**A2A scaffolding complete!** ✅
+
+**Next up:**
+- A2A service configuration (`muxi new a2a-service`)
+- Expand `muxi config` to other formation sections (LLM, observability, runtime, security)
+- Formation validation command
+- Secrets management
 
 ---
 
