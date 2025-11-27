@@ -439,17 +439,19 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				secrets = append(secrets, secretPrefix+"_API_KEY")
 				
 			case "bearer":
-				// Prompt to confirm bearer token will be needed
-				fmt.Println()
-				_, _ = wizard.PromptString("Bearer Token (will be stored in secrets) - Press Enter", "", nil)
-				ui.PromptSuccess("Bearer Token", secretPrefix+"_BEARER_TOKEN")
+				// Prompt for bearer token value
+				bearerToken, _ := wizard.PromptString("Bearer Token", "", nil)
+				ui.PromptSuccess("Bearer Token", bearerToken)
 				secrets = append(secrets, secretPrefix+"_BEARER_TOKEN")
 				
 			case "basic":
-				// Prompt to confirm basic auth will be needed
-				fmt.Println()
-				_, _ = wizard.PromptString("Username and Password (will be stored in secrets) - Press Enter", "", nil)
-				ui.PromptSuccess("Basic Auth", secretPrefix+"_USERNAME, "+secretPrefix+"_PASSWORD")
+				// Prompt for username and password separately
+				username, _ := wizard.PromptString("Username", "", nil)
+				ui.PromptSuccess("Username", username)
+				
+				password, _ := wizard.PromptString("Password", "", nil)
+				ui.PromptSuccess("Password", password)
+				
 				secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
 			}
 
