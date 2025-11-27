@@ -159,9 +159,24 @@ func CreateAgent(name string, noWizard bool) error {
 		specialties = []string{}
 	}
 
+	// Check if formation has A2A enabled
+	a2aEnabled := isA2AEnabled(ctx.RootDir)
+	externalA2A := false
+	
+	if !noWizard && a2aEnabled {
+		// Ask about external A2A visibility
+		fmt.Println()
+		externalA2A, _ = wizard.PromptConfirm("Make this agent visible externally (via A2A)", false)
+		if externalA2A {
+			ui.PromptSuccess("A2A", "External visibility enabled")
+		} else {
+			ui.PromptSuccess("A2A", "Internal only")
+		}
+	}
+
 	// Create agent file
 	agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
-	content := agentTemplate(name, agentName, systemMessage, role, specialties)
+	content := agentTemplate(name, agentName, systemMessage, role, specialties, externalA2A)
 	if err := os.WriteFile(agentFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create agent file: %w", err)
 	}
@@ -177,6 +192,42 @@ func CreateAgent(name string, noWizard bool) error {
 	}
 
 	return nil
+}
+
+// isA2AEnabled checks if the formation has A2A enabled
+func isA2AEnabled(rootDir string) bool {
+	formationFile := filepath.Join(rootDir, "formation.yaml")
+	content, err := os.ReadFile(formationFile)
+	if err != nil {
+		return false
+	}
+	
+	// Simple check: look for "a2a:" section with "enabled: true"
+	lines := strings.Split(string(content), "\n")
+	inA2ASection := false
+	
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		
+		// Check if we're in the a2a section
+		if trimmed == "a2a:" {
+			inA2ASection = true
+			continue
+		}
+		
+		// If we hit another top-level key, we're out of a2a section
+		if inA2ASection && trimmed != "" && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") && !strings.HasPrefix(trimmed, "#") {
+			inA2ASection = false
+		}
+		
+		// Check for enabled: true in a2a section
+		if inA2ASection && strings.HasPrefix(trimmed, "enabled:") {
+			value := strings.TrimSpace(strings.TrimPrefix(trimmed, "enabled:"))
+			return value == "true"
+		}
+	}
+	
+	return false
 }
 
 // normalizeComponentName converts user input to valid component name format
@@ -214,7 +265,7 @@ func validateComponentName(name string) error {
 	return nil
 }
 
-func agentTemplate(id, name, systemMessage, role string, specialties []string) string {
+func agentTemplate(id, name, systemMessage, role string, specialties []string, externalA2A bool) string {
 	description := fmt.Sprintf("%s agent", name)
 	
 	// System message
@@ -265,7 +316,12 @@ knowledge: []
 #       header: "X-API-Key"
 #       key: "${{ secrets.WEATHER_API_KEY }}"
 mcp_servers: []
-`, id, name, description, role, specialtiesYAML, systemMsg)
+
+# Agent-to-Agent communication configuration
+a2a:
+  internal: true   # Participates in formation A2A
+  external: %t  # Participates in external A2A
+`, id, name, description, role, specialtiesYAML, systemMsg, externalA2A)
 }
 
 // CreateMCP creates a new MCP server configuration file
