@@ -525,13 +525,22 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		envVars = []string{}
 	}
 
-	// Generate template
-	content := mcpTemplateNew(name, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader, envVars)
-	
-	// Write MCP file
-	mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-	if err := os.WriteFile(mcpFile, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to create MCP file: %w", err)
+	// Handle agent-level vs formation-level MCP
+	if agentID != "" {
+		// Agent-level MCP - append to agent's YAML file
+		err := appendMCPToAgent(ctx.RootDir, agentID, name, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader, envVars)
+		if err != nil {
+			return fmt.Errorf("failed to add MCP to agent: %w", err)
+		}
+	} else {
+		// Formation-level MCP - create separate file
+		content := mcpTemplateNew(name, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader, envVars)
+		
+		// Write MCP file
+		mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+		if err := os.WriteFile(mcpFile, []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to create MCP file: %w", err)
+		}
 	}
 
 	// Append secrets to secrets file
@@ -550,7 +559,11 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Created mcps/%s.yaml", name))
+	if agentID != "" {
+		ui.Success(fmt.Sprintf("Added MCP '%s' to agents/%s.yaml", name, agentID))
+	} else {
+		ui.Success(fmt.Sprintf("Created mcps/%s.yaml", name))
+	}
 	
 	if len(secrets) > 0 {
 		secretsList := strings.Join(secrets, ", ")
@@ -561,13 +574,10 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		fmt.Println()
 		ui.Dimmed("Next steps:")
 		ui.Dimmed("  • Configure secrets: muxi secrets setup")
-		ui.Dimmed("  • Adjust retry/timeout: Edit 'retry_attempts' and 'timeout_seconds'")
-		if transport == "http" {
-			ui.Dimmed("  • Add headers: Edit 'headers' section")
+		if agentID != "" {
+			ui.Dimmed(fmt.Sprintf("  • Edit MCP: agents/%s.yaml (under mcp_servers)", agentID))
 		} else {
-			if workingDir == "" {
-				ui.Dimmed("  • Set working directory: Edit 'working_directory' field")
-			}
+			ui.Dimmed(fmt.Sprintf("  • Edit MCP: mcps/%s.yaml", name))
 		}
 	}
 
@@ -795,6 +805,164 @@ func parseEnvironmentVariables(input string) []string {
 	}
 	
 	return result
+}
+
+// appendMCPToAgent adds an MCP server configuration to an agent's YAML file
+func appendMCPToAgent(rootDir, agentID, mcpID, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader string, envVars []string) error {
+	agentFile := filepath.Join(rootDir, "agents", agentID+".yaml")
+	
+	// Read existing agent YAML
+	content, err := os.ReadFile(agentFile)
+	if err != nil {
+		return fmt.Errorf("failed to read agent file: %w", err)
+	}
+	
+	// Generate MCP entry for agent (indented YAML)
+	mcpEntry := generateAgentMCPEntry(mcpID, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader, envVars)
+	
+	// Replace "mcp_servers: []" with the full array
+	contentStr := string(content)
+	
+	// Check if mcp_servers is empty array
+	if strings.Contains(contentStr, "mcp_servers: []") {
+		// Replace empty array with full array
+		replacement := "mcp_servers:\n" + mcpEntry
+		contentStr = strings.Replace(contentStr, "mcp_servers: []", replacement, 1)
+	} else if strings.Contains(contentStr, "mcp_servers:") {
+		// Array already exists - append new entry
+		// Find the mcp_servers: line and add after it
+		lines := strings.Split(contentStr, "\n")
+		var newLines []string
+		foundMCPServers := false
+		
+		for i, line := range lines {
+			newLines = append(newLines, line)
+			if !foundMCPServers && strings.HasPrefix(strings.TrimSpace(line), "mcp_servers:") {
+				foundMCPServers = true
+				// Insert new MCP entry after this line
+				// But first, we need to find where to insert (after existing entries)
+				// For now, insert right after the mcp_servers: line
+				// This is a simplified approach - ideally we'd find the end of the array
+				
+				// Find the end of current mcp_servers array
+				j := i + 1
+				for j < len(lines) {
+					trimmed := strings.TrimSpace(lines[j])
+					// Check if this line is still part of mcp_servers array
+					if trimmed == "" || (!strings.HasPrefix(trimmed, "-") && !strings.HasPrefix(trimmed, "  ") && !strings.HasPrefix(trimmed, "#")) {
+						// Found end of array
+						break
+					}
+					if trimmed != "" && !strings.HasPrefix(trimmed, "-") && !strings.HasPrefix(lines[j], "  ") {
+						// Found next top-level field
+						break
+					}
+					newLines = append(newLines, lines[j])
+					j++
+				}
+				
+				// Insert new MCP entry
+				newLines = append(newLines, mcpEntry)
+				
+				// Skip the lines we already added
+				for k := i + 1; k < j; k++ {
+					lines[k] = "" // Mark as processed
+				}
+			}
+		}
+		
+		// Filter out empty processed lines and rebuild
+		var finalLines []string
+		for _, line := range newLines {
+			if line != "" || !foundMCPServers {
+				finalLines = append(finalLines, line)
+			}
+		}
+		
+		contentStr = strings.Join(finalLines, "\n")
+	} else {
+		// mcp_servers field doesn't exist - add it at the end
+		contentStr += "\n\nmcp_servers:\n" + mcpEntry
+	}
+	
+	// Write back to file
+	if err := os.WriteFile(agentFile, []byte(contentStr), 0644); err != nil {
+		return fmt.Errorf("failed to write agent file: %w", err)
+	}
+	
+	return nil
+}
+
+// generateAgentMCPEntry creates a properly formatted MCP entry for agent YAML (indented)
+func generateAgentMCPEntry(mcpID, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader string, envVars []string) string {
+	var entry strings.Builder
+	
+	// Start with the list item
+	entry.WriteString("  - id: \"" + mcpID + "\"\n")
+	entry.WriteString("    description: \"" + description + "\"\n")
+	entry.WriteString("    active: true\n")
+	entry.WriteString("    type: \"" + transport + "\"\n")
+	
+	if transport == "http" {
+		// HTTP transport
+		entry.WriteString("    endpoint: \"" + endpoint + "\"\n")
+		
+		// Auth
+		if authType != "none" {
+			entry.WriteString("    auth:\n")
+			entry.WriteString("      type: \"" + authType + "\"\n")
+			
+			secretPrefix := generateMCPSecretPrefix(mcpID)
+			
+			switch authType {
+			case "api_key":
+				entry.WriteString("      header: \"" + authHeader + "\"\n")
+				entry.WriteString("      key: \"${{ secrets." + secretPrefix + "_API_KEY }}\"\n")
+			case "bearer":
+				entry.WriteString("      token: \"${{ secrets." + secretPrefix + "_BEARER_TOKEN }}\"\n")
+			case "basic":
+				entry.WriteString("      username: \"${{ secrets." + secretPrefix + "_USERNAME }}\"\n")
+				entry.WriteString("      password: \"${{ secrets." + secretPrefix + "_PASSWORD }}\"\n")
+			}
+		}
+	} else {
+		// Stdio transport
+		if installCmd != "" {
+			entry.WriteString("    install: \"" + installCmd + "\"\n")
+		}
+		
+		entry.WriteString("    command: \"" + command + "\"\n")
+		
+		if args != "" {
+			argsList := strings.Fields(args)
+			if len(argsList) > 0 {
+				entry.WriteString("    args: [")
+				for i, arg := range argsList {
+					if i > 0 {
+						entry.WriteString(", ")
+					}
+					entry.WriteString("\"" + arg + "\"")
+				}
+				entry.WriteString("]\n")
+			}
+		}
+		
+		if workingDir != "" {
+			entry.WriteString("    working_directory: \"" + workingDir + "\"\n")
+		}
+		
+		// Env vars
+		if len(envVars) > 0 {
+			secretPrefix := generateMCPSecretPrefix(mcpID)
+			entry.WriteString("    auth:\n")
+			entry.WriteString("      type: \"env\"\n")
+			for _, envVar := range envVars {
+				entry.WriteString("      " + envVar + ": \"${{ secrets." + secretPrefix + "_" + envVar + " }}\"\n")
+			}
+		}
+	}
+	
+	return entry.String()
 }
 
 func mcpTemplateNew(id, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader string, envVars []string) string {
