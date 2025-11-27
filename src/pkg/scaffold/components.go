@@ -447,6 +447,31 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 					continue
 				}
 				
+				// Additional host validation
+				host := parsedURL.Hostname()
+				if host == "" {
+					ui.PromptError("Endpoint URL", endpoint, fmt.Errorf("invalid hostname"))
+					continue
+				}
+				
+				// Check for trailing dots
+				if strings.HasSuffix(host, ".") {
+					ui.PromptError("Endpoint URL", endpoint, fmt.Errorf("hostname cannot end with a dot"))
+					continue
+				}
+				
+				// Check for consecutive dots
+				if strings.Contains(host, "..") {
+					ui.PromptError("Endpoint URL", endpoint, fmt.Errorf("hostname cannot contain consecutive dots"))
+					continue
+				}
+				
+				// Check for empty parts (e.g., "http://example..com")
+				if strings.HasPrefix(host, ".") {
+					ui.PromptError("Endpoint URL", endpoint, fmt.Errorf("hostname cannot start with a dot"))
+					continue
+				}
+				
 				ui.PromptSuccess("Endpoint URL", endpoint)
 				break
 			}
