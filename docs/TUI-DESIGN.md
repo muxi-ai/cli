@@ -703,6 +703,47 @@ research inactive gpt-4          1d ago
 
 ---
 
+## Input History & Line Editing
+
+All text input prompts support **history navigation** and **line editing** for a better user experience.
+
+### Features
+
+**History Navigation:**
+- **↑ (Up Arrow):** Previous input
+- **↓ (Down Arrow):** Next input
+
+**Line Editing:**
+- **← / →:** Navigate within line
+- **Ctrl+A / Ctrl+E:** Jump to start/end
+- **Ctrl+W:** Delete word
+- **Ctrl+U / Ctrl+K:** Clear line
+
+**Session History:**
+- All valid inputs saved to session history (up to 100 entries)
+- History persists across prompts in same session
+- Invalid inputs (validation errors) not saved
+
+### Example Workflow
+
+```bash
+# First attempt with error
+Endpoint URL: https://api.example.
+✗ Hostname cannot end with a dot
+
+# Press ↑ to recall, edit, and fix
+Endpoint URL: https://api.example.com
+✓ Endpoint URL: https://api.example.com
+
+# Later in session, reuse previous input
+Endpoint URL: [Press ↑]
+Endpoint URL: https://api.example.com [Edit as needed]
+```
+
+**See:** [INPUT-HISTORY.md](./INPUT-HISTORY.md) for complete documentation
+
+---
+
 ## Version History
 
 **1.0 (2025-11-26):**

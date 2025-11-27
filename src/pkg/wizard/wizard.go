@@ -6,13 +6,88 @@ import (
 	"os"
 	"strings"
 
+	"github.com/chzyer/readline"
 	"golang.org/x/term"
 )
+
+// Session-wide input history for arrow key navigation
+var inputHistory []string
 
 // PromptString prompts for a string input with optional validation
 // Loops on validation errors until valid input is provided
 // Returns the validated input (without showing success - caller should use ui.PromptSuccess)
+// Supports arrow keys for history navigation (up/down) and line editing (left/right)
 func PromptString(prompt, defaultValue string, validator func(string) error) (string, error) {
+	// Try to use readline for better UX (arrow keys, history, etc.)
+	// Falls back to basic input if readline initialization fails
+	
+	promptText := prompt + ": "
+	if defaultValue != "" {
+		promptText = fmt.Sprintf("%s [%s]: ", prompt, defaultValue)
+	}
+	
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:            promptText,
+		HistoryLimit:      100,
+		DisableAutoSaveHistory: true, // We'll manage history manually
+	})
+	
+	if err != nil {
+		// Fallback to basic input if readline fails
+		return promptStringFallback(prompt, defaultValue, validator)
+	}
+	defer rl.Close()
+	
+	// Load session history into readline
+	for _, h := range inputHistory {
+		rl.SaveHistory(h)
+	}
+	
+	for {
+		line, err := rl.Readline()
+		if err != nil {
+			// Handle EOF or errors
+			return "", err
+		}
+		
+		input := strings.TrimSpace(line)
+		
+		// Use default if empty
+		if input == "" && defaultValue != "" {
+			input = defaultValue
+		}
+		
+		// Validate if validator provided
+		if validator != nil && input != "" {
+			if err := validator(input); err != nil {
+				// Show error and prompt again (readline handles the prompt)
+				fmt.Printf("%s\n\n", err.Error())
+				// Update prompt for retry
+				rl.SetPrompt(promptText)
+				continue
+			}
+		}
+		
+		// Save to session history (only valid inputs)
+		if input != "" {
+			inputHistory = append(inputHistory, input)
+			// Keep history size reasonable
+			if len(inputHistory) > 100 {
+				inputHistory = inputHistory[len(inputHistory)-100:]
+			}
+		}
+		
+		// Clear the input line (so caller can replace with success message)
+		// Note: readline already has the line on screen, we need to clear it
+		fmt.Print("\033[1A\033[2K")
+		
+		return input, nil
+	}
+}
+
+// promptStringFallback is the original implementation without readline support
+// Used as fallback when readline initialization fails
+func promptStringFallback(prompt, defaultValue string, validator func(string) error) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
