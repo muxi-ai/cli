@@ -325,20 +325,27 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				continue
 			}
 			
-			// Check if MCP already exists (different check for agent-level vs formation-level)
+			// Check if MCP already exists in formation (formation-level) OR agent (agent-level)
+			mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+			formationLevelExists := false
+			if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+				formationLevelExists = true
+			}
+			
+			agentLevelExists := false
 			if agentID != "" {
-				// Agent-level: check if MCP ID already exists in agent's YAML
-				if mcpExistsInAgent(ctx.RootDir, agentID, name) {
+				agentLevelExists = mcpExistsInAgent(ctx.RootDir, agentID, name)
+			}
+			
+			if formationLevelExists || agentLevelExists {
+				if agentID != "" {
+					// Agent-level MCP - clearer message
 					ui.PromptError("MCP ID", inputName, fmt.Errorf("MCP with this ID already exists in the formation\n\nChoose a different ID or edit:\n  agents/%s.yaml", agentID))
-					continue
-				}
-			} else {
-				// Formation-level: check if file exists
-				mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-				if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+				} else {
+					// Formation-level MCP
 					ui.PromptError("MCP ID", inputName, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm mcps/%s.yaml", name))
-					continue
 				}
+				continue
 			}
 			
 			ui.PromptSuccess("MCP ID", name)
@@ -354,28 +361,35 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			os.Exit(1)
 		}
 		
-		// Check if MCP already exists (different check for agent-level vs formation-level)
+		// Check if MCP already exists in formation (formation-level) OR agent (agent-level)
+		mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+		formationLevelExists := false
+		if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+			formationLevelExists = true
+		}
+		
+		agentLevelExists := false
 		if agentID != "" {
-			// Agent-level: check if MCP ID already exists in agent's YAML
-			if mcpExistsInAgent(ctx.RootDir, agentID, name) {
+			agentLevelExists = mcpExistsInAgent(ctx.RootDir, agentID, name)
+		}
+		
+		if formationLevelExists || agentLevelExists {
+			if agentID != "" {
+				// Agent-level MCP - clearer message
 				ui.ErrorBlock(
 					"MCP already exists",
 					fmt.Sprintf("MCP with ID '%s' already exists in the formation", name),
 					fmt.Sprintf("Choose a different ID or edit:\n  agents/%s.yaml", agentID),
 				)
-				os.Exit(1)
-			}
-		} else {
-			// Formation-level: check if file exists
-			mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-			if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+			} else {
+				// Formation-level MCP
 				ui.ErrorBlock(
 					"MCP file exists",
 					fmt.Sprintf("File 'mcps/%s.yaml' already exists", name),
 					fmt.Sprintf("Choose a different name or remove:\n  rm mcps/%s.yaml", name),
 				)
-				os.Exit(1)
 			}
+			os.Exit(1)
 		}
 		
 		if !noWizard {
