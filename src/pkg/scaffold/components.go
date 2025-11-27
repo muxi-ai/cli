@@ -682,6 +682,7 @@ func generateMCPSecretPrefix(mcpID string) string {
 
 // parseEnvironmentVariables parses comma/space/newline separated environment variable names
 // Accepts: "VAR1, VAR2, VAR3" or "VAR1 VAR2 VAR3" or "VAR1,\nVAR2,\nVAR3" or mixed
+// Converts all variable names to uppercase
 func parseEnvironmentVariables(input string) []string {
 	if input == "" {
 		return []string{}
@@ -699,7 +700,8 @@ func parseEnvironmentVariables(input string) []string {
 	for _, part := range parts {
 		trimmed := strings.TrimSpace(part)
 		if trimmed != "" {
-			result = append(result, trimmed)
+			// Convert to uppercase (env vars are conventionally uppercase)
+			result = append(result, strings.ToUpper(trimmed))
 		}
 	}
 	
