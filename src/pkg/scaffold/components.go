@@ -325,11 +325,20 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				continue
 			}
 			
-			// Check if file already exists
-			mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-			if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
-				ui.PromptError("MCP ID", inputName, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm mcps/%s.yaml", name))
-				continue
+			// Check if MCP already exists (different check for agent-level vs formation-level)
+			if agentID != "" {
+				// Agent-level: check if MCP ID already exists in agent's YAML
+				if mcpExistsInAgent(ctx.RootDir, agentID, name) {
+					ui.PromptError("MCP ID", inputName, fmt.Errorf("MCP with this ID already exists in the formation\n\nChoose a different ID or edit:\n  agents/%s.yaml", agentID))
+					continue
+				}
+			} else {
+				// Formation-level: check if file exists
+				mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+				if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+					ui.PromptError("MCP ID", inputName, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm mcps/%s.yaml", name))
+					continue
+				}
 			}
 			
 			ui.PromptSuccess("MCP ID", name)
@@ -345,15 +354,28 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			os.Exit(1)
 		}
 		
-		// Check if file already exists
-		mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-		if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
-			ui.ErrorBlock(
-				"MCP file exists",
-				fmt.Sprintf("File 'mcps/%s.yaml' already exists", name),
-				fmt.Sprintf("Choose a different name or remove:\n  rm mcps/%s.yaml", name),
-			)
-			os.Exit(1)
+		// Check if MCP already exists (different check for agent-level vs formation-level)
+		if agentID != "" {
+			// Agent-level: check if MCP ID already exists in agent's YAML
+			if mcpExistsInAgent(ctx.RootDir, agentID, name) {
+				ui.ErrorBlock(
+					"MCP already exists",
+					fmt.Sprintf("MCP with ID '%s' already exists in the formation", name),
+					fmt.Sprintf("Choose a different ID or edit:\n  agents/%s.yaml", agentID),
+				)
+				os.Exit(1)
+			}
+		} else {
+			// Formation-level: check if file exists
+			mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+			if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
+				ui.ErrorBlock(
+					"MCP file exists",
+					fmt.Sprintf("File 'mcps/%s.yaml' already exists", name),
+					fmt.Sprintf("Choose a different name or remove:\n  rm mcps/%s.yaml", name),
+				)
+				os.Exit(1)
+			}
 		}
 		
 		if !noWizard {
@@ -805,6 +827,52 @@ func parseEnvironmentVariables(input string) []string {
 	}
 	
 	return result
+}
+
+// mcpExistsInAgent checks if an MCP with the given ID already exists in the agent's YAML
+func mcpExistsInAgent(rootDir, agentID, mcpID string) bool {
+	agentFile := filepath.Join(rootDir, "agents", agentID+".yaml")
+	content, err := os.ReadFile(agentFile)
+	if err != nil {
+		return false
+	}
+	
+	// Simple check: look for 'id: "mcpID"' or 'id: mcpID' in the mcp_servers section
+	contentStr := string(content)
+	
+	// Check if we're in the mcp_servers section and find the ID
+	lines := strings.Split(contentStr, "\n")
+	inMCPServers := false
+	
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		
+		// Track if we're in mcp_servers section
+		if strings.HasPrefix(trimmed, "mcp_servers:") {
+			inMCPServers = true
+			continue
+		}
+		
+		// If we hit another top-level key, we're out of mcp_servers
+		if inMCPServers && trimmed != "" && !strings.HasPrefix(line, " ") && !strings.HasPrefix(trimmed, "-") && !strings.HasPrefix(trimmed, "#") {
+			inMCPServers = false
+		}
+		
+		// Check for ID match in mcp_servers section
+		if inMCPServers && (strings.HasPrefix(trimmed, "id:") || strings.HasPrefix(trimmed, "- id:")) {
+			// Extract the ID value
+			idPart := strings.TrimPrefix(trimmed, "- ")
+			idPart = strings.TrimPrefix(idPart, "id:")
+			idPart = strings.TrimSpace(idPart)
+			idPart = strings.Trim(idPart, "\"'")
+			
+			if idPart == mcpID {
+				return true
+			}
+		}
+	}
+	
+	return false
 }
 
 // appendMCPToAgent adds an MCP server configuration to an agent's YAML file
