@@ -447,7 +447,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			}
 
 			// Working directory (optional)
-			workingDir, _ := wizard.PromptString("Working directory (Enter to skip)", "", nil)
+			workingDir, _ = wizard.PromptString("Working directory (Enter to skip)", "", nil)
 			workingDir = strings.TrimSpace(workingDir) // Ensure no whitespace issues
 			if workingDir != "" {
 				ui.PromptSuccess("Working directory", workingDir)
