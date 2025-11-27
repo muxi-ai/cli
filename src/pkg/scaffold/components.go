@@ -392,14 +392,6 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 
 		} else {
 			// Stdio-specific prompts
-			// Install command (optional)
-			installCmd, _ = wizard.PromptString("Install command (Enter to skip)", "", nil)
-			if installCmd != "" {
-				ui.PromptSuccess("Install", installCmd)
-			} else {
-				ui.PromptSkipped("Install")
-			}
-
 			command, _ = wizard.PromptString("Command", "", nil)
 			ui.PromptSuccess("Command", command)
 
@@ -412,6 +404,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 
 			// Working directory (optional)
 			workingDir, _ := wizard.PromptString("Working directory (Enter to skip)", "", nil)
+			workingDir = strings.TrimSpace(workingDir) // Ensure no whitespace issues
 			if workingDir != "" {
 				ui.PromptSuccess("Working directory", workingDir)
 			} else {
@@ -431,6 +424,17 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				}
 			} else {
 				ui.PromptSkipped("Environment")
+			}
+
+			// Linebreak before install command
+			fmt.Println()
+
+			// Install command (optional) - at the end
+			installCmd, _ = wizard.PromptString("Auto-install command (optional)", "", nil)
+			if installCmd != "" {
+				ui.PromptSuccess("Install", installCmd)
+			} else {
+				ui.PromptSkipped("Install")
 			}
 		}
 	} else {
