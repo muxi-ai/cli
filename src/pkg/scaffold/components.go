@@ -33,12 +33,7 @@ func CreateAgent(name string, noWizard bool) error {
 
 	// Show banner in interactive mode
 	if !noWizard {
-		// Check if A2A is enabled
-		if isA2AEnabled(ctx.RootDir) {
-			ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new agent                                    MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ This formation has A2A enabled. You can make this agent    │\n│ visible externally for Agent-to-Agent communication.         │\n╰──────────────────────────────────────────────────────────────╯")
-		} else {
-			ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new agent                                    MUXI │\n╰──────────────────────────────────────────────────────────────╯")
-		}
+		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new agent                                    MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ Agents are the Overlord's workers - each with its own      │\n│ role and capabilities. They can use MCPs and follow SOPs.    │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
 	// If no name provided, handle based on mode
@@ -397,7 +392,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				padding = 0
 			}
 			bannerLine := fmt.Sprintf("│ %s%s MUXI │", header, strings.Repeat(" ", padding))
-			ui.Banner(fmt.Sprintf("╭──────────────────────────────────────────────────────────────╮\n%s\n╰──────────────────────────────────────────────────────────────╯", bannerLine))
+			ui.Banner(fmt.Sprintf("╭──────────────────────────────────────────────────────────────╮\n%s\n│──────────────────────────────────────────────────────────────│\n│ ℹ MCPs (Model Context Protocol) are tools that agents use    │\n│ to interact with external services, APIs, and databases.     │\n╰──────────────────────────────────────────────────────────────╯", bannerLine))
 		} else {
 			// Formation-level banner with red warning
 			ui.FormationMCPBanner()
@@ -1188,6 +1183,9 @@ func CreateA2AService(name string, noWizard bool) error {
 	// Show banner
 	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
 	fmt.Println("│ [+] Adding new A2A service                              MUXI │")
+	fmt.Println("│──────────────────────────────────────────────────────────────│")
+	fmt.Println("│ ℹ A2A services are external agent endpoints your formation   │")
+	fmt.Println("│ can communicate with via Agent-to-Agent protocol.            │")
 	fmt.Println("╰──────────────────────────────────────────────────────────────╯")
 	fmt.Println()
 
@@ -2842,8 +2840,6 @@ func sopTemplate(id, name, description, mode, tags string, bypassApproval bool) 
 	b.WriteString(fmt.Sprintf("mode: %s\n", mode))
 	if tags != "" {
 		b.WriteString(fmt.Sprintf("tags: %s\n", tags))
-	} else {
-		b.WriteString("tags: \n")
 	}
 	b.WriteString(fmt.Sprintf("bypass_approval: %t\n", bypassApproval))
 	b.WriteString("---\n\n")
@@ -2858,11 +2854,11 @@ func sopTemplate(id, name, description, mode, tags string, bypassApproval bool) 
 
 	// Steps section
 	b.WriteString("## Steps\n\n")
-	b.WriteString("1. **First step** [agent:overlord]\n")
+	b.WriteString("1. **First step** [agent:assistant]\n")
 	b.WriteString("   - Describe what this step does\n")
-	b.WriteString("   - Use [mcp:service-name] to reference MCP servers\n")
+	b.WriteString("   - Use [mcp:web-search] to reference MCP servers\n")
 	b.WriteString("   - Use [file:path/to/file.md] to reference other files\n\n")
-	b.WriteString("2. **Second step** [agent:overlord]\n")
+	b.WriteString("2. **Second step** [agent:writer]\n")
 	b.WriteString("   - Continue with more steps\n\n")
 
 	// Helper section

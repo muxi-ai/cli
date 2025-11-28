@@ -107,18 +107,27 @@ Examples:
 }
 
 var newSopCmd = &cobra.Command{
-	Use:   "sop <name>",
+	Use:   "sop [name]",
 	Short: "Create a new SOP document",
-	Long: `Create a new Standard Operating Procedure document in sops/ directory.
+	Long: `Create a new Standard Operating Procedure (SOP) in sops/ directory.
+
+SOPs define workflows that agents follow to complete complex tasks.
+They include frontmatter (name, description, mode, tags) and step-by-step
+instructions with agent assignments and tool references.
 
 Must be run inside a formation directory.
 
 Examples:
-  muxi new sop customer-onboarding
+  muxi new sop                              # Interactive wizard
+  muxi new sop customer-onboarding          # With ID
+  muxi new sop "Customer Onboarding"        # Spaces are normalized
   muxi new sop customer-onboarding --no-wizard`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
+		var name string
+		if len(args) > 0 {
+			name = args[0]
+		}
 
 		if err := scaffold.CreateSOP(name, noWizard); err != nil {
 			return fmt.Errorf("failed to create SOP: %w", err)
@@ -129,18 +138,26 @@ Examples:
 }
 
 var newTriggerCmd = &cobra.Command{
-	Use:   "trigger <name>",
+	Use:   "trigger [name]",
 	Short: "Create a new trigger",
-	Long: `Create a new trigger configuration file in triggers/ directory.
+	Long: `Create a new trigger prompt template in triggers/ directory.
+
+Triggers are markdown templates invoked via webhooks. Use ${{ data.xxx }}
+syntax to access values from the webhook payload.
 
 Must be run inside a formation directory.
 
 Examples:
-  muxi new trigger webhook
-  muxi new trigger webhook --no-wizard`,
-	Args: cobra.ExactArgs(1),
+  muxi new trigger                          # Interactive wizard
+  muxi new trigger github-issue             # With ID
+  muxi new trigger "GitHub Issue"           # Spaces are normalized
+  muxi new trigger github-issue --no-wizard`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
+		var name string
+		if len(args) > 0 {
+			name = args[0]
+		}
 
 		if err := scaffold.CreateTrigger(name, noWizard); err != nil {
 			return fmt.Errorf("failed to create trigger: %w", err)

@@ -245,6 +245,9 @@ func FormationMCPBanner() {
 	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
 	fmt.Println("│ [+] Adding new MCP to formation                         MUXI │")
 	fmt.Println("│──────────────────────────────────────────────────────────────│")
+	fmt.Println("│ ℹ MCPs (Model Context Protocol) are tools that agents use    │")
+	fmt.Println("│ to interact with external services, APIs, and databases.     │")
+	fmt.Println("│──────────────────────────────────────────────────────────────│")
 	
 	// Warning line in red
 	fmt.Print("│ ")
@@ -252,8 +255,7 @@ func FormationMCPBanner() {
 	fmt.Println("            │")
 	
 	fmt.Println("│                                                              │")
-	fmt.Println("│ For tools that are going to be used primarily by a specific  │")
-	fmt.Println("│ agent, we recommend adding the MCP on the agent-level:       │")
+	fmt.Println("│ For tools specific to one agent, use:                        │")
 	fmt.Println("│   $ muxi new mcp --agent <agent-id>                          │")
 	fmt.Println("╰──────────────────────────────────────────────────────────────╯")
 	fmt.Println()
