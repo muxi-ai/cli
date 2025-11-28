@@ -45,8 +45,16 @@ func CreateFormation(name string, noWizard bool) error {
 		os.Exit(1)
 	}
 
-	// Show banner in interactive mode
+	// Show logo and banner in interactive mode
 	if !noWizard {
+		fmt.Println()
+		ui.Dimmed(`███╗   ███╗██╗   ██╗██╗  ██╗██╗
+████╗ ████║██║   ██║╚██╗██╔╝██║
+██╔████╔██║██║   ██║ ╚███╔╝ ██║
+██║╚██╔╝██║██║   ██║ ██╔██╗ ██║
+██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗██║
+╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝`)
+		fmt.Println()
 		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Creating new formation                              MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ A formation is a deployable unit containing agents, MCPs,  │\n│ SOPs, and configuration for your AI system.                  │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
