@@ -795,108 +795,326 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 func CreateSOP(name string, noWizard bool) error {
 	ctx, err := context.MustDetectFormation()
 	if err != nil {
-		ui.ErrorBlock("Not in formation directory", err.Error(), "")
-		return fmt.Errorf("not in formation directory")
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"This command must be run inside a formation directory.",
+			"Navigate to your formation:\n  cd my-formation\n\nOr create a new one:\n  muxi new formation",
+		)
+		os.Exit(1)
+	}
+
+	// Ensure sops directory exists
+	sopsDir := filepath.Join(ctx.RootDir, "sops")
+	if err := os.MkdirAll(sopsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create sops directory: %w", err)
 	}
 
 	// Show banner in interactive mode
 	if !noWizard {
-		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new SOP document                             MUXI │\n╰──────────────────────────────────────────────────────────────╯")
+		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new SOP                                      MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ SOPs (Standard Operating Procedures) define workflows      │\n│ that agents follow to complete complex tasks.                │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
-	if err := validateComponentName(name); err != nil {
-		ui.ErrorBlock("Invalid SOP name", err.Error(), "Example: customer-onboarding")
-		return fmt.Errorf("invalid name")
-	}
+	var sopID, sopName, description, mode, tags string
+	bypassApproval := true
 
-	sopFile := filepath.Join(ctx.RootDir, "sops", name+".md")
-	if _, err := os.Stat(sopFile); !os.IsNotExist(err) {
-		ui.ErrorBlock(
-			"SOP file exists",
-			fmt.Sprintf("File 'sops/%s.md' already exists", name),
-			fmt.Sprintf("Choose a different name or remove:\n  rm sops/%s.md", name),
-		)
-		return fmt.Errorf("file exists")
-	}
-
-	var title, description string
 	if !noWizard {
-		title, _ = wizard.PromptString("Title", titleCase(name), nil)
-		ui.PromptSuccess("Title", title)
+		// SOP ID - validation loop with normalization
+		for {
+			var inputID string
+			var err error
+			if name != "" {
+				inputID = name
+				name = "" // Only use once
+			} else {
+				inputID, err = wizard.PromptString("SOP ID", "", nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("SOP creation cancelled")
+					return nil
+				}
+			}
 
-		description, _ = wizard.PromptString("Description (optional, press Enter to skip)", "", nil)
+			// Validate not empty
+			if inputID == "" {
+				ui.PromptError("SOP ID", inputID, fmt.Errorf("SOP ID is required"))
+				continue
+			}
+
+			// Normalize: spaces to hyphens, lowercase
+			sopID = normalizeComponentName(inputID)
+
+			// Validate normalized format
+			if err := validateComponentName(sopID); err != nil {
+				ui.PromptError("SOP ID", inputID, err)
+				continue
+			}
+
+			// Check for duplicates
+			sopFile := filepath.Join(sopsDir, sopID+".md")
+			if _, err := os.Stat(sopFile); !os.IsNotExist(err) {
+				existingName, existingDesc := getComponentInfo(sopFile)
+				existingInfo := formatExistingInfo(existingName, existingDesc)
+				ui.PromptError("SOP ID", inputID, fmt.Errorf("SOP '%s' already exists%s\n\nChoose a different ID or edit:\n  muxi edit sop %s", sopID, existingInfo, sopID))
+				continue
+			}
+
+			ui.PromptSuccess("SOP ID", sopID)
+			break
+		}
+
+		// SOP Name - suggest based on ID
+		inferredName := titleCase(sopID)
+		sopName, err = wizard.PromptString("Name", inferredName, nil)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("SOP creation cancelled")
+			return nil
+		}
+		if sopName == "" {
+			sopName = inferredName
+		}
+		ui.PromptSuccess("Name", sopName)
+
+		// Description
+		description, err = wizard.PromptString("Description", "", nil)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("SOP creation cancelled")
+			return nil
+		}
 		if description != "" {
 			ui.PromptSuccess("Description", description)
 		} else {
 			ui.PromptSkipped("Description")
 		}
+
+		// Mode selection with explanation
+		fmt.Println()
+		ui.Dimmed("  Mode determines how the SOP is executed:")
+		ui.Dimmed("  • template: Agent follows steps as a checklist (default)")
+		ui.Dimmed("  • guide: Agent uses SOP as reference, adapts as needed")
+		fmt.Println()
+
+		modeOptions := []wizard.SelectOption{
+			{Value: "template", Label: "Template", Description: "Follow steps as checklist"},
+			{Value: "guide", Label: "Guide", Description: "Use as reference, adapt as needed"},
+		}
+
+		mode, err = wizard.PromptSelect("Mode", modeOptions, 0)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("SOP creation cancelled")
+			return nil
+		}
+		for _, opt := range modeOptions {
+			if opt.Value == mode {
+				ui.PromptSuccess("Mode", opt.Label)
+				break
+			}
+		}
+
+		// Tags (optional)
+		tags, err = wizard.PromptString("Tags (comma-separated, optional)", "", nil)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("SOP creation cancelled")
+			return nil
+		}
+		if tags != "" {
+			ui.PromptSuccess("Tags", tags)
+		} else {
+			ui.PromptSkipped("Tags")
+		}
+
+		// Bypass approval with explanation
+		fmt.Println()
+		ui.Dimmed("  Bypass approval: Skip human approval for this SOP's actions?")
+		ui.Dimmed("  • Yes (default): Agent executes without asking permission")
+		ui.Dimmed("  • No: Agent asks for approval before executing steps")
+		fmt.Println()
+
+		bypassStr, err := wizard.PromptString("Bypass approval? (Y/n)", "", nil)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("SOP creation cancelled")
+			return nil
+		}
+		bypassApproval = strings.ToLower(strings.TrimSpace(bypassStr)) != "n"
+		if bypassApproval {
+			ui.PromptSuccess("Bypass approval", "Yes")
+		} else {
+			ui.PromptSuccess("Bypass approval", "No")
+		}
+
 	} else {
-		title = titleCase(name)
+		// Non-interactive mode
+		if name == "" {
+			return fmt.Errorf("SOP ID is required")
+		}
+		sopID = normalizeComponentName(name)
+		if err := validateComponentName(sopID); err != nil {
+			ui.ErrorBlock("Invalid SOP ID", err.Error(), "Example: customer-onboarding")
+			os.Exit(1)
+		}
+
+		// Check for duplicates
+		sopFile := filepath.Join(sopsDir, sopID+".md")
+		if _, err := os.Stat(sopFile); !os.IsNotExist(err) {
+			existingName, existingDesc := getComponentInfo(sopFile)
+			existingInfo := ""
+			if existingName != "" || existingDesc != "" {
+				if existingDesc != "" {
+					if len(existingDesc) > 60 {
+						existingDesc = existingDesc[:57] + "..."
+					}
+					if existingName != "" {
+						existingInfo = fmt.Sprintf("\n  → %s: %s", existingName, existingDesc)
+					} else {
+						existingInfo = fmt.Sprintf("\n  → %s", existingDesc)
+					}
+				} else if existingName != "" {
+					existingInfo = fmt.Sprintf("\n  → %s", existingName)
+				}
+			}
+
+			ui.ErrorBlock(
+				"SOP already exists",
+				fmt.Sprintf("SOP '%s' already exists.%s", sopID, existingInfo),
+				fmt.Sprintf("Choose a different ID or edit:\n  muxi edit sop %s", sopID),
+			)
+			os.Exit(1)
+		}
+
+		sopName = titleCase(sopID)
 		description = ""
+		mode = "template"
+		tags = ""
+		bypassApproval = true
 	}
 
-	content := sopTemplate(title, description)
+	// Generate content
+	content := sopTemplate(sopID, sopName, description, mode, tags, bypassApproval)
+
+	// Write file
+	sopFile := filepath.Join(sopsDir, sopID+".md")
 	if err := os.WriteFile(sopFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create SOP file: %w", err)
 	}
 
+	// Success message
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Created sops/%s.md", name))
+	ui.Success(fmt.Sprintf("Created sops/%s.md", sopID))
 
 	return nil
 }
 
-// CreateTrigger creates a new trigger configuration file
+// CreateTrigger creates a new trigger prompt template
 func CreateTrigger(name string, noWizard bool) error {
 	ctx, err := context.MustDetectFormation()
 	if err != nil {
-		ui.ErrorBlock("Not in formation directory", err.Error(), "")
-		return fmt.Errorf("not in formation directory")
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"This command must be run inside a formation directory.",
+			"Navigate to your formation:\n  cd my-formation\n\nOr create a new one:\n  muxi new formation",
+		)
+		os.Exit(1)
+	}
+
+	// Ensure triggers directory exists
+	triggersDir := filepath.Join(ctx.RootDir, "triggers")
+	if err := os.MkdirAll(triggersDir, 0755); err != nil {
+		return fmt.Errorf("failed to create triggers directory: %w", err)
 	}
 
 	// Show banner in interactive mode
 	if !noWizard {
-		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new trigger                                  MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ Triggers allow external systems to invoke your agents      │\n│ via webhooks or scheduled events.                            │\n╰──────────────────────────────────────────────────────────────╯")
+		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new trigger                                  MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ Triggers are prompt templates invoked via webhooks.        │\n│ Use ${{ data.xxx }} to access webhook payload values.        │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
-	if err := validateComponentName(name); err != nil {
-		ui.ErrorBlock("Invalid trigger name", err.Error(), "Example: webhook-handler")
-		return fmt.Errorf("invalid name")
-	}
+	var triggerID string
 
-	triggerFile := filepath.Join(ctx.RootDir, "triggers", name+".yaml")
-	if _, err := os.Stat(triggerFile); !os.IsNotExist(err) {
-		ui.ErrorBlock(
-			"Trigger file exists",
-			fmt.Sprintf("File 'triggers/%s.yaml' already exists", name),
-			fmt.Sprintf("Choose a different name or remove:\n  rm triggers/%s.yaml", name),
-		)
-		return fmt.Errorf("file exists")
-	}
-
-	var description, triggerType string
 	if !noWizard {
-		description, _ = wizard.PromptString("Description (optional, press Enter to skip)", "", nil)
-		if description != "" {
-			ui.PromptSuccess("Description", description)
-		} else {
-			ui.PromptSkipped("Description")
+		// Trigger ID - validation loop with normalization
+		for {
+			var inputID string
+			var err error
+			if name != "" {
+				inputID = name
+				name = "" // Only use once
+			} else {
+				inputID, err = wizard.PromptString("Trigger ID", "", nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("Trigger creation cancelled")
+					return nil
+				}
+			}
+
+			// Validate not empty
+			if inputID == "" {
+				ui.PromptError("Trigger ID", inputID, fmt.Errorf("trigger ID is required"))
+				continue
+			}
+
+			// Normalize: spaces to hyphens, lowercase
+			triggerID = normalizeComponentName(inputID)
+
+			// Validate normalized format
+			if err := validateComponentName(triggerID); err != nil {
+				ui.PromptError("Trigger ID", inputID, err)
+				continue
+			}
+
+			// Check for duplicates (now .md extension)
+			triggerFile := filepath.Join(triggersDir, triggerID+".md")
+			if _, err := os.Stat(triggerFile); !os.IsNotExist(err) {
+				ui.PromptError("Trigger ID", inputID, fmt.Errorf("trigger '%s' already exists\n\nChoose a different ID or edit:\n  muxi edit trigger %s", triggerID, triggerID))
+				continue
+			}
+
+			ui.PromptSuccess("Trigger ID", triggerID)
+			break
+		}
+	} else {
+		// Non-interactive mode
+		if name == "" {
+			return fmt.Errorf("trigger ID is required")
+		}
+		triggerID = normalizeComponentName(name)
+		if err := validateComponentName(triggerID); err != nil {
+			ui.ErrorBlock("Invalid trigger ID", err.Error(), "Example: github-issue")
+			os.Exit(1)
 		}
 
-		triggerType, _ = wizard.PromptString("Type", "webhook", nil)
-		ui.PromptSuccess("Type", triggerType)
-	} else {
-		description = ""
-		triggerType = "webhook"
+		// Check for duplicates
+		triggerFile := filepath.Join(triggersDir, triggerID+".md")
+		if _, err := os.Stat(triggerFile); !os.IsNotExist(err) {
+			ui.ErrorBlock(
+				"Trigger already exists",
+				fmt.Sprintf("Trigger '%s' already exists.", triggerID),
+				fmt.Sprintf("Choose a different ID or edit:\n  muxi edit trigger %s", triggerID),
+			)
+			os.Exit(1)
+		}
 	}
 
-	content := triggerTemplate(name, description, triggerType)
+	// Generate content
+	content := triggerTemplate(triggerID)
+
+	// Write file
+	triggerFile := filepath.Join(triggersDir, triggerID+".md")
 	if err := os.WriteFile(triggerFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create trigger file: %w", err)
 	}
 
+	// Success message
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Created triggers/%s.yaml", name))
+	ui.Success(fmt.Sprintf("Created triggers/%s.md", triggerID))
+
+	// Show endpoint info
+	fmt.Println()
+	ui.Info("Invoke this trigger via:")
+	ui.Dimmed(fmt.Sprintf("  POST /v1/triggers/%s", triggerID))
 
 	return nil
 }
@@ -2609,72 +2827,102 @@ type: %s
 	return tmpl.String()
 }
 
-func sopTemplate(title, description string) string {
-	date := "2025-11-26" // TODO: Use actual date
+func sopTemplate(id, name, description, mode, tags string, bypassApproval bool) string {
+	var b strings.Builder
 
-	content := fmt.Sprintf(`# %s
-
-**Created:** %s
-**Status:** Draft
-
-`, title, date)
-
+	// Frontmatter
+	b.WriteString("---\n")
+	b.WriteString("type: sop\n")
+	b.WriteString(fmt.Sprintf("name: %s\n", name))
 	if description != "" {
-		content += fmt.Sprintf(`## Overview
-
-%s
-
-`, description)
+		b.WriteString(fmt.Sprintf("description: %s\n", description))
 	} else {
-		content += `## Overview
+		b.WriteString("description: \n")
+	}
+	b.WriteString(fmt.Sprintf("mode: %s\n", mode))
+	if tags != "" {
+		b.WriteString(fmt.Sprintf("tags: %s\n", tags))
+	} else {
+		b.WriteString("tags: \n")
+	}
+	b.WriteString(fmt.Sprintf("bypass_approval: %t\n", bypassApproval))
+	b.WriteString("---\n\n")
 
-(Add overview here)
+	// Title
+	b.WriteString(fmt.Sprintf("# %s\n\n", name))
 
-`
+	// Description section
+	if description != "" {
+		b.WriteString(fmt.Sprintf("%s\n\n", description))
 	}
 
-	content += `## Prerequisites
+	// Steps section
+	b.WriteString("## Steps\n\n")
+	b.WriteString("1. **First step** [agent:overlord]\n")
+	b.WriteString("   - Describe what this step does\n")
+	b.WriteString("   - Use [mcp:service-name] to reference MCP servers\n")
+	b.WriteString("   - Use [file:path/to/file.md] to reference other files\n\n")
+	b.WriteString("2. **Second step** [agent:overlord]\n")
+	b.WriteString("   - Continue with more steps\n\n")
 
-- List prerequisites here
+	// Helper section
+	b.WriteString("<!-- \n")
+	b.WriteString("SOP Syntax Reference:\n")
+	b.WriteString("  [agent:name]     - Assign step to a specific agent\n")
+	b.WriteString("  [mcp:name]       - Reference an MCP server for this step\n")
+	b.WriteString("  [file:path]      - Include content from another file in sops/\n")
+	b.WriteString("\n")
+	b.WriteString("Mode:\n")
+	b.WriteString("  template - Agent follows steps as a checklist\n")
+	b.WriteString("  guide    - Agent uses SOP as reference, adapts as needed\n")
+	b.WriteString("\n")
+	b.WriteString("Bypass Approval:\n")
+	b.WriteString("  true  - Agent executes without human approval\n")
+	b.WriteString("  false - Agent asks for approval before executing\n")
+	b.WriteString("-->\n")
 
-## Steps
-
-1. First step
-2. Second step
-3. Third step
-
-## Expected Outcomes
-
-- Outcome 1
-- Outcome 2
-
-## Notes
-
-- Additional notes
-`
-	return content
+	return b.String()
 }
 
-func triggerTemplate(name, description, triggerType string) string {
-	if description == "" {
-		description = fmt.Sprintf("%s trigger", titleCase(name))
-	}
+func triggerTemplate(id string) string {
+	name := titleCase(id)
+	
+	var b strings.Builder
 
-	return fmt.Sprintf(`schema: "1.0.0"
+	// Header comment
+	b.WriteString(fmt.Sprintf("<!-- Trigger: %s -->\n", name))
+	b.WriteString("<!-- This template is rendered when the trigger is invoked -->\n")
+	b.WriteString("<!-- Access webhook payload data using ${{ data.xxx }} syntax -->\n\n")
 
-id: %s
-description: "%s"
-type: %s
+	// Example template
+	b.WriteString(fmt.Sprintf("# %s\n\n", name))
+	b.WriteString("**Event received from:** ${{ data.source }}\n\n")
+	b.WriteString("## Event Details\n\n")
+	b.WriteString("- **Type:** ${{ data.event_type }}\n")
+	b.WriteString("- **Timestamp:** ${{ data.timestamp }}\n\n")
+	b.WriteString("## Payload\n\n")
+	b.WriteString("```\n")
+	b.WriteString("${{ data.payload }}\n")
+	b.WriteString("```\n\n")
+	b.WriteString("## Instructions\n\n")
+	b.WriteString("Please analyze this event and take appropriate action.\n\n")
 
-config:
-  path: "/%s"
-  method: POST
+	// Helper section
+	b.WriteString("<!-- \n")
+	b.WriteString("Trigger Syntax Reference:\n")
+	b.WriteString("  ${{ data.xxx }}  - Access values from the webhook JSON payload\n")
+	b.WriteString("  ${{ data.nested.field }}  - Access nested values\n\n")
+	b.WriteString("Example webhook payload:\n")
+	b.WriteString("  POST /v1/triggers/" + id + "\n")
+	b.WriteString("  {\n")
+	b.WriteString("    \"source\": \"github\",\n")
+	b.WriteString("    \"event_type\": \"issue.created\",\n")
+	b.WriteString("    \"timestamp\": \"2025-01-15T10:30:00Z\",\n")
+	b.WriteString("    \"payload\": { ... }\n")
+	b.WriteString("  }\n")
+	b.WriteString("-->\n")
 
-handler:
-  agent: overlord
-
-active: true
-`, name, description, triggerType, name)
+	return b.String()
 }
 
 func a2aTemplate(name, description, a2aType, baseURL string) string {
@@ -3264,7 +3512,7 @@ func EditComponent(component, id string) error {
 		if id == "" {
 			return fmt.Errorf("trigger ID required: muxi edit trigger <id>")
 		}
-		filePath = filepath.Join(ctx.RootDir, "triggers", id+".yaml")
+		filePath = filepath.Join(ctx.RootDir, "triggers", id+".md")
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			ui.ErrorBlock(
 				"Trigger not found",
