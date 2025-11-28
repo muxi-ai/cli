@@ -14,11 +14,12 @@ var editCmd = &cobra.Command{
 	Long: `Open component configuration files in your default editor ($EDITOR).
 
 Examples:
-  muxi edit agent weather           # Opens agents/weather.yaml
-  muxi edit mcp weather-api         # Opens mcps/weather-api.yaml (or agent file if agent-level)
-  muxi edit formation               # Opens formation.yaml
-  muxi edit sop customer-onboarding # Opens sops/customer-onboarding.md
-  muxi edit trigger webhook-handler # Opens triggers/webhook-handler.yaml
+  muxi edit formation                   # Opens formation.yaml
+  muxi edit agent weather               # Opens agents/weather.yaml
+  muxi edit mcp weather-api             # Opens mcps/weather-api.yaml (or agent file if agent-level)
+  muxi edit sop customer-onboarding     # Opens sops/customer-onboarding.md
+  muxi edit trigger webhook-handler     # Opens triggers/webhook-handler.yaml
+  muxi edit a2a-service external-billing # Opens a2a/external-billing.yaml
 
 The editor used is determined by $EDITOR environment variable.
 Falls back to: vim (Unix) or notepad (Windows) if $EDITOR is not set.`,

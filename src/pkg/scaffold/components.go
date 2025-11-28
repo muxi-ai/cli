@@ -3100,9 +3100,23 @@ func EditComponent(component, id string) error {
 			)
 			return fmt.Errorf("trigger not found: %s", id)
 		}
+
+	case "a2a-service":
+		if id == "" {
+			return fmt.Errorf("A2A service ID required: muxi edit a2a-service <id>")
+		}
+		filePath = filepath.Join(ctx.RootDir, "a2a", id+".yaml")
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			ui.ErrorBlock(
+				"A2A service not found",
+				fmt.Sprintf("A2A service '%s' does not exist.", id),
+				fmt.Sprintf("Create it first:\n  muxi new a2a-service %s", id),
+			)
+			return fmt.Errorf("A2A service not found: %s", id)
+		}
 		
 	default:
-		return fmt.Errorf("unknown component type: %s\nSupported: formation, agent, mcp, sop, trigger", component)
+		return fmt.Errorf("unknown component type: %s\nSupported: formation, agent, mcp, sop, trigger, a2a-service", component)
 	}
 
 	// Get editor
