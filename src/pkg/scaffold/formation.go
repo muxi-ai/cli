@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
@@ -14,11 +15,25 @@ import (
 	"github.com/muxi-ai/cli/pkg/wizard"
 )
 
+// FormationConfig holds all configuration gathered during the wizard
+type FormationConfig struct {
+	Name             string
+	Description      string
+	EnableStreaming  bool
+	EnableAsync      bool
+	WebhookURL       string
+	ProviderType     string // "cloud", "local", "enterprise"
+	Provider         *LLMProvider
+	LocalProvider    *LocalProvider
+	LocalBaseURL     string
+	LocalModel       string
+	EnterpriseProvider *EnterpriseProvider
+	APIKey           string
+}
+
 // CreateFormation creates a new formation directory with all necessary files
 func CreateFormation(name string, noWizard bool) error {
-	var formationName string
-	var description string
-	var openaiKey string
+	config := &FormationConfig{}
 
 	// Check if we're already inside a formation directory
 	if _, err := context.DetectFormation(); err == nil {
@@ -35,51 +50,41 @@ func CreateFormation(name string, noWizard bool) error {
 		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Creating new formation                              MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ A formation is a deployable unit containing agents, MCPs,  │\n│ SOPs, and configuration for your AI system.                  │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
-	// Interactive mode - get formation ID if not provided
+	// Step 1: Get formation ID
 	if name == "" && !noWizard {
-		// Loop until we get a valid ID that doesn't conflict
 		for {
-			var err error
 			inputName, err := wizard.PromptString("Formation ID", "", nil)
 			if err != nil {
 				return err
 			}
 			
-			// Normalize the input
-			formationName = normalizeFormationName(inputName)
+			config.Name = normalizeFormationName(inputName)
 			
-			// Validate normalized name
-			if err := validateFormationName(formationName); err != nil {
+			if err := validateFormationName(config.Name); err != nil {
 				ui.PromptError("Formation ID", inputName, err)
 				continue
 			}
 			
-			// Check if directory already exists
-			if _, err := os.Stat(formationName); !os.IsNotExist(err) {
-				// Show error and re-prompt
-				ui.PromptError("Formation ID", inputName, fmt.Errorf("directory already exists\n\nChoose a different ID or remove:\n  rm -rf %s", formationName))
+			if _, err := os.Stat(config.Name); !os.IsNotExist(err) {
+				ui.PromptError("Formation ID", inputName, fmt.Errorf("directory already exists\n\nChoose a different ID or remove:\n  rm -rf %s", config.Name))
 				continue
 			}
 			
-			// All good - show success with normalized name
-			ui.PromptSuccess("Formation ID", formationName)
+			ui.PromptSuccess("Formation ID", config.Name)
 			break
 		}
 	} else if name != "" {
-		// Normalize provided ID
-		formationName = normalizeFormationName(name)
+		config.Name = normalizeFormationName(name)
 		
-		// Validate normalized name
-		if err := validateFormationName(formationName); err != nil {
+		if err := validateFormationName(config.Name); err != nil {
 			return fmt.Errorf("invalid formation ID '%s': %w", name, err)
 		}
 		
-		// Check if directory already exists (non-interactive - just error out)
-		if _, err := os.Stat(formationName); !os.IsNotExist(err) {
+		if _, err := os.Stat(config.Name); !os.IsNotExist(err) {
 			ui.ErrorBlock(
 				"Formation directory exists",
-				fmt.Sprintf("Directory '%s' already exists", formationName),
-				fmt.Sprintf("Choose a different name or remove:\n  rm -rf %s", formationName),
+				fmt.Sprintf("Directory '%s' already exists", config.Name),
+				fmt.Sprintf("Choose a different name or remove:\n  rm -rf %s", config.Name),
 			)
 			return fmt.Errorf("directory exists")
 		}
@@ -87,52 +92,104 @@ func CreateFormation(name string, noWizard bool) error {
 		return fmt.Errorf("formation ID required (provide as argument or run without --no-wizard)")
 	}
 
-	// Interactive mode - get optional description and secrets
+	// Interactive mode - gather all configuration
 	if !noWizard {
 		var err error
-		description, err = wizard.PromptString("Description (optional, press Enter to skip)", "", nil)
+		
+		// Step 2: Description
+		config.Description, err = wizard.PromptString("Description (optional, press Enter to skip)", "", nil)
 		if err != nil {
 			return err
 		}
-		
-		if description != "" {
-			ui.PromptSuccess("Description", description)
+		if config.Description != "" {
+			ui.PromptSuccess("Description", config.Description)
 		} else {
 			ui.PromptSkipped("Description")
 		}
 
-		ui.Section("Setup secrets:")
-		openaiKey, err = wizard.PromptPassword("  [1/1] OPENAI_API_KEY (optional)\n    Enter API key (leave empty to skip)", true)
+		// Step 3: Streaming responses
+		config.EnableStreaming, err = wizard.PromptConfirm("Enable streaming responses?", false)
 		if err != nil {
 			return err
 		}
-
-		if openaiKey != "" {
-			if !strings.HasPrefix(openaiKey, "sk-") {
-				ui.Warning("OpenAI API keys typically start with 'sk-'")
-			}
-			ui.PromptSuccess("  OPENAI_API_KEY", "configured")
+		if config.EnableStreaming {
+			ui.PromptSuccess("Streaming", "enabled")
 		} else {
-			ui.PromptSkipped("  OPENAI_API_KEY")
+			ui.PromptSkipped("Streaming")
+		}
+
+		// Step 4: Async responses
+		config.EnableAsync, err = wizard.PromptConfirm("Enable async responses for long-running tasks?", false)
+		if err != nil {
+			return err
+		}
+		
+		if config.EnableAsync {
+			// Get webhook URL (required for async)
+			fmt.Println()
+			ui.Dimmed("  Async responses are delivered via webhook for long-running tasks.")
+			fmt.Println()
+			
+			for {
+				webhookURL, err := wizard.PromptString("Webhook URL", "", nil)
+				if err != nil {
+					return err
+				}
+				
+				if webhookURL == "" {
+					// Empty URL - ask if they want to disable async
+					disable, err := wizard.PromptConfirm("Disable async responses?", false)
+					if err != nil {
+						return err
+					}
+					if disable {
+						config.EnableAsync = false
+						ui.PromptSkipped("Async")
+						break
+					}
+					continue
+				}
+				
+				// Auto-prepend https:// if no protocol
+				if !strings.HasPrefix(webhookURL, "http://") && !strings.HasPrefix(webhookURL, "https://") {
+					webhookURL = "https://" + webhookURL
+				}
+				
+				config.WebhookURL = webhookURL
+				ui.PromptSuccess("Webhook URL", webhookURL)
+				break
+			}
+		} else {
+			ui.PromptSkipped("Async")
+		}
+
+		// Step 5: LLM Provider selection
+		fmt.Println()
+		ui.Section("LLM Provider Setup")
+		ui.Dimmed("You need at least one LLM provider for the formation to work.")
+		ui.Dimmed("You can add more later using 'muxi config llm'.")
+		fmt.Println()
+		
+		if err := promptLLMProvider(config); err != nil {
+			return err
 		}
 	}
 
 	// Create formation directory
-	if err := os.Mkdir(formationName, 0755); err != nil {
+	if err := os.Mkdir(config.Name, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	ui.Section(fmt.Sprintf("Creating formation '%s'...", formationName))
+	ui.Section(fmt.Sprintf("Creating formation '%s'...", config.Name))
 
 	// Create subdirectories
 	dirs := []string{"agents", "mcps", "a2a", "sops", "triggers", "knowledge"}
 	for _, dir := range dirs {
-		path := filepath.Join(formationName, dir)
+		path := filepath.Join(config.Name, dir)
 		if err := os.Mkdir(path, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 
-		// Create .gitkeep
 		gitkeepPath := filepath.Join(path, ".gitkeep")
 		if err := os.WriteFile(gitkeepPath, []byte(""), 0644); err != nil {
 			return fmt.Errorf("failed to create .gitkeep in %s: %w", dir, err)
@@ -146,29 +203,28 @@ func CreateFormation(name string, noWizard bool) error {
 	}
 
 	// Generate formation API keys
-	// TODO: Store these in secrets.enc when secrets package is ready
-	_ = generateFormationKey("fma")  // adminKey
-	_ = generateFormationKey("fmc")  // clientKey
+	_ = generateFormationKey("fma")
+	_ = generateFormationKey("fmc")
 
-	// Create files
+	// Create files with dynamic content based on config
 	files := map[string]string{
-		".gitignore":      gitignoreTemplate(),
-		".key":            encryptionKey,
-		".muxi":           muxiTemplate(),
-		"formation.yaml":  formationYAMLTemplate(formationName, description),
-		"secrets":         secretsTemplate(),
-		"README.md":       readmeTemplate(formationName, description),
+		".gitignore":     gitignoreTemplate(),
+		".key":           encryptionKey,
+		".muxi":          muxiTemplate(),
+		"formation.yaml": generateFormationYAML(config),
+		"secrets":        generateSecretsTemplate(config),
+		"README.md":      readmeTemplate(config.Name, config.Description),
 	}
 
 	for filename, content := range files {
-		path := filepath.Join(formationName, filename)
+		path := filepath.Join(config.Name, filename)
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to create %s: %w", filename, err)
 		}
 	}
 
 	// Make .key read-only for safety
-	keyPath := filepath.Join(formationName, ".key")
+	keyPath := filepath.Join(config.Name, ".key")
 	if err := os.Chmod(keyPath, 0400); err != nil {
 		return fmt.Errorf("failed to set permissions on .key: %w", err)
 	}
@@ -176,43 +232,180 @@ func CreateFormation(name string, noWizard bool) error {
 	ui.Step("Directory structure created")
 	ui.Step("Formation keys generated")
 
-	// If OpenAI key provided, create secrets.enc
-	if openaiKey != "" {
-		// TODO: Encrypt and save secrets
-		// For now, just indicate success (already shown above with PromptSuccess)
-	}
-
 	// Success message
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Formation '%s' created successfully!", formationName))
+	ui.Success(fmt.Sprintf("Formation '%s' created successfully!", config.Name))
 	
+	// Show next steps based on provider type
 	if !noWizard {
 		fmt.Println()
-		ui.Dimmed("Next steps:")
-		ui.Dimmed(fmt.Sprintf("  cd %s", formationName))
-		if openaiKey == "" {
-			ui.Dimmed("  muxi secrets set OPENAI_API_KEY")
+		
+		if config.ProviderType == "enterprise" && config.EnterpriseProvider != nil {
+			ui.Dimmed("Next steps:")
+			for i, step := range config.EnterpriseProvider.NextSteps {
+				ui.Dimmed(fmt.Sprintf("  %d. %s", i+1, step))
+			}
+		} else {
+			ui.Dimmed("Next steps:")
+			ui.Dimmed(fmt.Sprintf("  cd %s", config.Name))
+			if config.APIKey == "" && config.ProviderType != "local" {
+				if config.Provider != nil {
+					ui.Dimmed(fmt.Sprintf("  muxi secrets set %s", config.Provider.SecretName))
+				}
+			}
+			ui.Dimmed("  muxi validate")
+			ui.Dimmed("  muxi deploy --profile production")
 		}
-		ui.Dimmed("  muxi validate")
-		ui.Dimmed("  muxi deploy --profile production")
 	} else {
 		fmt.Println()
 		ui.Dimmed("Files created:")
-		files := []string{
+		fileList := []string{
 			".gitignore, .key, .muxi, formation.yaml",
-			"secrets (template with 3 keys)",
+			"secrets (template)",
 			"README.md",
 			"6 directories (agents/, mcps/, a2a/, sops/, triggers/, knowledge/)",
 		}
-		ui.List(files)
+		ui.List(fileList)
 		
 		fmt.Println()
 		ui.Warning("Configure secrets before deploying:")
-		ui.Dimmed(fmt.Sprintf("    cd %s", formationName))
+		ui.Dimmed(fmt.Sprintf("    cd %s", config.Name))
 		ui.Dimmed("    muxi secrets setup")
 	}
 
 	return nil
+}
+
+// promptLLMProvider handles the LLM provider selection wizard
+func promptLLMProvider(config *FormationConfig) error {
+	// Build the provider list
+	fmt.Println("Select provider:")
+	for i, p := range LLMProviders {
+		fmt.Printf("  [%d] %s\n", i+1, p.Name)
+	}
+	fmt.Printf("  [%d] Local (Ollama/llama_cpp)\n", len(LLMProviders)+1)
+	for i, p := range EnterpriseProviders {
+		fmt.Printf("  [%d] %s\n", len(LLMProviders)+2+i, p.Name)
+	}
+	fmt.Println()
+	
+	totalOptions := len(LLMProviders) + 1 + len(EnterpriseProviders)
+	
+	for {
+		selection, err := wizard.PromptString(fmt.Sprintf("Select (1-%d)", totalOptions), "", nil)
+		if err != nil {
+			return err
+		}
+		
+		num, err := strconv.Atoi(selection)
+		if err != nil || num < 1 || num > totalOptions {
+			ui.PromptError("Selection", selection, fmt.Errorf("please enter a number between 1 and %d", totalOptions))
+			continue
+		}
+		
+		// Cloud providers (1-17)
+		if num <= len(LLMProviders) {
+			provider := LLMProviders[num-1]
+			config.ProviderType = "cloud"
+			config.Provider = &provider
+			
+			// Prompt for API key
+			fmt.Println()
+			apiKey, err := wizard.PromptPassword(fmt.Sprintf("%s API Key", provider.Name), true)
+			if err != nil {
+				return err
+			}
+			
+			if apiKey != "" {
+				// Validate key prefix if known
+				if provider.KeyPrefix != "" && !strings.HasPrefix(apiKey, provider.KeyPrefix) {
+					ui.Warning(fmt.Sprintf("%s API keys typically start with '%s'", provider.Name, provider.KeyPrefix))
+				}
+				config.APIKey = apiKey
+				ui.PromptSuccess(provider.Name, fmt.Sprintf("configured with %s/%s", provider.Vendor, provider.DefaultModel))
+			} else {
+				ui.PromptSuccess(provider.Name, fmt.Sprintf("configured with %s/%s (add API key later)", provider.Vendor, provider.DefaultModel))
+			}
+			return nil
+		}
+		
+		// Local provider (18)
+		if num == len(LLMProviders)+1 {
+			config.ProviderType = "local"
+			return promptLocalProvider(config)
+		}
+		
+		// Enterprise providers (19-21)
+		enterpriseIdx := num - len(LLMProviders) - 2
+		if enterpriseIdx >= 0 && enterpriseIdx < len(EnterpriseProviders) {
+			provider := EnterpriseProviders[enterpriseIdx]
+			config.ProviderType = "enterprise"
+			config.EnterpriseProvider = &provider
+			
+			fmt.Println()
+			ui.Success(fmt.Sprintf("%s template added to formation.yaml", provider.Name))
+			return nil
+		}
+		
+		ui.PromptError("Selection", selection, fmt.Errorf("invalid selection"))
+	}
+}
+
+// promptLocalProvider handles local provider configuration
+func promptLocalProvider(config *FormationConfig) error {
+	fmt.Println()
+	fmt.Println("Local LLM Setup")
+	fmt.Println("───────────────")
+	fmt.Println()
+	ui.Dimmed("For Ollama, llama.cpp, or other local inference servers.")
+	fmt.Println()
+	
+	// Select local provider type
+	fmt.Println("Provider:")
+	for i, p := range LocalProviders {
+		fmt.Printf("  [%d] %s (default: %s)\n", i+1, p.Name, p.DefaultURL)
+	}
+	fmt.Println()
+	
+	for {
+		selection, err := wizard.PromptString(fmt.Sprintf("Select (1-%d)", len(LocalProviders)), "", nil)
+		if err != nil {
+			return err
+		}
+		
+		num, err := strconv.Atoi(selection)
+		if err != nil || num < 1 || num > len(LocalProviders) {
+			ui.PromptError("Selection", selection, fmt.Errorf("please enter 1 or 2"))
+			continue
+		}
+		
+		localProvider := LocalProviders[num-1]
+		config.LocalProvider = &localProvider
+		
+		// Get base URL
+		baseURL, err := wizard.PromptString(fmt.Sprintf("Base URL [%s]", localProvider.DefaultURL), localProvider.DefaultURL, nil)
+		if err != nil {
+			return err
+		}
+		if baseURL == "" {
+			baseURL = localProvider.DefaultURL
+		}
+		config.LocalBaseURL = baseURL
+		
+		// Get model name
+		modelName, err := wizard.PromptString("Model name (e.g., llama3, mistral, phi3)", "", nil)
+		if err != nil {
+			return err
+		}
+		if modelName == "" {
+			modelName = "llama3"
+		}
+		config.LocalModel = modelName
+		
+		fmt.Println()
+		ui.Success(fmt.Sprintf("Local LLM configured: %s/%s at %s", localProvider.Vendor, modelName, baseURL))
+		return nil
+	}
 }
 
 // normalizeFormationName converts user input to valid formation name format
