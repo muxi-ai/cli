@@ -1181,13 +1181,7 @@ func CreateA2AService(name string, noWizard bool) error {
 	}
 
 	// Show banner
-	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
-	fmt.Println("│ [+] Adding new A2A service                              MUXI │")
-	fmt.Println("│──────────────────────────────────────────────────────────────│")
-	fmt.Println("│ ℹ A2A services are external agent endpoints your formation   │")
-	fmt.Println("│ can communicate with via Agent-to-Agent protocol.            │")
-	fmt.Println("╰──────────────────────────────────────────────────────────────╯")
-	fmt.Println()
+	ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new A2A service                              MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ A2A services are external agent endpoints your formation   │\n│ can communicate with via Agent-to-Agent protocol.            │\n╰──────────────────────────────────────────────────────────────╯")
 
 	// Ensure a2a directory exists (A2A services go in a2a/*.yaml per schema)
 	a2aDir := filepath.Join(ctx.RootDir, "a2a")

@@ -241,15 +241,30 @@ func Confirm(prompt string, defaultYes bool) {
 
 // Banner displays a pre-formatted banner with box drawing characters
 // The banner string should already include all formatting (newlines, borders, etc.)
+// "MUXI" text in banners is automatically colored gold (brand color)
 func Banner(banner string) {
-	fmt.Println(banner)
+	// Color "MUXI" in gold within banners
+	lines := strings.Split(banner, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "MUXI │") {
+			// Split at MUXI and print with gold color
+			parts := strings.SplitN(line, "MUXI", 2)
+			fmt.Print(parts[0])
+			gold.Print("MUXI")
+			fmt.Println(parts[1])
+		} else {
+			fmt.Println(line)
+		}
+	}
 	fmt.Println()
 }
 
 // FormationMCPBanner displays the formation-level MCP banner with red warning
 func FormationMCPBanner() {
 	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
-	fmt.Println("│ [+] Adding new MCP to formation                         MUXI │")
+	fmt.Print("│ [+] Adding new MCP to formation                         ")
+	gold.Print("MUXI")
+	fmt.Println(" │")
 	fmt.Println("│──────────────────────────────────────────────────────────────│")
 	fmt.Println("│ ℹ MCPs (Model Context Protocol) are tools that agents use    │")
 	fmt.Println("│ to interact with external services, APIs, and databases.     │")
