@@ -12,18 +12,19 @@
 MUXI CLI has **complete scaffolding system** with interactive wizards for all formation components. Formation management commands are blocked pending runtime API stabilization.
 
 ### What Exists ✅
-- ✅ **Formation scaffolding** (`muxi new formation`) - Full wizard
+- ✅ **Formation scaffolding** (`muxi new formation`) - Full wizard with LLM provider selection
 - ✅ **Agent scaffolding** (`muxi new agent`) - Full wizard with role selection, A2A visibility
 - ✅ **MCP scaffolding** (`muxi new mcp`) - Full wizard (HTTP/Stdio, formation/agent-level)
 - ✅ **SOP scaffolding** (`muxi new sop`) - Basic wizard (title, description)
 - ✅ **Trigger scaffolding** (`muxi new trigger`) - Basic wizard
-- ✅ **A2A configuration** (`muxi config a2a`) - Inbound wizard complete ⭐ NEW
-- ✅ **TUI design system** - Colors, symbols, prompts, banners
+- ✅ **A2A service scaffolding** (`muxi new a2a-service`) - Full wizard with auth options
+- ✅ **A2A configuration** (`muxi config a2a`) - Inbound/outbound wizard
+- ✅ **Secrets management** (`muxi secrets`) - Fernet-encrypted secrets storage ⭐ NEW
+- ✅ **TUI design system** - Colors, symbols, prompts, banners, gold branding
 - ✅ **Input history** - Arrow keys (↑/↓) for previous inputs with readline
 - ✅ **Smart validation** - URL validation, ID normalization, duplicate checking
-- ✅ **Auto-secrets** - Smart secret naming and auto-append to secrets file
 - ✅ Design documents (CLI-COMMAND-DESIGN.md, IMPLEMENTATION-PLAN.md, REGISTRY.md)
-- ✅ **Command semantics** - `muxi new` (create) vs `muxi config` (modify) ⭐ NEW
+- ✅ **Command semantics** - `muxi new` (create) vs `muxi config` (modify)
 
 ### What's Planned
 **Configuration Commands (Not Blocked):**
@@ -42,37 +43,40 @@ MUXI CLI has **complete scaffolding system** with interactive wizards for all fo
 
 **Other:**
 - ⏳ Formation validation (`muxi validate`)
-- ⏳ Secrets management (`muxi secrets`)
+- ⏳ `muxi secrets sync` - Synchronize secrets with formation files
 
 ---
 
 ## 🚧 Current Work
 
 ### Latest Changes (2025-11-28)
-1. ✅ **Formation Wizard Rewritten:**
+1. ✅ **Secrets Encryption System:**
+   - Fernet-compatible encryption (matches Python runtime)
+   - `secrets.enc` stores encrypted secrets, `.key` holds encryption key
+   - `muxi secrets list` - List all secret keys
+   - `muxi secrets list --with-values` - Show secret values
+   - `muxi secrets set <name> [value]` - Set/update a secret
+   - `muxi secrets delete <name>` - Delete a secret
+   - Auto-normalization: `my-key` → `MY_KEY` (with user notification)
+
+2. ✅ **Secrets Integration in Wizards:**
+   - `muxi new formation` - LLM API keys stored encrypted
+   - `muxi new mcp` - Auth credentials (API key, bearer, basic) stored encrypted
+   - `muxi new a2a-service` - Auth credentials stored encrypted
+   - `muxi config a2a` - Inbound auth credentials stored encrypted
+
+3. ✅ **Formation Wizard Rewritten:**
    - New 5-step flow: ID, Description, Streaming, Async, LLM Provider
    - 21 LLM providers with radio button selection (↑↓ navigation)
    - Cloud providers (1-17): OpenAI, Anthropic, Google, Mistral, Groq, xAI, DeepSeek, etc.
    - Local provider (18): Ollama/llama_cpp with base URL config
-   - Enterprise providers (19-21): Azure OpenAI, AWS Bedrock, GCP Vertex AI (adds template)
-   - Streaming/async prompts with webhook URL validation
-   - Dynamic YAML generation based on choices
+   - Enterprise providers (19-21): Azure OpenAI, AWS Bedrock, GCP Vertex AI
    - MUXI ASCII logo in golden brand color
 
-2. ✅ **Brand Consistency:**
+4. ✅ **Brand Consistency:**
    - Golden/orange MUXI ASCII logo for formation wizard
    - Gold "MUXI" text in all banners (auto-colored)
    - `ui.Gold()` function for brand-colored output
-
-3. ✅ **API Key UX:**
-   - Visible input while typing (user can verify paste)
-   - Masked display (***) after submission
-   - Optional - can skip and add later
-   - No annoying prefix validation warnings
-
-4. ✅ **Next Steps Guidance:**
-   - Formation wizard shows: `muxi new agent`, `muxi new mcp`, `muxi config overlord`
-   - Reminds about secrets command if API key skipped
 
 ### Previous Changes (2025-11-27)
 - ✅ A2A Configuration Complete (inbound/outbound wizards)
@@ -81,14 +85,14 @@ MUXI CLI has **complete scaffolding system** with interactive wizards for all fo
 - ✅ Documentation (UX-PATTERNS.md, A2A-WIZARD.md, BANNERS.md)
 
 ### Current Focus
-**Formation wizard rewrite complete!** ✅
+**Secrets encryption complete!** ✅
 
 **Next up:**
 - Implement `muxi config llm` command
 - Implement `muxi config memory` command  
 - Implement `muxi config overlord` command
 - Implement `muxi config logging` command
-- Formation validation command
+- `muxi secrets sync` - Synchronize secrets with formation files
 
 ---
 
