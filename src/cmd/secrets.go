@@ -128,6 +128,11 @@ Examples:
 
 		normalizedName := secrets.NormalizeName(name)
 
+		// Tell user if name was normalized
+		if normalizedName != name {
+			ui.Dimmed(fmt.Sprintf("  (normalized: %s → %s)", name, normalizedName))
+		}
+
 		if len(args) > 1 {
 			value = args[1]
 		} else {
@@ -176,6 +181,11 @@ Examples:
 		}
 
 		normalizedName := secrets.NormalizeName(name)
+
+		// Tell user if name was normalized
+		if normalizedName != name {
+			ui.Dimmed(fmt.Sprintf("  (normalized: %s → %s)", name, normalizedName))
+		}
 
 		deleted, err := mgr.Delete(normalizedName)
 		if err != nil {
