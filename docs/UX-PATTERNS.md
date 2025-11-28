@@ -527,6 +527,46 @@ Service name [Weather Api]: ⏎  ← Press Enter to accept
 
 ---
 
+### 📋 **Pattern: Show Existing Item Info in Duplicates**
+
+**Rule:** When an item already exists, show its name and description for context.
+
+```go
+// Get existing component info for context
+existingName, existingDesc := getComponentInfo(agentFile)
+existingInfo := formatExistingInfo(existingName, existingDesc)
+
+ui.PromptError("Agent ID", inputName, fmt.Errorf(
+    "agent '%s' already exists%s\n\nChoose a different ID or edit:\n  muxi edit agent %s",
+    name, existingInfo, name,
+))
+```
+
+**User Experience:**
+```
+Agent ID: some-agent
+✗ Agent ID: some-agent
+  agent 'some-agent' already exists
+
+    → Some Agent: Handles customer inquiries
+
+  Choose a different ID or edit:
+    muxi edit agent some-agent
+```
+
+**Benefits:**
+- ✅ Developer sees what the existing item is without opening the file
+- ✅ Helps decide: is this a duplicate or did I want a different ID?
+- ✅ Description truncated to 60 chars for readability
+- ✅ Suggests `muxi edit` command instead of manual file path
+
+**Applied To:**
+- ✅ Agent wizard (`muxi new agent`)
+- ✅ MCP wizard (`muxi new mcp`)
+- ✅ A2A service wizard (`muxi new a2a-service`)
+
+---
+
 ## Secret Management
 
 ### 🔐 **Pattern: Masked Display**
@@ -669,6 +709,7 @@ if isEnabled {
 - ✅ Accept spaces, convert to hyphens
 - ✅ Lowercase, remove extra hyphens
 - ✅ Auto-suggest name from ID (title case)
+- ✅ Show existing item info in duplicates
 
 ### **Secrets**
 - ✅ Masked display (***5678)

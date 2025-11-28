@@ -67,8 +67,12 @@ func CreateAgent(name string, noWizard bool) error {
 			// Check if file already exists
 			agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
 			if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
+				// Get existing agent info for context
+				existingName, existingDesc := getComponentInfo(agentFile)
+				existingInfo := formatExistingInfo(existingName, existingDesc)
+				
 				// Show error and re-prompt
-				ui.PromptError("Agent ID", inputName, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm agents/%s.yaml", name))
+				ui.PromptError("Agent ID", inputName, fmt.Errorf("agent '%s' already exists%s\n\nChoose a different ID or edit:\n  muxi edit agent %s", name, existingInfo, name))
 				continue
 			}
 
@@ -89,10 +93,28 @@ func CreateAgent(name string, noWizard bool) error {
 		// Check if file already exists
 		agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
 		if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
+			// Get existing agent info for context
+			existingName, existingDesc := getComponentInfo(agentFile)
+			existingInfo := ""
+			if existingName != "" || existingDesc != "" {
+				if existingDesc != "" {
+					if len(existingDesc) > 60 {
+						existingDesc = existingDesc[:57] + "..."
+					}
+					if existingName != "" {
+						existingInfo = fmt.Sprintf("\n  → %s: %s", existingName, existingDesc)
+					} else {
+						existingInfo = fmt.Sprintf("\n  → %s", existingDesc)
+					}
+				} else if existingName != "" {
+					existingInfo = fmt.Sprintf("\n  → %s", existingName)
+				}
+			}
+			
 			ui.ErrorBlock(
-				"Agent file exists",
-				fmt.Sprintf("File 'agents/%s.yaml' already exists", name),
-				fmt.Sprintf("Choose a different name or remove:\n  rm agents/%s.yaml", name),
+				"Agent already exists",
+				fmt.Sprintf("Agent '%s' already exists.%s", name, existingInfo),
+				fmt.Sprintf("Choose a different ID or edit:\n  muxi edit agent %s", name),
 			)
 			os.Exit(1)
 		}
@@ -420,10 +442,12 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			if formationLevelExists || agentLevelExists {
 				if agentID != "" {
 					// Agent-level MCP - clearer message
-					ui.PromptError("MCP ID", inputName, fmt.Errorf("MCP with this ID already exists in the formation\n\nChoose a different ID or edit:\n  agents/%s.yaml", agentID))
+					ui.PromptError("MCP ID", inputName, fmt.Errorf("MCP '%s' already exists in this agent\n\nChoose a different ID or edit:\n  muxi edit agent %s", name, agentID))
 				} else {
-					// Formation-level MCP
-					ui.PromptError("MCP ID", inputName, fmt.Errorf("file already exists\n\nChoose a different ID or remove:\n  rm mcps/%s.yaml", name))
+					// Formation-level MCP - get existing info
+					existingName, existingDesc := getComponentInfo(mcpFile)
+					existingInfo := formatExistingInfo(existingName, existingDesc)
+					ui.PromptError("MCP ID", inputName, fmt.Errorf("MCP '%s' already exists%s\n\nChoose a different ID or edit:\n  muxi edit mcp %s", name, existingInfo, name))
 				}
 				continue
 			}
@@ -458,15 +482,32 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				// Agent-level MCP - clearer message
 				ui.ErrorBlock(
 					"MCP already exists",
-					fmt.Sprintf("MCP '%s' already exists in this formation.", name),
-					fmt.Sprintf("Choose a different ID or edit:\n  agents/%s.yaml", agentID),
+					fmt.Sprintf("MCP '%s' already exists in this agent.", name),
+					fmt.Sprintf("Choose a different ID or edit:\n  muxi edit agent %s", agentID),
 				)
 			} else {
-				// Formation-level MCP
+				// Formation-level MCP - get existing info
+				existingName, existingDesc := getComponentInfo(mcpFile)
+				existingInfo := ""
+				if existingName != "" || existingDesc != "" {
+					if existingDesc != "" {
+						if len(existingDesc) > 60 {
+							existingDesc = existingDesc[:57] + "..."
+						}
+						if existingName != "" {
+							existingInfo = fmt.Sprintf("\n  → %s: %s", existingName, existingDesc)
+						} else {
+							existingInfo = fmt.Sprintf("\n  → %s", existingDesc)
+						}
+					} else if existingName != "" {
+						existingInfo = fmt.Sprintf("\n  → %s", existingName)
+					}
+				}
+				
 				ui.ErrorBlock(
-					"MCP file exists",
-					fmt.Sprintf("File 'mcps/%s.yaml' already exists", name),
-					fmt.Sprintf("Choose a different name or remove:\n  rm mcps/%s.yaml", name),
+					"MCP already exists",
+					fmt.Sprintf("MCP '%s' already exists.%s", name, existingInfo),
+					fmt.Sprintf("Choose a different ID or edit:\n  muxi edit mcp %s", name),
 				)
 			}
 			os.Exit(1)
@@ -982,7 +1023,10 @@ func CreateA2AService(name string, noWizard bool) error {
 			// Check for duplicates
 			serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
 			if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
-				ui.PromptError("Service ID", inputID, fmt.Errorf("service '%s' already exists", serviceID))
+				// Get existing service info for context
+				existingName, existingDesc := getComponentInfo(serviceFile)
+				existingInfo := formatExistingInfo(existingName, existingDesc)
+				ui.PromptError("Service ID", inputID, fmt.Errorf("A2A service '%s' already exists%s\n\nChoose a different ID or edit:\n  muxi edit a2a-service %s", serviceID, existingInfo, serviceID))
 				continue
 			}
 
@@ -1200,10 +1244,28 @@ func CreateA2AService(name string, noWizard bool) error {
 		// Check for duplicates
 		serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
 		if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
+			// Get existing service info for context
+			existingName, existingDesc := getComponentInfo(serviceFile)
+			existingInfo := ""
+			if existingName != "" || existingDesc != "" {
+				if existingDesc != "" {
+					if len(existingDesc) > 60 {
+						existingDesc = existingDesc[:57] + "..."
+					}
+					if existingName != "" {
+						existingInfo = fmt.Sprintf("\n  → %s: %s", existingName, existingDesc)
+					} else {
+						existingInfo = fmt.Sprintf("\n  → %s", existingDesc)
+					}
+				} else if existingName != "" {
+					existingInfo = fmt.Sprintf("\n  → %s", existingName)
+				}
+			}
+			
 			ui.ErrorBlock(
-				"A2A service exists",
-				fmt.Sprintf("File 'a2a/%s.yaml' already exists", serviceID),
-				fmt.Sprintf("Choose a different ID or remove:\n  rm a2a/%s.yaml", serviceID),
+				"A2A service already exists",
+				fmt.Sprintf("A2A service '%s' already exists.%s", serviceID, existingInfo),
+				fmt.Sprintf("Choose a different ID or edit:\n  muxi edit a2a-service %s", serviceID),
 			)
 			os.Exit(1)
 		}
@@ -2059,6 +2121,69 @@ func titleCase(s string) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+// getComponentInfo reads a YAML file and extracts the name and description fields
+// Returns empty strings if file doesn't exist or fields are not found
+func getComponentInfo(filePath string) (name, description string) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", ""
+	}
+
+	// Simple YAML parsing for name and description
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		
+		// Match "name: value" or 'name: "value"'
+		if strings.HasPrefix(trimmed, "name:") {
+			value := strings.TrimPrefix(trimmed, "name:")
+			value = strings.TrimSpace(value)
+			value = strings.Trim(value, "\"'")
+			name = value
+		}
+		
+		// Match "description: value" or 'description: "value"'
+		if strings.HasPrefix(trimmed, "description:") {
+			value := strings.TrimPrefix(trimmed, "description:")
+			value = strings.TrimSpace(value)
+			value = strings.Trim(value, "\"'")
+			description = value
+		}
+		
+		// Stop after finding both
+		if name != "" && description != "" {
+			break
+		}
+	}
+	
+	return name, description
+}
+
+// formatExistingInfo formats the name/description for display in "already exists" messages
+// Returns a formatted string like: "  → Weather Service: Fetches weather data"
+func formatExistingInfo(name, description string) string {
+	if name == "" && description == "" {
+		return ""
+	}
+	
+	if description != "" {
+		// Truncate long descriptions
+		if len(description) > 60 {
+			description = description[:57] + "..."
+		}
+		if name != "" {
+			return fmt.Sprintf("\n\n  → %s: %s", name, description)
+		}
+		return fmt.Sprintf("\n\n  → %s", description)
+	}
+	
+	if name != "" {
+		return fmt.Sprintf("\n\n  → %s", name)
+	}
+	
+	return ""
 }
 
 // generateMCPSecretPrefix generates a secret prefix from MCP ID
