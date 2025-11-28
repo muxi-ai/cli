@@ -948,14 +948,15 @@ func CreateA2AService(name string, noWizard bool) error {
 	if !noWizard {
 		// === REQUIRED FIELDS ===
 		
-		// Service ID - validation loop
+		// Service ID - validation loop with normalization (accepts spaces, converts to kebab-case)
 		for {
+			var inputID string
 			var err error
 			if name != "" {
-				serviceID = name
+				inputID = name
 				name = "" // Only use once
 			} else {
-				serviceID, err = wizard.PromptString("Service ID", "", nil)
+				inputID, err = wizard.PromptString("Service ID", "", nil)
 				if err != nil {
 					fmt.Println()
 					ui.Dimmed("A2A service creation cancelled")
@@ -963,22 +964,25 @@ func CreateA2AService(name string, noWizard bool) error {
 				}
 			}
 
-			// Validate ID
-			if serviceID == "" {
-				ui.PromptError("Service ID", serviceID, fmt.Errorf("service ID is required"))
+			// Validate not empty
+			if inputID == "" {
+				ui.PromptError("Service ID", inputID, fmt.Errorf("service ID is required"))
 				continue
 			}
 
-			// Validate format (kebab-case)
+			// Normalize: spaces to hyphens, lowercase, etc.
+			serviceID = normalizeComponentName(inputID)
+
+			// Validate normalized format
 			if err := validateComponentName(serviceID); err != nil {
-				ui.PromptError("Service ID", serviceID, err)
+				ui.PromptError("Service ID", inputID, err)
 				continue
 			}
 
 			// Check for duplicates
 			serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
 			if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
-				ui.PromptError("Service ID", serviceID, fmt.Errorf("service '%s' already exists", serviceID))
+				ui.PromptError("Service ID", inputID, fmt.Errorf("service '%s' already exists", serviceID))
 				continue
 			}
 
@@ -986,16 +990,16 @@ func CreateA2AService(name string, noWizard bool) error {
 			break
 		}
 
-		// Service Name
-		serviceName, err = wizard.PromptString("Service name", "", nil)
+		// Service Name - suggest based on ID (title case)
+		inferredName := titleCase(serviceID)
+		serviceName, err = wizard.PromptString("Service name", inferredName, nil)
 		if err != nil {
 			fmt.Println()
 			ui.Dimmed("A2A service creation cancelled")
 			return nil
 		}
 		if serviceName == "" {
-			// Default to title case of ID
-			serviceName = titleCase(serviceID)
+			serviceName = inferredName
 		}
 		ui.PromptSuccess("Service name", serviceName)
 
@@ -1184,7 +1188,26 @@ func CreateA2AService(name string, noWizard bool) error {
 		if name == "" {
 			return fmt.Errorf("service ID is required")
 		}
-		serviceID = name
+		// Normalize the ID (spaces to hyphens, lowercase)
+		serviceID = normalizeComponentName(name)
+		
+		// Validate normalized ID
+		if err := validateComponentName(serviceID); err != nil {
+			ui.ErrorBlock("Invalid service ID", err.Error(), "Example: external-billing")
+			os.Exit(1)
+		}
+		
+		// Check for duplicates
+		serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
+		if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
+			ui.ErrorBlock(
+				"A2A service exists",
+				fmt.Sprintf("File 'a2a/%s.yaml' already exists", serviceID),
+				fmt.Sprintf("Choose a different ID or remove:\n  rm a2a/%s.yaml", serviceID),
+			)
+			os.Exit(1)
+		}
+		
 		serviceName = titleCase(serviceID)
 		description = fmt.Sprintf("A2A service: %s", serviceName)
 		serviceURL = "https://api.example.com/a2a"
