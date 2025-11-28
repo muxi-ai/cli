@@ -253,8 +253,11 @@ func CreateFormation(name string, noWizard bool) error {
 					ui.Dimmed(fmt.Sprintf("  muxi secrets set %s", config.Provider.SecretName))
 				}
 			}
+			ui.Dimmed("  muxi new agent       # add agents")
+			ui.Dimmed("  muxi new mcp         # add tools")
+			ui.Dimmed("  muxi config overlord # configure orchestration")
 			ui.Dimmed("  muxi validate")
-			ui.Dimmed("  muxi deploy --profile production")
+			ui.Dimmed("  muxi deploy")
 		}
 	} else {
 		fmt.Println()
@@ -319,21 +322,19 @@ func promptLLMProvider(config *FormationConfig) error {
 		// Show which provider was selected
 		ui.PromptSuccess("Provider", provider.Name)
 		
-		// Prompt for API key
+		// Prompt for API key (visible while typing, shown as *** after)
 		fmt.Println()
-		apiKey, err := wizard.PromptPassword(fmt.Sprintf("%s API Key", provider.Name), true)
+		apiKey, err := wizard.PromptString(fmt.Sprintf("%s API Key", provider.Name), "", nil)
 		if err != nil {
 			return err
 		}
 		
 		if apiKey != "" {
-			// Validate key prefix if known
-			if provider.KeyPrefix != "" && !strings.HasPrefix(apiKey, provider.KeyPrefix) {
-				ui.Warning(fmt.Sprintf("%s API keys typically start with '%s'", provider.Name, provider.KeyPrefix))
-			}
 			config.APIKey = apiKey
+			ui.PromptSuccess("API Key", "***")
 			ui.PromptSuccess("Model", fmt.Sprintf("%s/%s", provider.Vendor, provider.DefaultModel))
 		} else {
+			ui.PromptSkipped("API Key")
 			ui.PromptSuccess("Model", fmt.Sprintf("%s/%s (add API key later)", provider.Vendor, provider.DefaultModel))
 		}
 		return nil
