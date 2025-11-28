@@ -278,77 +278,85 @@ func CreateFormation(name string, noWizard bool) error {
 
 // promptLLMProvider handles the LLM provider selection wizard
 func promptLLMProvider(config *FormationConfig) error {
-	// Build the provider list
-	fmt.Println("Select provider:")
-	for i, p := range LLMProviders {
-		fmt.Printf("  [%d] %s\n", i+1, p.Name)
+	// Build the options list for PromptSelect
+	var options []wizard.SelectOption
+	
+	// Cloud providers (1-17)
+	for _, p := range LLMProviders {
+		options = append(options, wizard.SelectOption{
+			Value: fmt.Sprintf("cloud:%d", len(options)),
+			Label: p.Name,
+		})
 	}
-	fmt.Printf("  [%d] Local (Ollama/llama_cpp)\n", len(LLMProviders)+1)
+	
+	// Local provider
+	options = append(options, wizard.SelectOption{
+		Value: "local",
+		Label: "Local (Ollama/llama_cpp)",
+	})
+	
+	// Enterprise providers
 	for i, p := range EnterpriseProviders {
-		fmt.Printf("  [%d] %s\n", len(LLMProviders)+2+i, p.Name)
+		options = append(options, wizard.SelectOption{
+			Value: fmt.Sprintf("enterprise:%d", i),
+			Label: p.Name,
+		})
 	}
-	fmt.Println()
 	
-	totalOptions := len(LLMProviders) + 1 + len(EnterpriseProviders)
+	// Show selection
+	selection, err := wizard.PromptSelect("Select provider", options, 0)
+	if err != nil {
+		return err
+	}
 	
-	for {
-		selection, err := wizard.PromptString(fmt.Sprintf("Select (1-%d)", totalOptions), "", nil)
+	// Parse selection
+	if strings.HasPrefix(selection, "cloud:") {
+		idx, _ := strconv.Atoi(strings.TrimPrefix(selection, "cloud:"))
+		provider := LLMProviders[idx]
+		config.ProviderType = "cloud"
+		config.Provider = &provider
+		
+		// Show which provider was selected
+		ui.PromptSuccess("Provider", provider.Name)
+		
+		// Prompt for API key
+		fmt.Println()
+		apiKey, err := wizard.PromptPassword(fmt.Sprintf("%s API Key", provider.Name), true)
 		if err != nil {
 			return err
 		}
 		
-		num, err := strconv.Atoi(selection)
-		if err != nil || num < 1 || num > totalOptions {
-			ui.PromptError("Selection", selection, fmt.Errorf("please enter a number between 1 and %d", totalOptions))
-			continue
-		}
-		
-		// Cloud providers (1-17)
-		if num <= len(LLMProviders) {
-			provider := LLMProviders[num-1]
-			config.ProviderType = "cloud"
-			config.Provider = &provider
-			
-			// Prompt for API key
-			fmt.Println()
-			apiKey, err := wizard.PromptPassword(fmt.Sprintf("%s API Key", provider.Name), true)
-			if err != nil {
-				return err
+		if apiKey != "" {
+			// Validate key prefix if known
+			if provider.KeyPrefix != "" && !strings.HasPrefix(apiKey, provider.KeyPrefix) {
+				ui.Warning(fmt.Sprintf("%s API keys typically start with '%s'", provider.Name, provider.KeyPrefix))
 			}
-			
-			if apiKey != "" {
-				// Validate key prefix if known
-				if provider.KeyPrefix != "" && !strings.HasPrefix(apiKey, provider.KeyPrefix) {
-					ui.Warning(fmt.Sprintf("%s API keys typically start with '%s'", provider.Name, provider.KeyPrefix))
-				}
-				config.APIKey = apiKey
-				ui.PromptSuccess(provider.Name, fmt.Sprintf("configured with %s/%s", provider.Vendor, provider.DefaultModel))
-			} else {
-				ui.PromptSuccess(provider.Name, fmt.Sprintf("configured with %s/%s (add API key later)", provider.Vendor, provider.DefaultModel))
-			}
-			return nil
+			config.APIKey = apiKey
+			ui.PromptSuccess("Model", fmt.Sprintf("%s/%s", provider.Vendor, provider.DefaultModel))
+		} else {
+			ui.PromptSuccess("Model", fmt.Sprintf("%s/%s (add API key later)", provider.Vendor, provider.DefaultModel))
 		}
-		
-		// Local provider (18)
-		if num == len(LLMProviders)+1 {
-			config.ProviderType = "local"
-			return promptLocalProvider(config)
-		}
-		
-		// Enterprise providers (19-21)
-		enterpriseIdx := num - len(LLMProviders) - 2
-		if enterpriseIdx >= 0 && enterpriseIdx < len(EnterpriseProviders) {
-			provider := EnterpriseProviders[enterpriseIdx]
-			config.ProviderType = "enterprise"
-			config.EnterpriseProvider = &provider
-			
-			fmt.Println()
-			ui.Success(fmt.Sprintf("%s template added to formation.yaml", provider.Name))
-			return nil
-		}
-		
-		ui.PromptError("Selection", selection, fmt.Errorf("invalid selection"))
+		return nil
 	}
+	
+	if selection == "local" {
+		ui.PromptSuccess("Provider", "Local")
+		config.ProviderType = "local"
+		return promptLocalProvider(config)
+	}
+	
+	if strings.HasPrefix(selection, "enterprise:") {
+		idx, _ := strconv.Atoi(strings.TrimPrefix(selection, "enterprise:"))
+		provider := EnterpriseProviders[idx]
+		config.ProviderType = "enterprise"
+		config.EnterpriseProvider = &provider
+		
+		fmt.Println()
+		ui.Success(fmt.Sprintf("%s template added to formation.yaml", provider.Name))
+		return nil
+	}
+	
+	return fmt.Errorf("invalid selection")
 }
 
 // promptLocalProvider handles local provider configuration
