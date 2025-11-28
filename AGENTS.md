@@ -769,6 +769,25 @@ curl http://localhost:7890/health
 
 ## Useful Links
 
+### Local Documentation (This Repo)
+- **[docs/UX-PATTERNS.md](docs/UX-PATTERNS.md)** - Complete UX design patterns guide ⭐
+  - Validation loops, error handling
+  - URL normalization, ID normalization
+  - Menu selections, multi-line prompts
+  - Natural language patterns
+  - Secret management, state management
+- **[docs/CLI-COMMAND-DESIGN.md](docs/CLI-COMMAND-DESIGN.md)** - Command structure and semantics
+- **[docs/COMMAND-SEMANTICS.md](docs/COMMAND-SEMANTICS.md)** - `new` vs `config` command rationale
+- **[docs/TUI-DESIGN.md](docs/TUI-DESIGN.md)** - Visual patterns (banners, colors, symbols)
+- **[docs/A2A-WIZARD.md](docs/A2A-WIZARD.md)** - A2A configuration wizard guide
+- **[docs/BANNERS.md](docs/BANNERS.md)** - Banner reference with MUXI branding
+
+### Key Implementation Files
+- **src/pkg/scaffold/components.go** - All wizards (agent, MCP, A2A)
+- **src/pkg/wizard/wizard.go** - Prompt implementation
+- **src/pkg/ui/ui.go** - TUI design system
+
+### External Repos
 - **Server Repo:** [github.com/muxi-ai/server](https://github.com/muxi-ai/server)
 - **Runtime Repo:** [github.com/muxi-ai/runtime](https://github.com/muxi-ai/runtime)
 - **Schemas Repo:** [github.com/muxi-ai/schemas](https://github.com/muxi-ai/schemas)
@@ -782,17 +801,17 @@ curl http://localhost:7890/health
 Starting a new session? Check these:
 
 - [ ] Read this document (AGENTS.md)
+- [ ] Review [docs/UX-PATTERNS.md](docs/UX-PATTERNS.md) for established patterns
 - [ ] Review [MUXI-ARCHITECTURE.md](../MUXI-ARCHITECTURE.md) for ecosystem context
-- [ ] Check server API documentation above
-- [ ] Understand HMAC authentication
-- [ ] Know the blockers (runtime API)
-- [ ] Review planned command structure
-- [ ] Understand auto-detection strategy
+- [ ] Check existing wizards in `src/pkg/scaffold/components.go`
+- [ ] Follow ID normalization patterns (spaces → hyphens, auto-suggest name)
+- [ ] Use validation loops (not exits on invalid input)
+- [ ] Handle Ctrl+C gracefully at all prompts
 
-**Ready to build when unblocked!** 🚀
+**Ready to build!** 🚀
 
 ---
 
-**Last Updated:** 2025-10-24  
-**Status:** Early WIP - Blocked on Runtime API  
-**Next Step:** Wait for runtime finalization, then implement profile management
+**Last Updated:** 2025-11-28  
+**Status:** A2A Scaffolding Complete ✅  
+**Next Step:** More config commands (LLM, observability, security)

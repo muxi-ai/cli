@@ -1,6 +1,6 @@
 # MUXI CLI - UX Design Patterns
 
-**Last Updated:** 2025-11-27  
+**Last Updated:** 2025-11-28  
 **Status:** Living Document
 
 This document captures the UX design patterns, conventions, and best practices established during MUXI CLI development. These patterns ensure a consistent, polished, and user-friendly experience throughout the CLI.
@@ -16,8 +16,9 @@ This document captures the UX design patterns, conventions, and best practices e
 5. [User Input Patterns](#user-input-patterns)
 6. [Natural Language](#natural-language)
 7. [Ctrl+C Handling](#ctrlc-handling)
-8. [Secret Management](#secret-management)
-9. [State Management](#state-management)
+8. [ID Normalization](#id-normalization)
+9. [Secret Management](#secret-management)
+10. [State Management](#state-management)
 
 ---
 
@@ -445,6 +446,87 @@ if err != nil {
 
 ---
 
+## ID Normalization
+
+### 🆔 **Pattern: Accept Spaces, Convert to Kebab-Case**
+
+**Rule:** Accept human-friendly input (with spaces) and normalize to valid ID format.
+
+```go
+// normalizeComponentName converts user input to valid component name format
+func normalizeComponentName(name string) string {
+    // Convert to lowercase
+    name = strings.ToLower(name)
+
+    // Replace spaces with hyphens
+    name = strings.ReplaceAll(name, " ", "-")
+
+    // Replace multiple hyphens with single hyphen
+    for strings.Contains(name, "--") {
+        name = strings.ReplaceAll(name, "--", "-")
+    }
+
+    // Trim leading/trailing hyphens
+    name = strings.Trim(name, "-")
+
+    return name
+}
+```
+
+**User Experience:**
+```bash
+Service ID: External Billing Service
+✓ Service ID: external-billing-service  ← Normalized!
+
+Service name [External Billing Service]: ⏎  ← Pre-filled!
+✓ Service name: External Billing Service
+```
+
+**Benefits:**
+- ✅ Users can type naturally ("External Billing" not "external-billing")
+- ✅ Output shows the normalized ID so user knows what was created
+- ✅ Name is auto-suggested from ID (saves typing)
+- ✅ Consistent IDs throughout the formation
+
+---
+
+### 📛 **Pattern: Auto-Suggest Name from ID**
+
+**Rule:** Pre-fill the name field with title case of the ID.
+
+```go
+// titleCase converts kebab-case to Title Case
+func titleCase(s string) string {
+    words := strings.Split(s, "-")
+    for i, word := range words {
+        if len(word) > 0 {
+            words[i] = strings.ToUpper(word[:1]) + word[1:]
+        }
+    }
+    return strings.Join(words, " ")
+}
+
+// In wizard:
+inferredName := titleCase(serviceID)  // "external-billing" → "External Billing"
+serviceName, err := wizard.PromptString("Service name", inferredName, nil)
+```
+
+**User Experience:**
+```
+Service ID: weather-api
+✓ Service ID: weather-api
+
+Service name [Weather Api]: ⏎  ← Press Enter to accept
+✓ Service name: Weather Api
+```
+
+**Applied To:**
+- ✅ Agent wizard (`muxi new agent`)
+- ✅ MCP wizard (`muxi new mcp`)
+- ✅ A2A service wizard (`muxi new a2a-service`)
+
+---
+
 ## Secret Management
 
 ### 🔐 **Pattern: Masked Display**
@@ -582,6 +664,11 @@ if isEnabled {
 - ✅ Pre-fill existing values
 - ✅ Confirm before replacing
 - ✅ Check errors for Ctrl+C
+
+### **ID Normalization**
+- ✅ Accept spaces, convert to hyphens
+- ✅ Lowercase, remove extra hyphens
+- ✅ Auto-suggest name from ID (title case)
 
 ### **Secrets**
 - ✅ Masked display (***5678)
