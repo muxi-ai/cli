@@ -11,12 +11,12 @@ type LLMProvider struct {
 
 // LLMProviders is the list of all supported providers
 var LLMProviders = []LLMProvider{
-	{Name: "OpenAI", Vendor: "openai", DefaultModel: "gpt-4o", KeyPrefix: "sk-", SecretName: "OPENAI_API_KEY"},
-	{Name: "Anthropic", Vendor: "anthropic", DefaultModel: "claude-sonnet-4-20250514", KeyPrefix: "sk-ant-", SecretName: "ANTHROPIC_API_KEY"},
+	{Name: "OpenAI", Vendor: "openai", DefaultModel: "gpt-5-mini", KeyPrefix: "sk-", SecretName: "OPENAI_API_KEY"},
+	{Name: "Anthropic", Vendor: "anthropic", DefaultModel: "claude-4.5-sonnet", KeyPrefix: "sk-ant-", SecretName: "ANTHROPIC_API_KEY"},
 	{Name: "Google", Vendor: "google", DefaultModel: "gemini-2.0-flash", KeyPrefix: "", SecretName: "GOOGLE_API_KEY"},
 	{Name: "Mistral", Vendor: "mistral", DefaultModel: "mistral-large-latest", KeyPrefix: "", SecretName: "MISTRAL_API_KEY"},
 	{Name: "Groq", Vendor: "groq", DefaultModel: "llama-3.3-70b-versatile", KeyPrefix: "gsk_", SecretName: "GROQ_API_KEY"},
-	{Name: "xAI (Grok)", Vendor: "xai", DefaultModel: "grok-2", KeyPrefix: "xai-", SecretName: "XAI_API_KEY"},
+	{Name: "xAI", Vendor: "xai", DefaultModel: "grok-4", KeyPrefix: "xai-", SecretName: "XAI_API_KEY"},
 	{Name: "DeepSeek", Vendor: "deepseek", DefaultModel: "deepseek-chat", KeyPrefix: "sk-", SecretName: "DEEPSEEK_API_KEY"},
 	{Name: "Cohere", Vendor: "cohere", DefaultModel: "command-r-plus-08-2024", KeyPrefix: "", SecretName: "COHERE_API_KEY"},
 	{Name: "Together", Vendor: "together", DefaultModel: "meta-llama/Llama-3.3-70b-Instruct", KeyPrefix: "", SecretName: "TOGETHER_API_KEY"},
@@ -26,7 +26,7 @@ var LLMProviders = []LLMProvider{
 	{Name: "Moonshot", Vendor: "moonshot", DefaultModel: "kimi-k2-instruct", KeyPrefix: "", SecretName: "MOONSHOT_API_KEY"},
 	{Name: "Minimax", Vendor: "minimax", DefaultModel: "abab6.5s-chat", KeyPrefix: "", SecretName: "MINIMAX_API_KEY"},
 	{Name: "GLM", Vendor: "glm", DefaultModel: "glm-4-plus", KeyPrefix: "", SecretName: "GLM_API_KEY"},
-	{Name: "Vercel AI", Vendor: "vercel", DefaultModel: "openai/gpt-4o", KeyPrefix: "", SecretName: "VERCEL_API_KEY"},
+	{Name: "Vercel AI", Vendor: "vercel", DefaultModel: "openai/gpt-5-mini", KeyPrefix: "", SecretName: "VERCEL_API_KEY"},
 	{Name: "Anyscale", Vendor: "anyscale", DefaultModel: "meta-llama/Meta-Llama-3.1-70B-Instruct", KeyPrefix: "", SecretName: "ANYSCALE_API_KEY"},
 }
 

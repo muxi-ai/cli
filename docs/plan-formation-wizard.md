@@ -106,7 +106,7 @@ Select (1-21): _
 | 12 | OpenRouter | `openrouter` | openai/gpt-4o | sk-or- |
 | 13 | Moonshot | `moonshot` | kimi-k2-instruct | |
 | 14 | Minimax | `minimax` | abab6.5s-chat | |
-| 15 | GLM | `glm` | glm-4-plus | |
+| 15 | GLM | `glm` | glm-4-plus | |2
 | 16 | Vercel AI | `vercel` | openai/gpt-5-mini | |
 | 17 | Anyscale | `anyscale` | meta-llama/Meta-Llama-3.1-70B-Instruct | |
 
