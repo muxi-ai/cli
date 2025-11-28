@@ -26,6 +26,7 @@ var (
 	cyan   = color.New(color.FgCyan)
 	dimmed = color.New(color.Faint)
 	bold   = color.New(color.Bold)
+	gold   = color.New(color.FgHiYellow) // Brand color (golden/orange)
 )
 
 // Success prints a success message with ✓ symbol (full line green, bold)
@@ -69,6 +70,11 @@ func InProgress(message string) {
 // Dimmed prints dimmed/faint text (~80% opacity)
 func Dimmed(message string) {
 	dimmed.Println(message)
+}
+
+// Gold prints in brand color (golden/orange)
+func Gold(message string) {
+	gold.Println(message)
 }
 
 // Bold prints bold text

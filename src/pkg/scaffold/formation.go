@@ -48,7 +48,7 @@ func CreateFormation(name string, noWizard bool) error {
 	// Show logo and banner in interactive mode
 	if !noWizard {
 		fmt.Println()
-		ui.Dimmed(`███╗   ███╗██╗   ██╗██╗  ██╗██╗
+		ui.Gold(`███╗   ███╗██╗   ██╗██╗  ██╗██╗
 ████╗ ████║██║   ██║╚██╗██╔╝██║
 ██╔████╔██║██║   ██║ ╚███╔╝ ██║
 ██║╚██╔╝██║██║   ██║ ██╔██╗ ██║
