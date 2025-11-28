@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/secrets"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
 )
@@ -203,10 +204,31 @@ func CreateFormation(name string, noWizard bool) error {
 		}
 	}
 
-	// Generate encryption key
-	encryptionKey, err := generateEncryptionKey()
-	if err != nil {
-		return fmt.Errorf("failed to generate encryption key: %w", err)
+	// Initialize secrets manager (creates .key with Fernet encryption)
+	secretsMgr := secrets.NewManager(config.Name)
+	if err := secretsMgr.Initialize(); err != nil {
+		return fmt.Errorf("failed to initialize secrets: %w", err)
+	}
+
+	// Store API key in encrypted secrets if provided
+	if config.APIKey != "" && config.Provider != nil {
+		if err := secretsMgr.Set(config.Provider.SecretName, config.APIKey, true); err != nil {
+			return fmt.Errorf("failed to store API key: %w", err)
+		}
+		ui.Step("API key encrypted and stored")
+	} else {
+		// Create secrets template file with expected keys (even if no values yet)
+		secretsTemplate := generateSecretsTemplate(config)
+		secretsPath := filepath.Join(config.Name, "secrets")
+		if err := os.WriteFile(secretsPath, []byte(secretsTemplate), 0644); err != nil {
+			return fmt.Errorf("failed to create secrets template: %w", err)
+		}
+	}
+
+	// Make .key read-only for safety
+	keyPath := filepath.Join(config.Name, ".key")
+	if err := os.Chmod(keyPath, 0400); err != nil {
+		return fmt.Errorf("failed to set permissions on .key: %w", err)
 	}
 
 	// Generate formation API keys
@@ -216,10 +238,8 @@ func CreateFormation(name string, noWizard bool) error {
 	// Create files with dynamic content based on config
 	files := map[string]string{
 		".gitignore":     gitignoreTemplate(),
-		".key":           encryptionKey,
 		".muxi":          muxiTemplate(),
 		"formation.yaml": generateFormationYAML(config),
-		"secrets":        generateSecretsTemplate(config),
 		"README.md":      readmeTemplate(config.Name, config.Description),
 	}
 
@@ -228,12 +248,6 @@ func CreateFormation(name string, noWizard bool) error {
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to create %s: %w", filename, err)
 		}
-	}
-
-	// Make .key read-only for safety
-	keyPath := filepath.Join(config.Name, ".key")
-	if err := os.Chmod(keyPath, 0400); err != nil {
-		return fmt.Errorf("failed to set permissions on .key: %w", err)
 	}
 
 	ui.Step("Directory structure created")
@@ -457,15 +471,6 @@ func validateFormationName(name string) error {
 	}
 
 	return nil
-}
-
-// generateEncryptionKey generates a 32-byte encryption key for AES-256-GCM
-func generateEncryptionKey() (string, error) {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(key), nil
 }
 
 // generateFormationKey generates a formation API key (admin or client)
