@@ -150,6 +150,32 @@ Examples:
 	},
 }
 
+var newA2AServiceCmd = &cobra.Command{
+	Use:   "a2a-service [name]",
+	Short: "Create a new A2A service configuration",
+	Long: `Create a new A2A service configuration file in a2a/ directory.
+
+A2A services define external agent-to-agent endpoints that your formation
+can communicate with. This includes connection details, authentication,
+and optional rate limiting settings.
+
+Must be run inside a formation directory.
+
+Examples:
+  muxi new a2a-service                    # Interactive wizard
+  muxi new a2a-service external-billing   # Create with ID
+  muxi new a2a-service external-billing --no-wizard`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var name string
+		if len(args) > 0 {
+			name = args[0]
+		}
+
+		return scaffold.CreateA2AService(name, noWizard)
+	},
+}
+
 func init() {
 	// Add --no-wizard flag to all new commands
 	newFormationCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
@@ -157,6 +183,7 @@ func init() {
 	newMcpCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 	newSopCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 	newTriggerCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
+	newA2AServiceCmd.Flags().BoolVar(&noWizard, "no-wizard", false, "Skip interactive prompts")
 
 	// Add MCP-specific flags
 	newMcpCmd.Flags().String("agent", "", "Create MCP for specific agent (agent-specific MCP)")
@@ -167,4 +194,5 @@ func init() {
 	newCmd.AddCommand(newMcpCmd)
 	newCmd.AddCommand(newSopCmd)
 	newCmd.AddCommand(newTriggerCmd)
+	newCmd.AddCommand(newA2AServiceCmd)
 }

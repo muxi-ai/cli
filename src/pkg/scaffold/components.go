@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -911,6 +912,380 @@ func CreateA2A(name string, noWizard bool) error {
 	ui.Success(fmt.Sprintf("Created a2a/%s.yaml", name))
 
 	return nil
+}
+
+// CreateA2AService creates a new A2A service configuration file in services/
+func CreateA2AService(name string, noWizard bool) error {
+	ctx, err := context.MustDetectFormation()
+	if err != nil {
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"This command must be run inside a formation directory.",
+			"Navigate to your formation:\n  cd my-formation\n\nOr create a new one:\n  muxi new formation",
+		)
+		os.Exit(1)
+	}
+
+	// Show banner
+	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
+	fmt.Println("│ [+] Adding new A2A service                              MUXI │")
+	fmt.Println("╰──────────────────────────────────────────────────────────────╯")
+	fmt.Println()
+
+	// Ensure a2a directory exists (A2A services go in a2a/*.yaml per schema)
+	a2aDir := filepath.Join(ctx.RootDir, "a2a")
+	if err := os.MkdirAll(a2aDir, 0755); err != nil {
+		return fmt.Errorf("failed to create a2a directory: %w", err)
+	}
+
+	var serviceID, serviceName, description, serviceURL string
+	var authType, authHeader, authKey, authToken, authUsername, authPassword string
+	var retryAttempts, timeoutSeconds int
+	var customRetry bool
+	var secrets []string
+	secretValues := make(map[string]string)
+
+	if !noWizard {
+		// === REQUIRED FIELDS ===
+		
+		// Service ID - validation loop
+		for {
+			var err error
+			if name != "" {
+				serviceID = name
+				name = "" // Only use once
+			} else {
+				serviceID, err = wizard.PromptString("Service ID", "", nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("A2A service creation cancelled")
+					return nil
+				}
+			}
+
+			// Validate ID
+			if serviceID == "" {
+				ui.PromptError("Service ID", serviceID, fmt.Errorf("service ID is required"))
+				continue
+			}
+
+			// Validate format (kebab-case)
+			if err := validateComponentName(serviceID); err != nil {
+				ui.PromptError("Service ID", serviceID, err)
+				continue
+			}
+
+			// Check for duplicates
+			serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
+			if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
+				ui.PromptError("Service ID", serviceID, fmt.Errorf("service '%s' already exists", serviceID))
+				continue
+			}
+
+			ui.PromptSuccess("Service ID", serviceID)
+			break
+		}
+
+		// Service Name
+		serviceName, err = wizard.PromptString("Service name", "", nil)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("A2A service creation cancelled")
+			return nil
+		}
+		if serviceName == "" {
+			// Default to title case of ID
+			serviceName = titleCase(serviceID)
+		}
+		ui.PromptSuccess("Service name", serviceName)
+
+		// Description
+		description, err = wizard.PromptString("Description", "", nil)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("A2A service creation cancelled")
+			return nil
+		}
+		if description == "" {
+			description = fmt.Sprintf("A2A service: %s", serviceName)
+		}
+		ui.PromptSuccess("Description", description)
+
+		// Service URL - validation loop
+		for {
+			serviceURL, err = wizard.PromptString("Service URL", "", nil)
+			if err != nil {
+				fmt.Println()
+				ui.Dimmed("A2A service creation cancelled")
+				return nil
+			}
+
+			if serviceURL == "" {
+				ui.PromptError("Service URL", serviceURL, fmt.Errorf("service URL is required"))
+				continue
+			}
+
+			// Auto-add https:// if missing
+			if !strings.HasPrefix(serviceURL, "https://") && !strings.HasPrefix(serviceURL, "http://") {
+				serviceURL = "https://" + serviceURL
+			}
+
+			// Reject http://
+			if strings.HasPrefix(serviceURL, "http://") {
+				ui.PromptError("Service URL", serviceURL, fmt.Errorf("must use https:// (http:// is not secure)"))
+				continue
+			}
+
+			// Validate URL format
+			parsed, parseErr := url.Parse(serviceURL)
+			if parseErr != nil || parsed.Host == "" {
+				ui.PromptError("Service URL", serviceURL, fmt.Errorf("invalid URL format"))
+				continue
+			}
+
+			ui.PromptSuccess("Service URL", serviceURL)
+			break
+		}
+
+		// === AUTHENTICATION ===
+		fmt.Println()
+		authOptions := []wizard.SelectOption{
+			{Value: "none", Label: "None"},
+			{Value: "api_key", Label: "API Key"},
+			{Value: "bearer", Label: "Bearer Token"},
+			{Value: "basic", Label: "Basic Auth"},
+		}
+
+		authType, err = wizard.PromptSelect("Authentication", authOptions, 0)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("A2A service creation cancelled")
+			return nil
+		}
+
+		// Show selected auth type
+		for _, opt := range authOptions {
+			if opt.Value == authType {
+				ui.PromptSuccess("Authentication", opt.Label)
+				break
+			}
+		}
+
+		// Auth-specific prompts
+		secretPrefix := "A2A_SERVICE_" + strings.ToUpper(strings.ReplaceAll(serviceID, "-", "_"))
+
+		if authType != "none" {
+			switch authType {
+			case "api_key":
+				defaultHeader := "X-API-Key"
+				authHeader, err = wizard.PromptString("API Key header name", defaultHeader, nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("A2A service creation cancelled")
+					return nil
+				}
+				ui.PromptSuccess("Header name", authHeader)
+
+				authKey, err = wizard.PromptString("API Key value", "", nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("A2A service creation cancelled")
+					return nil
+				}
+				if len(authKey) > 4 {
+					ui.PromptSuccess("API Key", "***"+authKey[len(authKey)-4:])
+				} else {
+					ui.PromptSuccess("API Key", "***")
+				}
+
+				secrets = append(secrets, secretPrefix+"_API_KEY")
+				secretValues[secretPrefix+"_API_KEY"] = authKey
+
+			case "bearer":
+				authToken, err = wizard.PromptString("Bearer token value", "", nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("A2A service creation cancelled")
+					return nil
+				}
+				if len(authToken) > 4 {
+					ui.PromptSuccess("Bearer token", "***"+authToken[len(authToken)-4:])
+				} else {
+					ui.PromptSuccess("Bearer token", "***")
+				}
+				secrets = append(secrets, secretPrefix+"_BEARER_TOKEN")
+				secretValues[secretPrefix+"_BEARER_TOKEN"] = authToken
+
+			case "basic":
+				authUsername, err = wizard.PromptString("Username", "", nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("A2A service creation cancelled")
+					return nil
+				}
+				ui.PromptSuccess("Username", authUsername)
+
+				authPassword, err = wizard.PromptString("Password", "", nil)
+				if err != nil {
+					fmt.Println()
+					ui.Dimmed("A2A service creation cancelled")
+					return nil
+				}
+				ui.PromptSuccess("Password", "***")
+
+				secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
+				secretValues[secretPrefix+"_USERNAME"] = authUsername
+				secretValues[secretPrefix+"_PASSWORD"] = authPassword
+			}
+		}
+
+		// === RATE LIMITING ===
+		fmt.Println()
+		customRetryStr, err := wizard.PromptString("Configure custom retry/timeout? (y/N)", "", nil)
+		if err != nil {
+			fmt.Println()
+			ui.Dimmed("A2A service creation cancelled")
+			return nil
+		}
+
+		customRetry = strings.ToLower(strings.TrimSpace(customRetryStr)) == "y"
+		if customRetry {
+			// Retry attempts
+			retryStr, err := wizard.PromptString("Retry attempts", "3", nil)
+			if err != nil {
+				fmt.Println()
+				ui.Dimmed("A2A service creation cancelled")
+				return nil
+			}
+			retryAttempts, _ = strconv.Atoi(retryStr)
+			if retryAttempts <= 0 {
+				retryAttempts = 3
+			}
+			ui.PromptSuccess("Retry attempts", strconv.Itoa(retryAttempts))
+
+			// Timeout seconds
+			timeoutStr, err := wizard.PromptString("Timeout (seconds)", "30", nil)
+			if err != nil {
+				fmt.Println()
+				ui.Dimmed("A2A service creation cancelled")
+				return nil
+			}
+			timeoutSeconds, _ = strconv.Atoi(timeoutStr)
+			if timeoutSeconds <= 0 {
+				timeoutSeconds = 30
+			}
+			ui.PromptSuccess("Timeout", fmt.Sprintf("%d seconds", timeoutSeconds))
+		} else {
+			ui.PromptSuccess("Retry/timeout", "Using defaults (3 retries, 30s timeout)")
+		}
+
+	} else {
+		// Non-interactive mode
+		if name == "" {
+			return fmt.Errorf("service ID is required")
+		}
+		serviceID = name
+		serviceName = titleCase(serviceID)
+		description = fmt.Sprintf("A2A service: %s", serviceName)
+		serviceURL = "https://api.example.com/a2a"
+		authType = "none"
+	}
+
+	// Generate YAML content
+	content := a2aServiceTemplate(serviceID, serviceName, description, serviceURL, authType, authHeader, authToken, authUsername, authPassword, customRetry, retryAttempts, timeoutSeconds, secrets)
+
+	// Write file
+	serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
+	if err := os.WriteFile(serviceFile, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to create service file: %w", err)
+	}
+
+	// Append secrets to secrets file
+	if len(secrets) > 0 {
+		secretsFile := filepath.Join(ctx.RootDir, "secrets")
+		secretsContent := "\n"
+		for _, secret := range secrets {
+			secretsContent += secret + "=\n"
+		}
+
+		f, err := os.OpenFile(secretsFile, os.O_APPEND|os.O_WRONLY, 0644)
+		if err == nil {
+			f.WriteString(secretsContent)
+			f.Close()
+		}
+	}
+
+	// Success messages
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Created a2a/%s.yaml", serviceID))
+
+	if len(secrets) > 0 {
+		secretsList := strings.Join(secrets, ", ")
+		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secrets), secretsList))
+	}
+
+	return nil
+}
+
+// a2aServiceTemplate generates the YAML content for an A2A service
+func a2aServiceTemplate(id, name, description, serviceURL, authType, authHeader, authToken, authUsername, authPassword string, customRetry bool, retryAttempts, timeoutSeconds int, secrets []string) string {
+	var b strings.Builder
+
+	b.WriteString(fmt.Sprintf(`schema: "1.0.0"
+id: "%s"
+name: "%s"
+description: "%s"
+url: "%s"
+active: true
+
+# Optional: Service provider metadata
+# author: "Partner Name <email@partner.com>"
+# version: "1.0.0"
+# documentation: "https://docs.partner.com/a2a"
+# support_contact: "support@partner.com"
+`, id, name, description, serviceURL))
+
+	// Auth section
+	if authType != "none" && authType != "" {
+		b.WriteString("\nauth:\n")
+		
+		secretPrefix := "A2A_SERVICE_" + strings.ToUpper(strings.ReplaceAll(id, "-", "_"))
+		
+		switch authType {
+		case "api_key":
+			b.WriteString(fmt.Sprintf(`  type: "api_key"
+  header: "%s"
+  key: "${{ secrets.%s_API_KEY }}"
+`, authHeader, secretPrefix))
+
+		case "bearer":
+			b.WriteString(fmt.Sprintf(`  type: "bearer"
+  token: "${{ secrets.%s_BEARER_TOKEN }}"
+`, secretPrefix))
+
+		case "basic":
+			b.WriteString(fmt.Sprintf(`  type: "basic"
+  username: "${{ secrets.%s_USERNAME }}"
+  password: "${{ secrets.%s_PASSWORD }}"
+`, secretPrefix, secretPrefix))
+		}
+	}
+
+	// Rate limiting section
+	if customRetry {
+		b.WriteString(fmt.Sprintf(`
+retry_attempts: %d
+timeout_seconds: %d
+`, retryAttempts, timeoutSeconds))
+	} else {
+		b.WriteString(`
+# Optional: Override default retry/timeout settings
+# retry_attempts: 3
+# timeout_seconds: 30
+`)
+	}
+
+	return b.String()
 }
 
 // ConfigureA2A configures A2A in the formation (inbound or outbound)
