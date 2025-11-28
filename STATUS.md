@@ -1,8 +1,8 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-11-27  
+**Last Updated:** 2025-11-28  
 **Version:** 0.2.0-dev  
-**Status:** 🚀 Active Development - Scaffolding Complete
+**Status:** 🚀 Active Development - Formation Wizard Rewritten
 
 ---
 
@@ -48,45 +48,47 @@ MUXI CLI has **complete scaffolding system** with interactive wizards for all fo
 
 ## 🚧 Current Work
 
-### Latest Changes (2025-11-27)
-1. ✅ **A2A Configuration Complete:**
-   - Inbound wizard: registries, auth (None/API Key/Bearer/Basic), trusted endpoints
-   - Outbound wizard: registries with next-step guidance
-   - Smart enable/disable flow (asymmetric: disable exits, enable continues)
-   - Pre-fill existing values when editing
-   - Validation loops (re-prompt on error, not exit)
-   - Ctrl+C graceful exit at all prompts
-   - Auto-add `https://`, reject `http://`
-   - Space-separated input support (undocumented feature)
+### Latest Changes (2025-11-28)
+1. ✅ **Formation Wizard Rewritten:**
+   - New 5-step flow: ID, Description, Streaming, Async, LLM Provider
+   - 21 LLM providers with radio button selection (↑↓ navigation)
+   - Cloud providers (1-17): OpenAI, Anthropic, Google, Mistral, Groq, xAI, DeepSeek, etc.
+   - Local provider (18): Ollama/llama_cpp with base URL config
+   - Enterprise providers (19-21): Azure OpenAI, AWS Bedrock, GCP Vertex AI (adds template)
+   - Streaming/async prompts with webhook URL validation
+   - Dynamic YAML generation based on choices
+   - MUXI ASCII logo in golden brand color
 
-2. ✅ **UX Polish:**
-   - MUXI branding in all banners
-   - Green bold selection highlighting
-   - Multi-line prompts for long text (>60 chars)
-   - Natural language ("the formation" not "formation.yaml")
-   - Error message line length (max 70 chars)
-   - Masked secret display (***5678)
+2. ✅ **Brand Consistency:**
+   - Golden/orange MUXI ASCII logo for formation wizard
+   - Gold "MUXI" text in all banners (auto-colored)
+   - `ui.Gold()` function for brand-colored output
 
-3. ✅ **Edit Command:**
-   - `muxi edit formation` - Opens formation.yaml in $EDITOR
-   - `muxi edit agent <name>` - Opens agent file
-   - `muxi edit mcp <name>` - Smart MCP detection (formation or agent-level)
-   - Falls back to vim/notepad if $EDITOR not set
+3. ✅ **API Key UX:**
+   - Visible input while typing (user can verify paste)
+   - Masked display (***) after submission
+   - Optional - can skip and add later
+   - No annoying prefix validation warnings
 
-4. ✅ **Documentation:**
-   - docs/UX-PATTERNS.md - Complete design patterns guide
-   - docs/A2A-WIZARD.md - A2A configuration guide
-   - docs/BANNERS.md - Banner reference
-   - docs/COMMAND-SEMANTICS.md - Command structure rationale
+4. ✅ **Next Steps Guidance:**
+   - Formation wizard shows: `muxi new agent`, `muxi new mcp`, `muxi config overlord`
+   - Reminds about secrets command if API key skipped
+
+### Previous Changes (2025-11-27)
+- ✅ A2A Configuration Complete (inbound/outbound wizards)
+- ✅ Edit Command (`muxi edit formation/agent/mcp`)
+- ✅ UX Polish (validation loops, natural language, banners)
+- ✅ Documentation (UX-PATTERNS.md, A2A-WIZARD.md, BANNERS.md)
 
 ### Current Focus
-**A2A scaffolding complete!** ✅
+**Formation wizard rewrite complete!** ✅
 
 **Next up:**
-- A2A service configuration (`muxi new a2a-service`)
-- Expand `muxi config` to other formation sections (LLM, observability, runtime, security)
+- Implement `muxi config llm` command
+- Implement `muxi config memory` command  
+- Implement `muxi config overlord` command
+- Implement `muxi config logging` command
 - Formation validation command
-- Secrets management
 
 ---
 

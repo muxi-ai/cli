@@ -554,6 +554,38 @@ func EnsureProfile() error {
 
 ---
 
+## Development Tips
+
+### Code Search with ast-grep
+
+For code pattern searches, prefer **ast-grep** over text-based grep when searching for:
+- Function definitions and calls
+- Struct fields and methods
+- Import statements
+- Variable declarations
+
+**ast-grep** understands Go's AST (Abstract Syntax Tree), making searches more precise:
+
+```bash
+# Find all functions that return error
+ast-grep -p 'func $NAME($$$) error' --lang go
+
+# Find all struct definitions
+ast-grep -p 'type $NAME struct { $$$ }' --lang go
+
+# Find all calls to ui.PromptSuccess
+ast-grep -p 'ui.PromptSuccess($$$)' --lang go
+
+# Find all wizard.PromptString calls with 3 args
+ast-grep -p 'wizard.PromptString($A, $B, $C)' --lang go
+```
+
+**When to use ast-grep vs text grep:**
+- Use **ast-grep** for: code patterns, refactoring, finding implementations
+- Use **text grep** for: error messages, comments, strings, config files
+
+---
+
 ## Key Files & Structure
 
 ```

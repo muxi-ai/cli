@@ -241,6 +241,47 @@ func renderOptions(options []Option, selectedIndex int) {
 
 ---
 
+### 📻 **Pattern: Radio Button Selection for Long Lists**
+
+**Rule:** Use `PromptSelect` with arrow keys for lists with many options (e.g., LLM providers)
+
+**Bad (for 20+ options):**
+```
+Select provider:
+  [1] OpenAI
+  [2] Anthropic
+  ...
+  [21] Anyscale
+Select (1-21): _  ← Error-prone!
+```
+
+**Good:**
+```
+Select provider (↑↓ to select, Enter to confirm):
+  ◉ OpenAI           ← Green, navigable
+  ◯ Anthropic
+  ◯ Google
+  ...
+```
+
+**Implementation:**
+```go
+options := []wizard.SelectOption{
+    {Value: "openai", Label: "OpenAI"},
+    {Value: "anthropic", Label: "Anthropic"},
+    // ...
+}
+selection, err := wizard.PromptSelect("Select provider", options, 0)
+```
+
+**Benefits:**
+- ✅ No typos (can't type wrong number)
+- ✅ Faster navigation with arrow keys
+- ✅ Visual feedback on current selection
+- ✅ Better UX for mobile/touch terminals
+
+---
+
 ### 📋 **Pattern: Multi-Line Prompts**
 
 **Rule:** If prompt text exceeds 60 chars, wrap to next line
@@ -326,37 +367,53 @@ ui.Banner("Configure A2A Inbound")    // ❌
 
 ### 🏷️ **Pattern: MUXI Branding**
 
-**Rule:** All banners show "MUXI" in right corner
+**Rule:** All banners show "MUXI" in right corner, **colored gold** (brand color)
 
 ```
-  ╔══════════════════════════════════════════════════════════════ MUXI ══╗
-  ║                                                                       ║
-  ║                     Configuring A2A Inbound                           ║
-  ║                                                                       ║
-  ╚═══════════════════════════════════════════════════════════════════════╝
+╭──────────────────────────────────────────────────────────────╮
+│ [+] Creating new formation                              MUXI │  ← MUXI is gold!
+╰──────────────────────────────────────────────────────────────╯
 ```
 
 **Implementation:**
 ```go
-func Banner(title string) {
-    width := 75
-    titleLen := len(title)
-    padding := (width - titleLen - 2) / 2
-    
-    brandingWidth := 10  // " MUXI ══╗"
-    topBarContent := strings.Repeat("═", width-brandingWidth-3)
-    
-    fmt.Printf("  ╔%s MUXI ══╗\n", topBarContent)
-    fmt.Println("  ║" + strings.Repeat(" ", width) + "║")
-    fmt.Printf("  ║%s%s%s║\n",
-        strings.Repeat(" ", padding),
-        title,
-        strings.Repeat(" ", width-padding-titleLen))
-    fmt.Println("  ║" + strings.Repeat(" ", width) + "║")
-    fmt.Println("  ╚" + strings.Repeat("═", width) + "╝")
+// Banner automatically colors "MUXI" in gold
+func Banner(banner string) {
+    lines := strings.Split(banner, "\n")
+    for _, line := range lines {
+        if strings.Contains(line, "MUXI │") {
+            parts := strings.SplitN(line, "MUXI", 2)
+            fmt.Print(parts[0])
+            gold.Print("MUXI")  // ← Brand color!
+            fmt.Println(parts[1])
+        } else {
+            fmt.Println(line)
+        }
+    }
     fmt.Println()
 }
 ```
+
+---
+
+### 🎨 **Pattern: ASCII Logo for Main Entry Points**
+
+**Rule:** Show branded ASCII logo before formation wizard (main entry point)
+
+```go
+ui.Gold(`  ███╗   ███╗██╗   ██╗██╗  ██╗██╗
+  ████╗ ████║██║   ██║╚██╗██╔╝██║
+  ██╔████╔██║██║   ██║ ╚███╔╝ ██║
+  ██║╚██╔╝██║██║   ██║ ██╔██╗ ██║
+  ██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗██║
+  ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝`)
+```
+
+**Guidelines:**
+- ✅ Use `ui.Gold()` for brand color (golden/orange)
+- ✅ Indent with 2 spaces for alignment with banners
+- ✅ Only show for major entry points (`muxi new formation`)
+- ✅ No empty line between logo and banner
 
 ---
 
@@ -569,24 +626,82 @@ Agent ID: some-agent
 
 ## Secret Management
 
-### 🔐 **Pattern: Masked Display**
+### 🔐 **Pattern: Visible Input, Masked After Submit**
 
-**Rule:** Show last 4 chars only for secrets
+**Rule:** Show API key while typing (so user can verify), display as `***` after submit
+
+**Why not hide while typing?**
+- Users often paste API keys and need to verify they pasted correctly
+- Hidden input leads to errors ("did I paste it?")
+- After submission, mask it for security in terminal scrollback
 
 ```go
-authKey, err := wizard.PromptString("API Key value", "", nil)
-if len(authKey) > 4 {
-    ui.PromptSuccess("API Key", "***"+authKey[len(authKey)-4:])
+// Use regular PromptString (visible input)
+apiKey, err := wizard.PromptString("OpenAI API Key", "", nil)
+if err != nil {
+    return err
+}
+
+// Show masked after submission
+if apiKey != "" {
+    ui.PromptSuccess("API Key", "***")  // ← Masked!
 } else {
-    ui.PromptSuccess("API Key", "***")
+    ui.PromptSkipped("API Key")
 }
 ```
 
-**Output:**
+**User Experience:**
 ```
-API Key value: sk_live_12345678
-✓ API Key: ***5678
+OpenAI API Key: sk-proj-abc123xyz789  ← Visible while typing
+✓ API Key: ***                        ← Masked after submit
 ```
+
+---
+
+### 🔑 **Pattern: Optional API Keys**
+
+**Rule:** Allow skipping API key entry (can add later via secrets command)
+
+```go
+apiKey, err := wizard.PromptString("OpenAI API Key", "", nil)
+
+if apiKey != "" {
+    config.APIKey = apiKey
+    ui.PromptSuccess("API Key", "***")
+    ui.PromptSuccess("Model", "openai/gpt-5-mini")
+} else {
+    ui.PromptSkipped("API Key")
+    ui.PromptSuccess("Model", "openai/gpt-5-mini (add API key later)")
+}
+```
+
+**Next Steps remind user:**
+```
+Next steps:
+  cd my-formation
+  muxi secrets set OPENAI_API_KEY  ← Shown if key was skipped
+  muxi new agent
+  ...
+```
+
+---
+
+### 🚫 **Pattern: No API Key Prefix Validation**
+
+**Rule:** Don't warn about API key prefixes - too noisy and often wrong
+
+**Bad:**
+```go
+if !strings.HasPrefix(apiKey, "sk-") {
+    ui.Warning("OpenAI API keys typically start with 'sk-'")  // ❌ Annoying!
+}
+```
+
+**Why avoid:**
+- Many providers have multiple key formats
+- Keys can be valid even without expected prefix
+- Runtime will give clear error if key is actually invalid
+- Adds noise and confuses users
 
 ---
 
@@ -693,12 +808,14 @@ if isEnabled {
 
 ### **Selections**
 - ✅ Green bold for selected
+- ✅ Radio buttons for long lists (20+ options)
 - ✅ Multi-line prompts >60 chars
 
 ### **Language**
 - ✅ "the formation" not "formation.yaml"
 - ✅ "-ing" verbs in banners
-- ✅ MUXI branding in all banners
+- ✅ MUXI branding in all banners (gold color)
+- ✅ ASCII logo for main entry points (gold)
 
 ### **Input**
 - ✅ Pre-fill existing values
@@ -712,9 +829,10 @@ if isEnabled {
 - ✅ Show existing item info in duplicates
 
 ### **Secrets**
-- ✅ Masked display (***5678)
-- ✅ Placeholders in formation
-- ✅ Actual values in secrets file
+- ✅ Visible while typing, masked after submit (***)
+- ✅ Optional API keys (can add later)
+- ✅ No prefix validation warnings
+- ✅ Placeholders in formation, values in secrets file
 
 ### **State**
 - ✅ Disable exits
@@ -734,5 +852,5 @@ This document will evolve as we establish new patterns. When adding new wizards 
 
 ---
 
-**Last major update:** A2A configuration wizards (2025-11-27)  
-**Next patterns to establish:** Validation command, Secrets management
+**Last major update:** Formation wizard rewrite with LLM provider selection (2025-11-28)  
+**Next patterns to establish:** Validation command, Config commands
