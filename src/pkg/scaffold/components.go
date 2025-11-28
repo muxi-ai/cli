@@ -13,6 +13,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/secrets"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
 	"gopkg.in/yaml.v3"
@@ -517,13 +518,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 	var description, transport, endpoint, command, args, workingDir, installCmd string
 	var authType, authHeader string
 	var envVars []string
-	var secrets []string // Secrets to add to secrets file
-
-	// TODO(secrets): When secrets management is implemented, use these collected values:
-	// - Encrypt and store in secrets.enc
-	// - Add to secrets file as placeholders (SECRET_NAME=)
-	// - Provide `muxi secrets set SECRET_NAME value` command for updating
-	var secretValues = make(map[string]string) // Store actual secret values (unused until secrets management exists)
+	var secretValues = make(map[string]string) // Collected secrets to encrypt
 
 	if !noWizard {
 		// Description
@@ -635,7 +630,6 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 					}
 
 					secretName := secretPrefix + "_API_KEY"
-					secrets = append(secrets, secretName)
 					secretValues[secretName] = apiKey
 
 				case "bearer":
@@ -647,7 +641,6 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 					}
 
 					secretName := secretPrefix + "_BEARER_TOKEN"
-					secrets = append(secrets, secretName)
 					secretValues[secretName] = bearerToken
 
 				case "basic":
@@ -659,7 +652,6 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 
 					usernameSecret := secretPrefix + "_USERNAME"
 					passwordSecret := secretPrefix + "_PASSWORD"
-					secrets = append(secrets, usernameSecret, passwordSecret)
 					secretValues[usernameSecret] = username
 					secretValues[passwordSecret] = password
 				}
@@ -692,11 +684,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				envVars = parseEnvironmentVariables(envInput)
 				ui.PromptSuccess("Environment", strings.Join(envVars, ", "))
 
-				// Add each env var as a secret
-				secretPrefix := generateMCPSecretPrefix(name)
-				for _, envVar := range envVars {
-					secrets = append(secrets, secretPrefix+"_"+envVar)
-				}
+				// Note: Env var values should be added via `muxi secrets set`
 			} else {
 				ui.PromptSkipped("Environment")
 			}
@@ -742,22 +730,20 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		}
 	}
 
-	// Append secrets to secrets file (placeholders only)
-	// TODO(secrets): When secrets management is implemented:
-	// - Write actual values to secrets.enc (encrypted)
-	// - Keep secrets file as template with placeholders only
-	if len(secrets) > 0 {
-		secretsFile := filepath.Join(ctx.RootDir, "secrets")
-		secretsContent := "\n"
-		for _, secret := range secrets {
-			// Write placeholder only (actual values stored in secretValues for future use)
-			secretsContent += secret + "=\n"
-		}
-
-		f, err := os.OpenFile(secretsFile, os.O_APPEND|os.O_WRONLY, 0644)
-		if err == nil {
-			f.WriteString(secretsContent)
-			f.Close()
+	// Store secrets in encrypted secrets.enc
+	if len(secretValues) > 0 {
+		secretsMgr := secrets.NewManager(ctx.RootDir)
+		if err := secretsMgr.Initialize(); err != nil {
+			ui.Warning(fmt.Sprintf("Could not initialize secrets: %v", err))
+		} else {
+			for secretName, secretValue := range secretValues {
+				if secretValue != "" {
+					if err := secretsMgr.Set(secretName, secretValue, true); err != nil {
+						ui.Warning(fmt.Sprintf("Could not store secret %s: %v", secretName, err))
+					}
+				}
+			}
+			ui.Step("Secrets encrypted and stored")
 		}
 	}
 
@@ -768,12 +754,15 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		ui.Success(fmt.Sprintf("Created mcps/%s.yaml", name))
 	}
 
-	if len(secrets) > 0 {
-		secretsList := strings.Join(secrets, ", ")
-		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secrets), secretsList))
+	if len(secretValues) > 0 {
+		var secretNames []string
+		for name := range secretValues {
+			secretNames = append(secretNames, name)
+		}
+		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secretNames), strings.Join(secretNames, ", ")))
 	}
 
-	if !noWizard && len(secrets) == 0 {
+	if !noWizard && len(secretValues) == 0 {
 		fmt.Println()
 		ui.Dimmed("Next steps:")
 		if agentID != "" {
@@ -1193,7 +1182,6 @@ func CreateA2AService(name string, noWizard bool) error {
 	var authType, authHeader, authKey, authToken, authUsername, authPassword string
 	var retryAttempts, timeoutSeconds int
 	var customRetry bool
-	var secrets []string
 	secretValues := make(map[string]string)
 
 	if !noWizard {
@@ -1357,7 +1345,6 @@ func CreateA2AService(name string, noWizard bool) error {
 					ui.PromptSuccess("API Key", "***")
 				}
 
-				secrets = append(secrets, secretPrefix+"_API_KEY")
 				secretValues[secretPrefix+"_API_KEY"] = authKey
 
 			case "bearer":
@@ -1372,7 +1359,6 @@ func CreateA2AService(name string, noWizard bool) error {
 				} else {
 					ui.PromptSuccess("Bearer token", "***")
 				}
-				secrets = append(secrets, secretPrefix+"_BEARER_TOKEN")
 				secretValues[secretPrefix+"_BEARER_TOKEN"] = authToken
 
 			case "basic":
@@ -1392,7 +1378,6 @@ func CreateA2AService(name string, noWizard bool) error {
 				}
 				ui.PromptSuccess("Password", "***")
 
-				secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
 				secretValues[secretPrefix+"_USERNAME"] = authUsername
 				secretValues[secretPrefix+"_PASSWORD"] = authPassword
 
@@ -1493,7 +1478,7 @@ func CreateA2AService(name string, noWizard bool) error {
 	}
 
 	// Generate YAML content
-	content := a2aServiceTemplate(serviceID, serviceName, description, serviceURL, authType, authHeader, authToken, authUsername, authPassword, customRetry, retryAttempts, timeoutSeconds, secrets)
+	content := a2aServiceTemplate(serviceID, serviceName, description, serviceURL, authType, authHeader, authToken, authUsername, authPassword, customRetry, retryAttempts, timeoutSeconds)
 
 	// Write file
 	serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
@@ -1501,18 +1486,20 @@ func CreateA2AService(name string, noWizard bool) error {
 		return fmt.Errorf("failed to create service file: %w", err)
 	}
 
-	// Append secrets to secrets file
-	if len(secrets) > 0 {
-		secretsFile := filepath.Join(ctx.RootDir, "secrets")
-		secretsContent := "\n"
-		for _, secret := range secrets {
-			secretsContent += secret + "=\n"
-		}
-
-		f, err := os.OpenFile(secretsFile, os.O_APPEND|os.O_WRONLY, 0644)
-		if err == nil {
-			f.WriteString(secretsContent)
-			f.Close()
+	// Store secrets in encrypted secrets.enc
+	if len(secretValues) > 0 {
+		secretsMgr := secrets.NewManager(ctx.RootDir)
+		if err := secretsMgr.Initialize(); err != nil {
+			ui.Warning(fmt.Sprintf("Could not initialize secrets: %v", err))
+		} else {
+			for secretName, secretValue := range secretValues {
+				if secretValue != "" {
+					if err := secretsMgr.Set(secretName, secretValue, true); err != nil {
+						ui.Warning(fmt.Sprintf("Could not store secret %s: %v", secretName, err))
+					}
+				}
+			}
+			ui.Step("Secrets encrypted and stored")
 		}
 	}
 
@@ -1520,9 +1507,12 @@ func CreateA2AService(name string, noWizard bool) error {
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Created a2a/%s.yaml", serviceID))
 
-	if len(secrets) > 0 {
-		secretsList := strings.Join(secrets, ", ")
-		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secrets), secretsList))
+	if len(secretValues) > 0 {
+		var secretNames []string
+		for name := range secretValues {
+			secretNames = append(secretNames, name)
+		}
+		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secretNames), strings.Join(secretNames, ", ")))
 	}
 
 	// Show edit reminder for custom auth
@@ -1536,7 +1526,7 @@ func CreateA2AService(name string, noWizard bool) error {
 }
 
 // a2aServiceTemplate generates the YAML content for an A2A service
-func a2aServiceTemplate(id, name, description, serviceURL, authType, authHeader, authToken, authUsername, authPassword string, customRetry bool, retryAttempts, timeoutSeconds int, secrets []string) string {
+func a2aServiceTemplate(id, name, description, serviceURL, authType, authHeader, authToken, authUsername, authPassword string, customRetry bool, retryAttempts, timeoutSeconds int) string {
 	var b strings.Builder
 
 	b.WriteString(fmt.Sprintf(`schema: "1.0.0"
@@ -1774,13 +1764,7 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 	var authType string
 	var authHeader, authKey, authToken, authUsername, authPassword string
 	var trustedEndpoints []string
-	var secrets []string
-
-	// TODO(secrets): When secrets management is implemented, use these collected values:
-	// - Encrypt and store in secrets.enc
-	// - Add to secrets file as placeholders (SECRET_NAME=)
-	// - Provide `muxi secrets set SECRET_NAME value` command for updating
-	var secretValues = make(map[string]string) // Store actual secret values (unused until secrets management exists)
+	secretValues := make(map[string]string) // Collected secrets to encrypt
 
 	if !noWizard {
 		// Registry URLs - loop until valid
@@ -1905,7 +1889,6 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 					ui.PromptSuccess("API Key", "***")
 				}
 
-				secrets = append(secrets, "A2A_INBOUND_API_KEY")
 				secretValues["A2A_INBOUND_API_KEY"] = authKey
 
 			case "bearer":
@@ -1920,7 +1903,6 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 				} else {
 					ui.PromptSuccess("Bearer token", "***")
 				}
-				secrets = append(secrets, "A2A_INBOUND_BEARER_TOKEN")
 				secretValues["A2A_INBOUND_BEARER_TOKEN"] = authToken
 
 			case "basic":
@@ -1940,7 +1922,6 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 				}
 				ui.PromptSuccess("Password", "***")
 
-				secrets = append(secrets, "A2A_INBOUND_USERNAME", "A2A_INBOUND_PASSWORD")
 				secretValues["A2A_INBOUND_USERNAME"] = authUsername
 				secretValues["A2A_INBOUND_PASSWORD"] = authPassword
 			}
@@ -1976,22 +1957,20 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 		return fmt.Errorf("failed to update the formation: %w", err)
 	}
 
-	// Append secrets to secrets file (placeholders only)
-	// TODO(secrets): When secrets management is implemented:
-	// - Write actual values to secrets.enc (encrypted)
-	// - Keep secrets file as template with placeholders only
-	if len(secrets) > 0 {
-		secretsFile := filepath.Join(rootDir, "secrets")
-		secretsContent := "\n"
-		for _, secret := range secrets {
-			// Write placeholder only (actual values stored in secretValues for future use)
-			secretsContent += secret + "=\n"
-		}
-
-		f, err := os.OpenFile(secretsFile, os.O_APPEND|os.O_WRONLY, 0644)
-		if err == nil {
-			f.WriteString(secretsContent)
-			f.Close()
+	// Store secrets in encrypted secrets.enc
+	if len(secretValues) > 0 {
+		secretsMgr := secrets.NewManager(rootDir)
+		if err := secretsMgr.Initialize(); err != nil {
+			ui.Warning(fmt.Sprintf("Could not initialize secrets: %v", err))
+		} else {
+			for secretName, secretValue := range secretValues {
+				if secretValue != "" {
+					if err := secretsMgr.Set(secretName, secretValue, true); err != nil {
+						ui.Warning(fmt.Sprintf("Could not store secret %s: %v", secretName, err))
+					}
+				}
+			}
+			ui.Step("Secrets encrypted and stored")
 		}
 	}
 
@@ -2002,9 +1981,12 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 		ui.Success("A2A inbound configuration added to the formation")
 	}
 
-	if len(secrets) > 0 {
-		secretsList := strings.Join(secrets, ", ")
-		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secrets), secretsList))
+	if len(secretValues) > 0 {
+		var secretNames []string
+		for name := range secretValues {
+			secretNames = append(secretNames, name)
+		}
+		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secretNames), strings.Join(secretNames, ", ")))
 	}
 
 	return nil
