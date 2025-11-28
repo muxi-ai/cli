@@ -1102,6 +1102,7 @@ func CreateA2AService(name string, noWizard bool) error {
 			{Value: "api_key", Label: "API Key"},
 			{Value: "bearer", Label: "Bearer Token"},
 			{Value: "basic", Label: "Basic Auth"},
+			{Value: "custom", Label: "Custom Headers"},
 		}
 
 		authType, err = wizard.PromptSelect("Authentication", authOptions, 0)
@@ -1184,6 +1185,11 @@ func CreateA2AService(name string, noWizard bool) error {
 				secrets = append(secrets, secretPrefix+"_USERNAME", secretPrefix+"_PASSWORD")
 				secretValues[secretPrefix+"_USERNAME"] = authUsername
 				secretValues[secretPrefix+"_PASSWORD"] = authPassword
+
+			case "custom":
+				// Custom auth - will generate a template for manual editing
+				ui.Dimmed("  Custom headers template will be added to the file.")
+				ui.Dimmed("  You'll need to edit the file to add your headers.")
 			}
 		}
 
@@ -1309,6 +1315,13 @@ func CreateA2AService(name string, noWizard bool) error {
 		ui.Success(fmt.Sprintf("Added %d secret(s): %s", len(secrets), secretsList))
 	}
 
+	// Show edit reminder for custom auth
+	if authType == "custom" {
+		fmt.Println()
+		ui.Info("Custom auth requires manual configuration:")
+		ui.Dimmed(fmt.Sprintf("  muxi edit a2a-service %s", serviceID))
+	}
+
 	return nil
 }
 
@@ -1352,6 +1365,18 @@ active: true
 			b.WriteString(fmt.Sprintf(`  type: "basic"
   username: "${{ secrets.%s_USERNAME }}"
   password: "${{ secrets.%s_PASSWORD }}"
+`, secretPrefix, secretPrefix))
+
+		case "custom":
+			b.WriteString(fmt.Sprintf(`  type: "custom"
+  # Add your custom authentication headers below.
+  # Each header will be sent with every request to this service.
+  # Use secrets for sensitive values: ${{ secrets.YOUR_SECRET_NAME }}
+  # Uncomment and edit the headers section:
+  # headers:
+  #   Authorization: "Custom ${{ secrets.%s_CUSTOM_TOKEN }}"
+  #   X-Client-ID: "${{ secrets.%s_CLIENT_ID }}"
+  #   X-Tenant-ID: "your-tenant-id"
 `, secretPrefix, secretPrefix))
 		}
 	}
