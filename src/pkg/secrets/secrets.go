@@ -389,3 +389,159 @@ func GenerateRandomString(n int) (string, error) {
 	}
 	return base64.URLEncoding.EncodeToString(b), nil
 }
+
+// GetTemplateKeys reads the secrets template file and returns all keys.
+func (m *Manager) GetTemplateKeys() ([]string, error) {
+	content, err := os.ReadFile(m.SecretsTemplate)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+		return nil, fmt.Errorf("failed to read secrets template: %w", err)
+	}
+
+	var keys []string
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		// Extract key (everything before =)
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) >= 1 && parts[0] != "" {
+			keys = append(keys, strings.TrimSpace(parts[0]))
+		}
+	}
+	return keys, nil
+}
+
+// UpdateTemplate updates the secrets template file with the given keys.
+func (m *Manager) UpdateTemplate(keys []string) error {
+	var lines []string
+	for _, k := range keys {
+		lines = append(lines, k+"=")
+	}
+
+	content := strings.Join(lines, "\n")
+	if content != "" {
+		content += "\n"
+	}
+
+	return os.WriteFile(m.SecretsTemplate, []byte(content), 0644)
+}
+
+// ScanFormationFiles scans all formation YAML/MD files for ${{ secrets.XXX }} patterns.
+// Returns a slice of unique secret names found.
+func ScanFormationFiles(rootDir string) ([]string, error) {
+	// Pattern: ${{ secrets.NAME }} with flexible whitespace and case
+	re := regexp.MustCompile(`\$\{\{\s*secrets\.([A-Za-z0-9_]+)\s*\}\}`)
+
+	foundSecrets := make(map[string]bool)
+
+	// Directories and file patterns to scan
+	scanPaths := []struct {
+		dir     string
+		pattern string
+	}{
+		{"", "formation.yaml"},
+		{"agents", "*.yaml"},
+		{"mcps", "*.yaml"},
+		{"a2a", "*.yaml"},
+		{"sops", "*.md"},
+		{"triggers", "*.md"},
+	}
+
+	for _, sp := range scanPaths {
+		searchDir := rootDir
+		if sp.dir != "" {
+			searchDir = filepath.Join(rootDir, sp.dir)
+		}
+
+		// Check if directory exists
+		if sp.dir != "" {
+			if _, err := os.Stat(searchDir); os.IsNotExist(err) {
+				continue
+			}
+		}
+
+		// Find matching files
+		var files []string
+		if sp.dir == "" {
+			// Single file in root
+			filePath := filepath.Join(rootDir, sp.pattern)
+			if _, err := os.Stat(filePath); err == nil {
+				files = append(files, filePath)
+			}
+		} else {
+			// Glob pattern in subdirectory
+			matches, err := filepath.Glob(filepath.Join(searchDir, sp.pattern))
+			if err != nil {
+				continue
+			}
+			files = matches
+		}
+
+		// Scan each file
+		for _, file := range files {
+			content, err := os.ReadFile(file)
+			if err != nil {
+				continue
+			}
+
+			// Find all matches
+			matches := re.FindAllStringSubmatch(string(content), -1)
+			for _, match := range matches {
+				if len(match) >= 2 {
+					// Normalize the secret name
+					secretName := NormalizeName(match[1])
+					foundSecrets[secretName] = true
+				}
+			}
+		}
+	}
+
+	// Convert map to slice
+	var result []string
+	for name := range foundSecrets {
+		result = append(result, name)
+	}
+
+	return result, nil
+}
+
+// DeleteFromTemplate removes a key from the secrets template file.
+func (m *Manager) DeleteFromTemplate(name string) error {
+	keys, err := m.GetTemplateKeys()
+	if err != nil {
+		return err
+	}
+
+	// Filter out the key to delete
+	var newKeys []string
+	for _, k := range keys {
+		if k != name {
+			newKeys = append(newKeys, k)
+		}
+	}
+
+	return m.UpdateTemplate(newKeys)
+}
+
+// AddToTemplate adds a key to the secrets template file if not already present.
+func (m *Manager) AddToTemplate(name string) error {
+	keys, err := m.GetTemplateKeys()
+	if err != nil {
+		return err
+	}
+
+	// Check if already exists
+	for _, k := range keys {
+		if k == name {
+			return nil // Already exists
+		}
+	}
+
+	keys = append(keys, name)
+	return m.UpdateTemplate(keys)
+}
