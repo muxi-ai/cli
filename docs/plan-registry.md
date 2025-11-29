@@ -79,6 +79,12 @@ Paste your token: mxr_xxxxx
 }
 ```
 
+**Registry URLs:**
+- Production: `https://registry.muxi.org`
+- Development: `https://muxi.registry` (local)
+
+Can be overridden with `--registry` flag or `MUXI_REGISTRY_URL` env var.
+
 ---
 
 ### 2. `muxi logout`
