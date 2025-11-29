@@ -83,24 +83,67 @@ Paste your token: mxr_xxxxx
 - Production: `https://registry.muxi.org`
 - Development: `https://muxi.registry` (local)
 
-Can be overridden with `--registry` flag or `MUXI_REGISTRY_URL` env var.
+---
+
+### Registry Configuration
+
+**Multiple registries supported** (per DESIGN.md):
+
+**Resolution priority (highest to lowest):**
+1. `--registry` flag (explicit)
+2. `.muxi` file in formation directory
+3. `default_registry` from `~/.muxi/config.yaml`
+4. Default: `registry.muxi.org`
+
+**Config file:** `~/.muxi/config.yaml`
+```yaml
+default_registry: registry.muxi.org
+```
+
+**Credentials file:** `~/.muxi/credentials.json`
+```json
+{
+  "registries": {
+    "registry.muxi.org": {
+      "token": "mxr_...",
+      "username": "ranaroussi",
+      "created_at": "2025-11-29T10:30:00Z"
+    },
+    "private.company.com": {
+      "token": "mxr_...",
+      "username": "ranaroussi",
+      "created_at": "2025-11-29T11:00:00Z"
+    }
+  }
+}
+```
+
+**Formation-level override:** `.muxi` file
+```yaml
+registry: private.company.com
+```
 
 ---
 
 ### 2. `muxi logout`
 
-**Purpose:** Remove stored credentials
+**Purpose:** Remove stored credentials for a registry
+
+**Syntax:**
+```bash
+muxi logout                    # Logout from current/default registry
+muxi logout private.company.com  # Logout from specific registry
+```
 
 **Flow:**
-1. Delete `~/.muxi/credentials.json` (or just registry section)
+1. Remove token for specified registry from credentials.json
 2. Confirm logout
 
 **Output:**
 ```
 $ muxi logout
 
-✓ Logged out successfully
-  Removed credentials from ~/.muxi/credentials.json
+✓ Logged out from registry.muxi.org
 ```
 
 ---
