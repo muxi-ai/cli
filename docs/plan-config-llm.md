@@ -35,35 +35,21 @@ Select (1-3): _
 ### Flow 1: Add/Update Provider API Key
 ```
 Select provider:
-  [1] OpenAI
-  [2] Anthropic
+  [1] OpenAI [sk-...7x3Q] ✓
+  [2] Anthropic [sk-...2nK1] ✓
   [3] Google (Gemini)
   [4] Cohere
-  [5] Azure OpenAI
-  [6] AWS Bedrock
-  [7] Custom/Other
+  [5] Mistral
+  [6] Groq
+  ...
 
-Select (1-7): _
+Select (1-21): _
 ```
 
-#### Standard providers (1-6):
-```
-OpenAI API Key:
-  Current: configured ✓  (or: not set)
-  
-  API Key (leave empty to keep current): sk-...
+- Providers with existing keys show masked preview and ✓
+- Selecting a configured provider allows updating the key
+- Full provider list matches `muxi new formation` command
 
-✓ API key updated for OpenAI
-```
-
-#### Custom provider (7):
-```
-Provider name (lowercase): mistral
-
-API Key: _
-
-Base URL (optional): https://api.mistral.ai/v1
-```
 
 **Output:**
 ```yaml
@@ -78,39 +64,42 @@ llm:
 
 ### Flow 2: Configure Model Capability
 ```
+ℹ Capabilities without explicit models will use the text model.
+
 Select capability to configure:
-  [1] Text (main reasoning model)
-  [2] Vision (image understanding)
-  [3] Audio (speech-to-text)
-  [4] Documents (PDF/doc processing)
+  [1] Text (main reasoning model) [openai/gpt-4o] ✓
+  [2] Vision (image understanding) [using text]
+  [3] Audio (speech-to-text) [using text]
+  [4] Documents (PDF/doc processing) [using text]
   [5] Embedding (vector search)
-  [6] Streaming (progress updates)
+  [6] Streaming (progress updates) [using text]
 
 Select (1-6): _
 ```
 
+- Configured capabilities show model and ✓
+- Unconfigured capabilities show "[using text]" to indicate default behavior
+
 #### Text Model:
 ```
-Text Model Configuration
-────────────────────────
+Text Model
+──────────
 
-Provider:
-  [1] OpenAI
-  [2] Anthropic
-  [3] Google
-  [4] Other (enter model string)
+Common models:
+  [1] openai/gpt-4o (recommended)
+  [2] openai/gpt-4o-mini (faster, cheaper)
+  [3] anthropic/claude-3.5-sonnet
+  [4] anthropic/claude-3.5-haiku
+  [5] google/gemini-1.5-pro
+  [6] Other (enter)
 
-Select: 1
+Select or type model: _
+```
 
-Model:
-  [1] gpt-4o (recommended)
-  [2] gpt-4o-mini (faster, cheaper)
-  [3] gpt-4-turbo
-  [4] o1-preview (reasoning)
-  [5] Other
+- Input accepts both number selection and direct model string
+- Typing "mistral/mistral-large" works directly
 
-Select: 1
-
+```
 Configure settings for this model? (y/N): y
 
   Temperature (0.0-1.0) [0.7]: _
@@ -122,17 +111,16 @@ Configure settings for this model? (y/N): y
 
 #### Vision Model:
 ```
-Vision Model Configuration
-──────────────────────────
+Vision Model
+────────────
 
-Provider:
-  [1] OpenAI (gpt-4o, gpt-4-turbo)
-  [2] Anthropic (claude-3.5-sonnet)
-  [3] Google (gemini-pro-vision)
+Common models:
+  [1] openai/gpt-4o (recommended)
+  [2] anthropic/claude-3.5-sonnet
+  [3] google/gemini-1.5-pro
+  [4] Other (enter)
 
-Select: 1
-
-Model: openai/gpt-4o
+Select or type model: _
 
 Image settings:
   Max image size (MB) [5]: _
@@ -143,14 +131,14 @@ Image settings:
 
 #### Audio Model:
 ```
-Audio Model Configuration
-─────────────────────────
+Audio Model
+───────────
 
-Provider:
-  [1] OpenAI (whisper-1)
-  [2] Other
+Common models:
+  [1] openai/whisper-1 (recommended)
+  [2] Other (enter)
 
-Select: 1
+Select or type model: _
 
 Settings:
   Max audio size (MB) [10]: _
@@ -159,16 +147,18 @@ Settings:
 
 #### Documents Model:
 ```
-Documents Model Configuration
-─────────────────────────────
+Documents Model
+───────────────
 
-Provider (for text extraction):
-  [1] OpenAI
-  [2] Anthropic
+ℹ Used for text extraction from PDFs and documents.
 
-Select: 1
+Common models:
+  [1] openai/gpt-4o (recommended)
+  [2] anthropic/claude-3.5-sonnet
+  [3] google/gemini-1.5-pro
+  [4] Other (enter)
 
-Model: openai/gpt-4o
+Select or type model: _
 
 Settings:
   Max document size (MB) [20]: _
@@ -178,40 +168,40 @@ Settings:
     [1] adaptive (recommended)
     [2] fixed
     [3] semantic
-  
+
   Cache TTL (seconds) [3600]: _
 ```
 
 #### Embedding Model:
 ```
-Embedding Model Configuration
-─────────────────────────────
+Embedding Model
+───────────────
 
-Provider:
-  [1] OpenAI (text-embedding-3-large)
-  [2] OpenAI (text-embedding-3-small)
-  [3] Cohere (embed-english-v3.0)
-  [4] Other
+Common models:
+  [1] openai/text-embedding-3-large (recommended)
+  [2] openai/text-embedding-3-small (faster, cheaper)
+  [3] cohere/embed-english-v3.0
+  [4] Other (enter)
 
-Select: 1
+Select or type model: _
 
-Fallback model (optional): cohere/embed-english-v3.0
+Fallback model (optional): _
 ```
 
 #### Streaming Model:
 ```
-Streaming Model Configuration
-─────────────────────────────
+Streaming Model
+───────────────
 
-ℹ Used for real-time progress updates during processing.
-  Recommend a fast, cheap model.
+ℹ Used for real-time progress updates. Recommend a fast, cheap model.
 
-Provider:
-  [1] OpenAI (gpt-4o-mini) - recommended
-  [2] Anthropic (claude-3.5-haiku)
-  [3] Other
+Common models:
+  [1] openai/gpt-4o-mini (recommended)
+  [2] anthropic/claude-3.5-haiku
+  [3] google/gemini-1.5-flash
+  [4] Other (enter)
 
-Select: 1
+Select or type model: _
 
 Settings:
   Temperature [0.7]: _
