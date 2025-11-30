@@ -34,19 +34,24 @@ Implement CLI commands for interacting with the MUXI Registry:
 
 **Implementation:**
 
-**Phase 1: Manual paste** (current registry supports this)
-1. Open browser to `/auth/cli/authorize`
+**Primary: Browser callback** (registry now supports this!)
+1. Start local HTTP server on random port (e.g., 9876)
+2. Open browser to `/auth/cli/authorize?callback=http://localhost:9876/auth`
+3. User authenticates with GitHub
+4. Registry redirects to `http://localhost:9876/auth?token=mxr_xxx`
+5. CLI receives token, saves to `~/.muxi/cli/registries.yaml`, stops server
+
+**Fallback: Manual paste** (if local server fails or headless)
+1. Open browser to `/auth/cli/authorize` (no callback)
 2. User authenticates with GitHub
 3. Registry shows token on `/auth/cli/token` page
-4. User copies token and pastes into CLI
-5. CLI saves to `~/.muxi/cli/registries.yaml`
+4. CLI prompts: "Paste your token:"
+5. Save token
 
-**Phase 2: Browser callback** (requires registry update)
-1. Start local HTTP server on random port (e.g., 9876)
-2. Open browser to `/auth/cli/authorize?callback=http://localhost:9876`
-3. After OAuth, registry redirects to local server with token
-4. CLI receives token, saves, stops server
-- *Requires registry to accept `callback` parameter*
+**Registry callback validation:**
+- Allows `http://localhost:*` and `https://localhost:*`
+- External domains must use HTTPS only
+- Prevents open redirect vulnerabilities
 
 **CI/CD (future):**
 - Registry will have "Generate Token" page for creating tokens
@@ -398,7 +403,7 @@ var showCmd = &cobra.Command{...}
 ## Implementation Order
 
 1. **Registries config** - Load/save `~/.muxi/cli/registries.yaml`
-2. **`muxi login`** - Phase 1: Manual paste (open browser, user copies token)
+2. **`muxi login`** - Browser callback + manual paste fallback
 3. **`muxi logout`** - Remove registry token
 4. **Registry client** - HTTP client with auth
 5. **`muxi show`** - Test API connection
@@ -446,7 +451,6 @@ var showCmd = &cobra.Command{...}
 
 ## Future Enhancements
 
-- **Browser callback login** (Phase 2) - Seamless auth without copy-paste (requires registry update)
 - `muxi whoami` - Show current user
 - `muxi unpublish` - Remove formation from registry
 - `muxi star @user/formation` - Star a formation
