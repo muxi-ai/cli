@@ -19,6 +19,30 @@ logging, and more.
 Must be run inside a formation directory.`,
 }
 
+var configLLMCmd = &cobra.Command{
+	Use:   "llm",
+	Short: "Configure LLM providers and models",
+	Long: `Configure LLM providers, models, and settings in formation.yaml.
+
+This command provides an interactive wizard for:
+  - Adding/updating API keys for LLM providers
+  - Configuring models for different capabilities (text, vision, audio, etc.)
+  - Global LLM settings (temperature, tokens, caching)
+
+Must be run inside a formation directory.
+
+Examples:
+  # Configure with interactive wizard
+  muxi config llm`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := scaffold.ConfigureLLM(); err != nil {
+			return fmt.Errorf("failed to configure LLM: %w", err)
+		}
+		return nil
+	},
+}
+
 var configA2ACmd = &cobra.Command{
 	Use:   "a2a",
 	Short: "Configure A2A (Agent-to-Agent) communication",
@@ -60,6 +84,7 @@ func init() {
 
 	// Add subcommands to config
 	configCmd.AddCommand(configA2ACmd)
+	configCmd.AddCommand(configLLMCmd)
 
 	// Add config to root
 	rootCmd.AddCommand(configCmd)

@@ -83,11 +83,11 @@ Text Model
 ──────────
 
 Common models:
-  ○ openai/gpt-4o (recommended)
-  ○ openai/gpt-4o-mini (faster, cheaper)
-  ○ anthropic/claude-3.5-sonnet
-  ○ anthropic/claude-3.5-haiku
-  ○ google/gemini-1.5-pro
+  ○ openai/gpt-5
+  ○ openai/gpt-5-mini
+  ○ anthropic/claude-sonnet-4.5
+  ○ anthropic/claude-haiku-4.5
+  ○ google/gemini-2.5-flash
   ○ Other (enter)
 
 Or type model: _
@@ -102,7 +102,7 @@ Configure settings for this model? (y/N): y
   Max tokens [1000]: _
   Timeout (seconds) [30]: _
   Max retries [3]: _
-  Fallback model (optional): anthropic/claude-3.5-sonnet
+  Fallback model (optional): anthropic/claude-sonnet-4.5
 ```
 
 #### Vision Model:
@@ -111,9 +111,9 @@ Vision Model
 ────────────
 
 Common models:
-  ○ openai/gpt-4o (recommended)
-  ○ anthropic/claude-3.5-sonnet
-  ○ google/gemini-1.5-pro
+  ○ google/gemini-2.5-flash
+  ○ anthropic/claude-sonnet-4.5
+  ○ openai/gpt-5
   ○ Other (enter)
 
 Or type model: _
@@ -131,7 +131,7 @@ Audio Model
 ───────────
 
 Common models:
-  ○ openai/whisper-1 (recommended)
+  ○ openai/whisper-1
   ○ Other (enter)
 
 Or type model: _
@@ -149,9 +149,9 @@ Documents Model
 ℹ Used for text extraction from PDFs and documents.
 
 Common models:
-  ○ openai/gpt-4o (recommended)
-  ○ anthropic/claude-3.5-sonnet
-  ○ google/gemini-1.5-pro
+  ○ openai/gpt-5
+  ○ anthropic/claude-sonnet-4.5
+  ○ google/gemini-2.5-flash
   ○ Other (enter)
 
 Or type model: _
@@ -174,8 +174,8 @@ Embedding Model
 ───────────────
 
 Common models:
-  ○ openai/text-embedding-3-large (recommended)
-  ○ openai/text-embedding-3-small (faster, cheaper)
+  ○ openai/text-embedding-3-large
+  ○ openai/text-embedding-3-small
   ○ cohere/embed-english-v3.0
   ○ Other (enter)
 
@@ -192,9 +192,9 @@ Streaming Model
 ℹ Used for real-time progress updates. Recommend a fast, cheap model.
 
 Common models:
-  ○ openai/gpt-4o-mini (recommended)
-  ○ anthropic/claude-3.5-haiku
-  ○ google/gemini-1.5-flash
+  ○ openai/gpt-5-mini
+  ○ anthropic/claude-sonnet-4.5
+  ○ google/gemini-2.5-flash
   ○ Other (enter)
 
 Or type model: _
@@ -209,12 +209,12 @@ Settings:
 ```yaml
 llm:
   models:
-    - text: "openai/gpt-4o"
+    - text: "openai/gpt-5"
       settings:
         temperature: 0.7
         max_tokens: 1000
-        fallback_model: "anthropic/claude-3.5-sonnet"
-    - vision: "openai/gpt-4o"
+        fallback_model: "anthropic/claude-sonnet-4.5"
+    - vision: "openai/gpt-5"
       settings:
         image:
           max_size_mb: 5
