@@ -32,27 +32,24 @@ Implement CLI commands for interacting with the MUXI Registry:
 3. Registry returns `mxr_` token
 4. CLI saves token to `~/.muxi/cli/registries.yaml`
 
-**Implementation Options:**
+**Implementation:**
 
-**Option A: Browser callback (preferred)**
+**Primary: Browser callback**
 1. Start local HTTP server on random port (e.g., 9876)
 2. Open browser to `/auth/cli/authorize?callback=http://localhost:9876`
 3. After OAuth, registry redirects to local server with token
 4. CLI receives token, saves, stops server
 
-**Option B: Device code flow**
-1. CLI requests device code from registry
-2. Display code to user: "Enter code XXXX at registry.muxi.org/device"
-3. Poll registry for token completion
-4. Save token when received
-
-**Option C: Manual copy-paste**
+**Fallback: Manual paste** (if browser fails or headless)
 1. Open browser to `/auth/cli/authorize`
 2. User copies token from browser
 3. CLI prompts: "Paste your token:"
 4. Save token
 
-**Recommendation:** Start with Option C (simplest), upgrade to A later.
+**CI/CD (future):**
+- Registry will have "Generate Token" page for creating tokens
+- Users manually add to `~/.muxi/cli/registries.yaml`
+- Will revisit based on user feedback
 
 **Output:**
 ```
@@ -399,7 +396,7 @@ var showCmd = &cobra.Command{...}
 ## Implementation Order
 
 1. **Registries config** - Load/save `~/.muxi/cli/registries.yaml`
-2. **`muxi login`** - Manual token paste (Option C)
+2. **`muxi login`** - Browser callback + manual paste fallback
 3. **`muxi logout`** - Remove registry token
 4. **Registry client** - HTTP client with auth
 5. **`muxi show`** - Test API connection
@@ -447,9 +444,9 @@ var showCmd = &cobra.Command{...}
 
 ## Future Enhancements
 
-- Browser-based login (local callback server)
 - `muxi whoami` - Show current user
 - `muxi unpublish` - Remove formation from registry
 - `muxi star @user/formation` - Star a formation
 - Private formations (requires registry update)
 - Organization management
+- Registry "Generate Token" page for CI/CD use cases
