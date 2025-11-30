@@ -149,23 +149,22 @@ Example: `mxr_5Jw9k2Lp8Nm4Qr6Ts1Uv3Wx7Yz0Ab2Cd4Ef6Gh8Ij0Kl2Mn4Op6Qr8St0`
 
 ### Storage
 
-**Credentials File:** `~/.muxi/credentials.json`
+**Registry Auth File:** `~/.muxi/cli/registries.yaml`
 
-```json
-{
-  "registry": {
-    "url": "https://registry.muxi.org",
-    "token": "mxr_5Jw9k2Lp8Nm4Qr6Ts1Uv3Wx7Yz0Ab2Cd4Ef6Gh8Ij0Kl2Mn4Op6Qr8St0",
-    "username": "ranaroussi",
-    "created_at": "2025-10-29T10:30:00Z",
-    "expires_at": "2099-12-31T23:59:59Z"
-  }
-}
+```yaml
+version: "1.0"
+default_registry: registry.muxi.org
+
+registries:
+  registry.muxi.org:
+    token: mxr_5Jw9k2Lp8Nm4Qr6Ts1Uv3Wx7Yz0Ab2Cd4Ef6Gh8Ij0Kl2Mn4Op6Qr8St0
+    username: ranaroussi
+    created_at: "2025-10-29T10:30:00Z"
 ```
 
 **Permissions:** `600` (user read/write only)
 
-**Token Expiration:** Tokens currently don't expire (far future date), but this may change.
+**Token Expiration:** Tokens currently don't expire, but this may change.
 
 ---
 
@@ -912,20 +911,19 @@ Authorization: Bearer mxr_xxx
 
 ## Implementation Notes
 
-### Credential Storage
+### Registry Auth Storage
 
-**File:** `~/.muxi/credentials.json`
+**File:** `~/.muxi/cli/registries.yaml`
 
-```json
-{
-  "registry": {
-    "url": "https://registry.muxi.org",
-    "token": "mxr_...",
-    "username": "ranaroussi",
-    "created_at": "2025-10-29T10:30:00Z",
-    "expires_at": "2099-12-31T23:59:59Z"
-  }
-}
+```yaml
+version: "1.0"
+default_registry: registry.muxi.org
+
+registries:
+  registry.muxi.org:
+    token: mxr_...
+    username: ranaroussi
+    created_at: "2025-10-29T10:30:00Z"
 ```
 
 **Permissions:** `600` (user read/write only)
