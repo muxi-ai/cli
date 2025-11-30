@@ -30,7 +30,7 @@ Implement CLI commands for interacting with the MUXI Registry:
 1. Open browser to `https://registry.muxi.org/auth/cli/authorize`
 2. User authenticates with GitHub (in browser)
 3. Registry returns `mxr_` token
-4. CLI saves token to `~/.muxi/credentials.json`
+4. CLI saves token to `~/.muxi/cli/registries.yaml`
 
 **Implementation Options:**
 
@@ -64,19 +64,7 @@ Opening browser to authenticate...
 Paste your token: mxr_xxxxx
 
 ✓ Logged in as ranaroussi
-  Token saved to ~/.muxi/credentials.json
-```
-
-**Credentials File:** `~/.muxi/credentials.json`
-```json
-{
-  "registry": {
-    "url": "https://registry.muxi.org",
-    "token": "mxr_...",
-    "username": "ranaroussi",
-    "created_at": "2025-11-29T10:30:00Z"
-  }
-}
+  Token saved to ~/.muxi/cli/registries.yaml
 ```
 
 **Registry URLs:**
@@ -92,30 +80,29 @@ Paste your token: mxr_xxxxx
 **Resolution priority (highest to lowest):**
 1. `--registry` flag (explicit)
 2. `.muxi` file in formation directory
-3. `default_registry` from `~/.muxi/config.yaml`
+3. `default_registry` from `~/.muxi/cli/config.yaml`
 4. Default: `registry.muxi.org`
 
-**Config file:** `~/.muxi/config.yaml`
+**Config file:** `~/.muxi/cli/config.yaml`
 ```yaml
 default_registry: registry.muxi.org
 ```
 
-**Credentials file:** `~/.muxi/credentials.json`
-```json
-{
-  "registries": {
-    "registry.muxi.org": {
-      "token": "mxr_...",
-      "username": "ranaroussi",
-      "created_at": "2025-11-29T10:30:00Z"
-    },
-    "private.company.com": {
-      "token": "mxr_...",
-      "username": "ranaroussi",
-      "created_at": "2025-11-29T11:00:00Z"
-    }
-  }
-}
+**Registry auth file:** `~/.muxi/cli/registries.yaml`
+```yaml
+version: "1.0"
+default_registry: registry.muxi.org
+
+registries:
+  registry.muxi.org:
+    token: mxr_...
+    username: ranaroussi
+    created_at: "2025-11-29T10:30:00Z"
+  
+  private.company.com:
+    token: mxr_...
+    username: ranaroussi
+    created_at: "2025-11-29T11:00:00Z"
 ```
 
 **Formation-level override:** `.muxi` file
@@ -136,7 +123,7 @@ muxi logout private.company.com  # Logout from specific registry
 ```
 
 **Flow:**
-1. Remove token for specified registry from credentials.json
+1. Remove token for specified registry from registries.yaml
 2. Confirm logout
 
 **Output:**
@@ -373,10 +360,12 @@ func (c *Client) GetVersions(ref string) ([]Version, error)
 func (c *Client) Search(query string, sort string, limit int) ([]Formation, error)
 func (c *Client) Publish(zipPath string, org string) (*PublishResult, error)
 
-// pkg/registry/credentials.go
-func LoadCredentials() (*Credentials, error)
-func SaveCredentials(creds *Credentials) error
-func DeleteCredentials() error
+// pkg/registry/config.go
+func LoadRegistries() (*RegistriesConfig, error)    // Load ~/.muxi/cli/registries.yaml
+func SaveRegistries(cfg *RegistriesConfig) error
+func GetToken(registry string) (string, error)
+func SetToken(registry, token, username string) error
+func RemoveToken(registry string) error
 
 // pkg/registry/bundle.go
 func CreateBundle(formationDir string) (string, error)  // Returns path to zip
@@ -400,7 +389,7 @@ var showCmd = &cobra.Command{...}
 | File | Purpose |
 |------|---------|
 | `pkg/registry/client.go` | HTTP client for registry API |
-| `pkg/registry/credentials.go` | Load/save `~/.muxi/credentials.json` |
+| `pkg/registry/config.go` | Load/save `~/.muxi/cli/registries.yaml` |
 | `pkg/registry/bundle.go` | Create/extract ZIP bundles |
 | `pkg/registry/types.go` | Data structures (Formation, Version, etc.) |
 | `cmd/registry.go` | CLI commands |
@@ -409,9 +398,9 @@ var showCmd = &cobra.Command{...}
 
 ## Implementation Order
 
-1. **Credentials management** - Load/save/delete credentials
+1. **Registries config** - Load/save `~/.muxi/cli/registries.yaml`
 2. **`muxi login`** - Manual token paste (Option C)
-3. **`muxi logout`** - Remove credentials
+3. **`muxi logout`** - Remove registry token
 4. **Registry client** - HTTP client with auth
 5. **`muxi show`** - Test API connection
 6. **`muxi search`** - Search functionality
@@ -448,7 +437,7 @@ var showCmd = &cobra.Command{...}
 
 ## Security Considerations
 
-1. **Credentials file permissions** - Set to 600 (user only)
+1. **Registries file permissions** - Set to 600 (user only)
 2. **Never include secrets.enc** - Warn user if present
 3. **Never include .key** - Exclude from bundle
 4. **Token in memory only** - Don't log tokens
