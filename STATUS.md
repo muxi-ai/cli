@@ -1,98 +1,125 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-11-28  
+**Last Updated:** 2025-11-30  
 **Version:** 0.2.0-dev  
-**Status:** 🚀 Active Development - Formation Wizard Rewritten
+**Status:** 🚀 Active Development - Scaffolding & Secrets Complete
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI has **complete scaffolding system** with interactive wizards for all formation components. Formation management commands are blocked pending runtime API stabilization.
+MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, and comprehensive documentation. Registry commands are planned, and config commands are in progress.
 
 ### What Exists ✅
-- ✅ **Formation scaffolding** (`muxi new formation`) - Full wizard with LLM provider selection
-- ✅ **Agent scaffolding** (`muxi new agent`) - Full wizard with role selection, A2A visibility
-- ✅ **MCP scaffolding** (`muxi new mcp`) - Full wizard (HTTP/Stdio, formation/agent-level)
-- ✅ **SOP scaffolding** (`muxi new sop`) - Basic wizard (title, description)
-- ✅ **Trigger scaffolding** (`muxi new trigger`) - Basic wizard
-- ✅ **A2A service scaffolding** (`muxi new a2a-service`) - Full wizard with auth options
-- ✅ **A2A configuration** (`muxi config a2a`) - Inbound/outbound wizard
-- ✅ **Secrets management** (`muxi secrets`) - Fernet-encrypted secrets storage ⭐ NEW
-- ✅ **TUI design system** - Colors, symbols, prompts, banners, gold branding
-- ✅ **Input history** - Arrow keys (↑/↓) for previous inputs with readline
-- ✅ **Smart validation** - URL validation, ID normalization, duplicate checking
-- ✅ Design documents (CLI-COMMAND-DESIGN.md, IMPLEMENTATION-PLAN.md, REGISTRY.md)
-- ✅ **Command semantics** - `muxi new` (create) vs `muxi config` (modify)
+
+**Scaffolding Commands:**
+- ✅ `muxi new formation` - Full wizard with 21 LLM providers
+- ✅ `muxi new agent` - Full wizard with role selection, A2A visibility
+- ✅ `muxi new mcp` - Full wizard (HTTP/Stdio, formation/agent-level)
+- ✅ `muxi new sop` - Wizard with title, description, mode
+- ✅ `muxi new trigger` - Wizard with webhook template
+- ✅ `muxi new a2a-service` - Full wizard with auth options
+- ✅ `muxi config a2a` - Inbound/outbound wizard
+- ✅ `muxi edit <type>` - Open files in $EDITOR
+
+**Secrets Management:**
+- ✅ `muxi secrets list [--with-values]` - List all secrets
+- ✅ `muxi secrets set <name> [value]` - Set/update secret
+- ✅ `muxi secrets delete <name>` - Delete secret
+- ✅ `muxi secrets setup` - Populate secrets.enc from template
+- ✅ `muxi secrets sync [-i] [--dry-run]` - Sync with formation files
+- ✅ Fernet encryption (Python runtime compatible)
+- ✅ Auto-normalization (`my-key` → `MY_KEY`)
+- ✅ Integration in all wizards
+
+**TUI/UX System:**
+- ✅ Colors, symbols, prompts, banners
+- ✅ Golden MUXI branding
+- ✅ Input history (↑/↓ arrows)
+- ✅ Smart validation loops
+
+**Documentation:**
+- ✅ User guides: formations, agents, mcps, sops, triggers, a2a, secrets
+- ✅ Design docs: DESIGN.md, UX-PATTERNS.md, BANNERS.md
+- ✅ Plan docs: config commands, registry commands
 
 ### What's Planned
-**Configuration Commands (Not Blocked):**
-- ⏳ `muxi config llm` - Configure LLM provider (OpenAI, Anthropic, etc.)
-- ⏳ `muxi config observability` - Configure logging, metrics, tracing
-- ⏳ `muxi config runtime` - Configure runtime settings (timeouts, retries, etc.)
-- ⏳ `muxi config security` - Configure API keys, rate limits, CORS
-- ⏳ A2A service configuration (`muxi new a2a-service`) - Configure remote services
 
-**Note:** Follow A2A wizard pattern - smart enable/disable, validation loops, natural language
+**Configuration Commands (Not Blocked):**
+- ⏳ `muxi config llm` - Configure LLM provider
+- ⏳ `muxi config memory` - Configure memory settings
+- ⏳ `muxi config overlord` - Configure overlord persona/behavior
+- ⏳ `muxi config logging` - Configure logging/observability
+
+**Registry Commands (Not Blocked):**
+- ⏳ `muxi login` - Authenticate with registry (browser callback + paste fallback)
+- ⏳ `muxi logout` - Remove registry credentials
+- ⏳ `muxi push` - Publish formation to registry
+- ⏳ `muxi pull @user/formation` - Download formation
+- ⏳ `muxi search "query"` - Search formations
+- ⏳ `muxi show @user/formation` - Display formation info
 
 **Blocked by Runtime API:**
 - ⏳ Formation management (`deploy`, `list`, `logs`, `stop`, `restart`, `delete`)
-- ⏳ Server profile management (`add`, `list`, `set`, `remove`)
+- ⏳ Server profile management
 - ⏳ HMAC request signing
 
 **Other:**
-- ⏳ Formation validation (`muxi validate`)
-- ⏳ `muxi secrets sync` - Synchronize secrets with formation files
+- ⏳ `muxi validate` - Formation validation
 
 ---
 
 ## 🚧 Current Work
 
-### Latest Changes (2025-11-28)
-1. ✅ **Secrets Encryption System:**
-   - Fernet-compatible encryption (matches Python runtime)
-   - `secrets.enc` stores encrypted secrets, `.key` holds encryption key
-   - `muxi secrets list` - List all secret keys
-   - `muxi secrets list --with-values` - Show secret values
-   - `muxi secrets set <name> [value]` - Set/update a secret
-   - `muxi secrets delete <name>` - Delete a secret
-   - Auto-normalization: `my-key` → `MY_KEY` (with user notification)
+### Latest Changes (2025-11-30)
 
-2. ✅ **Secrets Integration in Wizards:**
-   - `muxi new formation` - LLM API keys stored encrypted
-   - `muxi new mcp` - Auth credentials (API key, bearer, basic) stored encrypted
-   - `muxi new a2a-service` - Auth credentials stored encrypted
-   - `muxi config a2a` - Inbound auth credentials stored encrypted
+1. ✅ **Secrets Sync & Setup Commands:**
+   - `muxi secrets setup` - Populate secrets.enc from template (for registry-pulled formations)
+   - `muxi secrets sync` - Scan formation files, add/delete secrets as needed
+   - `muxi secrets sync -i` - Interactive mode (confirm deletions)
+   - `muxi secrets sync --dry-run` - Preview changes without applying
+   - `muxi secrets sync --no-setup` - Skip prompting for values
+   - Scans: formation.yaml, agents/, mcps/, a2a/, sops/, triggers/
 
-3. ✅ **Formation Wizard Rewritten:**
-   - New 5-step flow: ID, Description, Streaming, Async, LLM Provider
-   - 21 LLM providers with radio button selection (↑↓ navigation)
-   - Cloud providers (1-17): OpenAI, Anthropic, Google, Mistral, Groq, xAI, DeepSeek, etc.
-   - Local provider (18): Ollama/llama_cpp with base URL config
-   - Enterprise providers (19-21): Azure OpenAI, AWS Bedrock, GCP Vertex AI
-   - MUXI ASCII logo in golden brand color
+2. ✅ **User Guides Created (docs/guides/):**
+   - `formations.md` - Creating formations, LLM providers, directory structure
+   - `agents.md` - Roles, system prompts, A2A visibility
+   - `mcps.md` - HTTP/Stdio transports, auth types, agent access control
+   - `sops.md` - Workflow steps, agent/tool references, execution modes
+   - `triggers.md` - Webhook templates, data interpolation, routing
+   - `a2a.md` - Inbound/outbound A2A, services, registries
+   - `secrets.md` - Encryption, commands, workflows, security
 
-4. ✅ **Brand Consistency:**
-   - Golden/orange MUXI ASCII logo for formation wizard
-   - Gold "MUXI" text in all banners (auto-colored)
-   - `ui.Gold()` function for brand-colored output
+3. ✅ **Registry Commands Plan (docs/plan-registry.md):**
+   - `muxi login` - Browser callback (primary) + paste fallback
+   - `muxi logout` - Remove registry credentials
+   - `muxi push [--org]` - Publish formation (ZIP bundle)
+   - `muxi pull @user/formation[:version]` - Download from registry
+   - `muxi search "query"` - Search formations
+   - `muxi show @user/formation` - Display formation details
+   - Config: `~/.muxi/cli/config.yaml` and `~/.muxi/cli/registries.yaml`
 
-### Previous Changes (2025-11-27)
-- ✅ A2A Configuration Complete (inbound/outbound wizards)
-- ✅ Edit Command (`muxi edit formation/agent/mcp`)
-- ✅ UX Polish (validation loops, natural language, banners)
-- ✅ Documentation (UX-PATTERNS.md, A2A-WIZARD.md, BANNERS.md)
+4. ✅ **Registry Auth Verified:**
+   - `/auth/cli/authorize` - Starts GitHub OAuth, accepts `?callback=` parameter
+   - `/auth/cli/token` - Shows token after auth
+   - Callback validation: localhost http/https allowed, external requires HTTPS
+
+### Previous Changes (2025-11-28)
+- ✅ Secrets encryption system (Fernet-compatible)
+- ✅ Secrets integration in all wizards
+- ✅ Formation wizard with 21 LLM providers
+- ✅ Golden MUXI branding
 
 ### Current Focus
-**Secrets encryption complete!** ✅
+**Secrets sync/setup complete!** ✅
 
 **Next up:**
 - Implement `muxi config llm` command
 - Implement `muxi config memory` command  
 - Implement `muxi config overlord` command
 - Implement `muxi config logging` command
-- `muxi secrets sync` - Synchronize secrets with formation files
+- Implement registry commands (login, push, pull, search, show)
 
 ---
 
@@ -301,15 +328,30 @@ None - design is solid and comprehensive.
 
 ### Complete
 - ✅ README.md - Project overview
+- ✅ DESIGN.md - CLI architecture and config structure
 - ✅ docs/CLI-COMMAND-DESIGN.md - Command structure
 - ✅ docs/IMPLEMENTATION-PLAN.md - Implementation roadmap
-- ✅ docs/REGISTRY.md - Registry integration
+- ✅ docs/REGISTRY.md - Registry integration design
+- ✅ docs/UX-PATTERNS.md - TUI/UX conventions
+- ✅ docs/BANNERS.md - Banner design system
+- ✅ docs/plan-registry.md - Registry commands implementation plan
+- ✅ docs/plan-config-llm.md - LLM config implementation plan
+- ✅ docs/plan-config-memory.md - Memory config implementation plan
+- ✅ docs/plan-config-overlord.md - Overlord config implementation plan
+- ✅ docs/plan-config-logging.md - Logging config implementation plan
+
+### User Guides (docs/guides/)
+- ✅ formations.md - Creating and managing formations
+- ✅ agents.md - Agent configuration and roles
+- ✅ mcps.md - MCP servers and tool integration
+- ✅ sops.md - Standard Operating Procedures
+- ✅ triggers.md - Webhook triggers and routing
+- ✅ a2a.md - Agent-to-Agent communication
+- ✅ secrets.md - Secrets management and encryption
 
 ### Needs Creation
-- ⏳ AGENTS.md - Development guidelines
-- ⏳ docs/ARCHITECTURE.md - CLI architecture
-- ⏳ docs/AUTHENTICATION.md - HMAC implementation
-- ⏳ docs/PROFILES.md - Profile management
+- ⏳ docs/AUTHENTICATION.md - HMAC implementation (blocked)
+- ⏳ docs/PROFILES.md - Profile management (blocked)
 - ⏳ docs/TESTING.md - Testing strategy
 
 ---
@@ -317,15 +359,15 @@ None - design is solid and comprehensive.
 ## 🔗 Dependencies
 
 ### Upstream (Blocks This)
-- **runtime/** - Needs stable API contract (BLOCKING)
-- **server/** - API is ready, but needs runtime integration
+- **runtime/** - Needs stable API contract (BLOCKING for deploy commands)
+- **server/** - API is ready, runtime integration complete
 - **schemas/** - For YAML validation
 
 ### Downstream (This Blocks)
 - None - CLI is a leaf node (doesn't block anything)
 
 ### Related
-- **registry/** - For `muxi pull/push` commands (future)
+- **registry/** - For `muxi pull/push` commands (ready to implement!)
 - **install/** - Will install CLI binary (future)
 - **homebrew-tap/** - Will add `muxi-cli.rb` formula (future)
 

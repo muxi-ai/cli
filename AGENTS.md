@@ -1,8 +1,8 @@
 # MUXI CLI Development Guide
 
 **Project:** MUXI CLI  
-**Status:** Early WIP - Blocked on Runtime API Finalization  
-**Last Updated:** 2025-10-24
+**Status:** Active Development - Scaffolding & Secrets Complete  
+**Last Updated:** 2025-11-30
 
 ---
 
@@ -12,28 +12,36 @@ This repository is part of the larger MUXI ecosystem.
 
 **📋 Complete architectural overview:** See [MUXI-ARCHITECTURE.md](../MUXI-ARCHITECTURE.md) - explains how all 9 repositories fit together, dependencies, status, and roadmap.
 
-**🎯 This repo (cli):** Command-line tool for formation management - remote server management, local server auto-detection, HMAC authentication.
+**🎯 This repo (cli):** Command-line tool for formation scaffolding, secrets management, registry integration, and server management.
 
 ---
 
 ## Quick Start for New Sessions
 
 ### Current Status
-- ⏸️ **BLOCKED:** Waiting for runtime API to finalize
-- 🎯 **When unblocked:** Can build full formation management
-- 📋 **Server API:** Ready and documented below
-- 🔐 **Auth:** HMAC implementation strategy documented
+- ✅ **Scaffolding:** All `muxi new` and `muxi config` commands complete
+- ✅ **Secrets:** Full encryption/sync system working
+- ✅ **Docs:** User guides for all features
+- 🔜 **Config commands:** LLM, memory, overlord, logging (planned)
+- 🔜 **Registry commands:** login, push, pull, search, show (planned)
+- ⏸️ **Server commands:** Blocked on runtime API
 
-### What's Ready
-1. ✅ Server API is production-ready (see below)
-2. ✅ HMAC authentication design documented
-3. ✅ Schemas for formation validation
-4. ✅ Installation flow designed (auto-detection)
+### What's Working
+1. ✅ All scaffolding wizards (formation, agent, mcp, sop, trigger, a2a-service)
+2. ✅ A2A configuration (`muxi config a2a`)
+3. ✅ Edit command (`muxi edit <type>`)
+4. ✅ Secrets management (list, set, delete, setup, sync)
+5. ✅ Fernet encryption (Python-compatible)
+6. ✅ TUI/UX system (colors, banners, validation loops)
 
-### What's Needed
-1. ⏳ Runtime API contract (formation endpoints)
-2. ⏳ Formation bundle structure finalized
-3. ⏳ Formation YAML validation complete
+### What's Planned (Not Blocked)
+1. ⏳ Config commands (llm, memory, overlord, logging)
+2. ⏳ Registry commands (login, push, pull, search, show)
+
+### What's Blocked
+1. ⏸️ Formation management (deploy, list, logs, stop, restart, delete)
+2. ⏸️ Server profile management
+3. ⏸️ HMAC request signing
 
 ---
 
@@ -590,31 +598,57 @@ ast-grep -p 'wizard.PromptString($A, $B, $C)' --lang go
 
 ```
 cli/
-├── cmd/
-│   ├── root.go              # Root command setup
-│   ├── server.go            # Server management commands
-│   ├── formation.go         # Formation management commands
-│   └── version.go           # Version command
+├── src/
+│   ├── cmd/
+│   │   ├── root.go              # Root command setup
+│   │   ├── new.go               # `muxi new` subcommands
+│   │   ├── config.go            # `muxi config` subcommands
+│   │   ├── edit.go              # `muxi edit` command
+│   │   ├── secrets.go           # `muxi secrets` subcommands
+│   │   └── version.go           # Version command
+│   │
+│   └── pkg/
+│       ├── scaffold/
+│       │   ├── formation.go     # Formation wizard
+│       │   ├── components.go    # Agent, MCP, A2A wizards
+│       │   ├── sop.go           # SOP wizard
+│       │   └── trigger.go       # Trigger wizard
+│       │
+│       ├── secrets/
+│       │   └── secrets.go       # Fernet encryption, sync logic
+│       │
+│       ├── wizard/
+│       │   └── wizard.go        # Prompt helpers (string, bool, select)
+│       │
+│       ├── ui/
+│       │   └── ui.go            # TUI design system (colors, symbols)
+│       │
+│       └── config/
+│           └── config.go        # Config loading/saving
 │
-├── pkg/
-│   ├── client/
-│   │   ├── client.go        # HTTP client with HMAC
-│   │   └── auth.go          # HMAC signature generation
+├── docs/
+│   ├── guides/                  # User guides
+│   │   ├── formations.md
+│   │   ├── agents.md
+│   │   ├── mcps.md
+│   │   ├── sops.md
+│   │   ├── triggers.md
+│   │   ├── a2a.md
+│   │   └── secrets.md
 │   │
-│   ├── profile/
-│   │   ├── profile.go       # Profile struct & management
-│   │   └── detect.go        # Local server auto-detection
-│   │
-│   ├── api/
-│   │   ├── formations.go    # Formation API calls
-│   │   └── server.go        # Server API calls
-│   │
-│   └── config/
-│       └── config.go        # Load ~/.muxi/profiles.yaml
+│   ├── plan-registry.md         # Registry commands plan
+│   ├── plan-config-llm.md       # LLM config plan
+│   ├── plan-config-memory.md    # Memory config plan
+│   ├── plan-config-overlord.md  # Overlord config plan
+│   ├── plan-config-logging.md   # Logging config plan
+│   ├── UX-PATTERNS.md           # TUI/UX conventions
+│   └── BANNERS.md               # Banner design reference
 │
-├── README.md                # Distribution guide
-├── AGENTS.md               # This file
-└── go.mod                  # Dependencies
+├── AGENTS.md                    # This file
+├── DESIGN.md                    # CLI architecture & config
+├── STATUS.md                    # Current status
+├── README.md                    # Project overview
+└── go.mod                       # Dependencies
 ```
 
 ---
@@ -802,28 +836,32 @@ curl http://localhost:7890/health
 ## Useful Links
 
 ### Local Documentation (This Repo)
-- **[docs/UX-PATTERNS.md](docs/UX-PATTERNS.md)** - Complete UX design patterns guide ⭐
-  - Validation loops, error handling
-  - URL normalization, ID normalization
-  - Menu selections, multi-line prompts
-  - Natural language patterns
-  - Secret management, state management
-- **[docs/CLI-COMMAND-DESIGN.md](docs/CLI-COMMAND-DESIGN.md)** - Command structure and semantics
-- **[docs/COMMAND-SEMANTICS.md](docs/COMMAND-SEMANTICS.md)** - `new` vs `config` command rationale
-- **[docs/TUI-DESIGN.md](docs/TUI-DESIGN.md)** - Visual patterns (banners, colors, symbols)
-- **[docs/A2A-WIZARD.md](docs/A2A-WIZARD.md)** - A2A configuration wizard guide
+- **[DESIGN.md](DESIGN.md)** - CLI architecture & config structure ⭐
+- **[STATUS.md](STATUS.md)** - Current development status
+- **[docs/UX-PATTERNS.md](docs/UX-PATTERNS.md)** - Complete UX design patterns guide
 - **[docs/BANNERS.md](docs/BANNERS.md)** - Banner reference with MUXI branding
+- **[docs/plan-registry.md](docs/plan-registry.md)** - Registry commands implementation plan
+- **[docs/plan-config-*.md](docs/)** - Config command implementation plans
+
+### User Guides (docs/guides/)
+- **formations.md** - Creating formations, LLM providers
+- **agents.md** - Agent roles, system prompts
+- **mcps.md** - MCP server configuration
+- **sops.md** - Standard Operating Procedures
+- **triggers.md** - Webhook triggers
+- **a2a.md** - Agent-to-Agent communication
+- **secrets.md** - Secrets management
 
 ### Key Implementation Files
-- **src/pkg/scaffold/components.go** - All wizards (agent, MCP, A2A)
+- **src/pkg/scaffold/** - All scaffolding wizards
+- **src/pkg/secrets/secrets.go** - Fernet encryption, sync logic
 - **src/pkg/wizard/wizard.go** - Prompt implementation
 - **src/pkg/ui/ui.go** - TUI design system
 
 ### External Repos
 - **Server Repo:** [github.com/muxi-ai/server](https://github.com/muxi-ai/server)
 - **Runtime Repo:** [github.com/muxi-ai/runtime](https://github.com/muxi-ai/runtime)
-- **Schemas Repo:** [github.com/muxi-ai/schemas](https://github.com/muxi-ai/schemas)
-- **Install Repo:** [github.com/muxi-ai/install](https://github.com/muxi-ai/install)
+- **Registry Repo:** [github.com/muxi-ai/registry](https://github.com/muxi-ai/registry)
 - **Architecture:** [MUXI-ARCHITECTURE.md](../MUXI-ARCHITECTURE.md)
 
 ---
@@ -833,9 +871,9 @@ curl http://localhost:7890/health
 Starting a new session? Check these:
 
 - [ ] Read this document (AGENTS.md)
+- [ ] Review [DESIGN.md](DESIGN.md) for CLI architecture & config structure
 - [ ] Review [docs/UX-PATTERNS.md](docs/UX-PATTERNS.md) for established patterns
-- [ ] Review [MUXI-ARCHITECTURE.md](../MUXI-ARCHITECTURE.md) for ecosystem context
-- [ ] Check existing wizards in `src/pkg/scaffold/components.go`
+- [ ] Check existing wizards in `src/pkg/scaffold/`
 - [ ] Follow ID normalization patterns (spaces → hyphens, auto-suggest name)
 - [ ] Use validation loops (not exits on invalid input)
 - [ ] Handle Ctrl+C gracefully at all prompts
@@ -844,6 +882,6 @@ Starting a new session? Check these:
 
 ---
 
-**Last Updated:** 2025-11-28  
-**Status:** A2A Scaffolding Complete ✅  
-**Next Step:** More config commands (LLM, observability, security)
+**Last Updated:** 2025-11-30  
+**Status:** Scaffolding & Secrets Complete ✅  
+**Next Step:** Config commands (LLM, memory, overlord, logging) and Registry commands
