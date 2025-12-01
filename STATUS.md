@@ -1,15 +1,15 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-11-30  
+**Last Updated:** 2025-12-01  
 **Version:** 0.2.0-dev  
-**Status:** 🚀 Active Development - Scaffolding & Secrets Complete
+**Status:** 🚀 Active Development - Scaffolding, Secrets & LLM Config Complete
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, and comprehensive documentation. Registry commands are planned, and config commands are in progress.
+MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, **LLM configuration**, and comprehensive documentation. Registry commands are planned, and remaining config commands are in progress.
 
 ### What Exists ✅
 
@@ -21,6 +21,7 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi new trigger` - Wizard with webhook template
 - ✅ `muxi new a2a-service` - Full wizard with auth options
 - ✅ `muxi config a2a` - Inbound/outbound wizard
+- ✅ `muxi config llm` - Full LLM configuration wizard
 - ✅ `muxi edit <type>` - Open files in $EDITOR
 
 **Secrets Management:**
@@ -47,7 +48,7 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 ### What's Planned
 
 **Configuration Commands (Not Blocked):**
-- ⏳ `muxi config llm` - Configure LLM provider
+- ✅ `muxi config llm` - Configure LLM provider (COMPLETE)
 - ⏳ `muxi config memory` - Configure memory settings
 - ⏳ `muxi config overlord` - Configure overlord persona/behavior
 - ⏳ `muxi config logging` - Configure logging/observability
@@ -72,38 +73,36 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 
 ## 🚧 Current Work
 
-### Latest Changes (2025-11-30)
+### Latest Changes (2025-12-01)
 
-1. ✅ **Secrets Sync & Setup Commands:**
-   - `muxi secrets setup` - Populate secrets.enc from template (for registry-pulled formations)
+1. ✅ **`muxi config llm` Command Complete:**
+   - Three flows: Configure capability, Add API key, Global settings
+   - Full capability-specific settings (vision, audio, video, documents)
+   - Environment variable detection for API keys
+   - Fallback model API key validation
+   - Model ordering in YAML (text, vision, audio, documents, embedding, streaming)
+   - Smart indentation and formatting
+   - User guide created: `docs/guides/llm.md`
+
+2. ✅ **Secrets Sync & Setup Commands:**
+   - `muxi secrets setup` - Populate secrets.enc from template
    - `muxi secrets sync` - Scan formation files, add/delete secrets as needed
    - `muxi secrets sync -i` - Interactive mode (confirm deletions)
    - `muxi secrets sync --dry-run` - Preview changes without applying
-   - `muxi secrets sync --no-setup` - Skip prompting for values
-   - Scans: formation.yaml, agents/, mcps/, a2a/, sops/, triggers/
 
-2. ✅ **User Guides Created (docs/guides/):**
-   - `formations.md` - Creating formations, LLM providers, directory structure
+3. ✅ **User Guides (docs/guides/):**
+   - `llm.md` - LLM configuration guide (NEW)
+   - `formations.md` - Creating formations, LLM providers
    - `agents.md` - Roles, system prompts, A2A visibility
-   - `mcps.md` - HTTP/Stdio transports, auth types, agent access control
-   - `sops.md` - Workflow steps, agent/tool references, execution modes
-   - `triggers.md` - Webhook templates, data interpolation, routing
-   - `a2a.md` - Inbound/outbound A2A, services, registries
-   - `secrets.md` - Encryption, commands, workflows, security
+   - `mcps.md` - HTTP/Stdio transports, auth types
+   - `sops.md` - Workflow steps, execution modes
+   - `triggers.md` - Webhook templates, routing
+   - `a2a.md` - Inbound/outbound A2A, services
+   - `secrets.md` - Encryption, commands, security
 
-3. ✅ **Registry Commands Plan (docs/plan-registry.md):**
-   - `muxi login` - Browser callback (primary) + paste fallback
-   - `muxi logout` - Remove registry credentials
-   - `muxi push [--org]` - Publish formation (ZIP bundle)
-   - `muxi pull @user/formation[:version]` - Download from registry
-   - `muxi search "query"` - Search formations
-   - `muxi show @user/formation` - Display formation details
-   - Config: `~/.muxi/cli/config.yaml` and `~/.muxi/cli/registries.yaml`
-
-4. ✅ **Registry Auth Verified:**
-   - `/auth/cli/authorize` - Starts GitHub OAuth, accepts `?callback=` parameter
-   - `/auth/cli/token` - Shows token after auth
-   - Callback validation: localhost http/https allowed, external requires HTTPS
+### Previous Changes (2025-11-30)
+- ✅ Registry commands plan
+- ✅ Registry auth verified (browser callback + paste fallback)
 
 ### Previous Changes (2025-11-28)
 - ✅ Secrets encryption system (Fernet-compatible)
@@ -112,10 +111,9 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ Golden MUXI branding
 
 ### Current Focus
-**Secrets sync/setup complete!** ✅
+**LLM configuration complete!** ✅
 
 **Next up:**
-- Implement `muxi config llm` command
 - Implement `muxi config memory` command  
 - Implement `muxi config overlord` command
 - Implement `muxi config logging` command
@@ -348,6 +346,7 @@ None - design is solid and comprehensive.
 - ✅ triggers.md - Webhook triggers and routing
 - ✅ a2a.md - Agent-to-Agent communication
 - ✅ secrets.md - Secrets management and encryption
+- ✅ llm.md - LLM configuration and model settings
 
 ### Needs Creation
 - ⏳ docs/AUTHENTICATION.md - HMAC implementation (blocked)
