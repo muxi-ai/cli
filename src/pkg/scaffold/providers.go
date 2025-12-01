@@ -2,18 +2,19 @@ package scaffold
 
 // LLMProvider represents an LLM provider configuration
 type LLMProvider struct {
-	Name         string // Display name
-	Vendor       string // Vendor key for model prefix
-	DefaultModel string // Default model (without vendor prefix)
-	KeyPrefix    string // Expected API key prefix (for validation hint)
-	SecretName   string // Secret name (e.g., OPENAI_API_KEY)
+	Name         string   // Display name
+	Vendor       string   // Vendor key for model prefix
+	DefaultModel string   // Default model (without vendor prefix)
+	KeyPrefix    string   // Expected API key prefix (for validation hint)
+	SecretName   string   // Secret name (e.g., OPENAI_API_KEY)
+	AltEnvVars   []string // Alternative env var names to check (e.g., GEMINI_API_KEY for Google)
 }
 
 // LLMProviders is the list of all supported providers
 var LLMProviders = []LLMProvider{
 	{Name: "OpenAI", Vendor: "openai", DefaultModel: "gpt-5-mini", KeyPrefix: "sk-", SecretName: "OPENAI_API_KEY"},
 	{Name: "Anthropic", Vendor: "anthropic", DefaultModel: "claude-sonnet-4-5", KeyPrefix: "sk-ant-", SecretName: "ANTHROPIC_API_KEY"},
-	{Name: "Google", Vendor: "google", DefaultModel: "gemini-2.0-flash", KeyPrefix: "", SecretName: "GOOGLE_API_KEY"},
+	{Name: "Google", Vendor: "google", DefaultModel: "gemini-2.0-flash", KeyPrefix: "", SecretName: "GOOGLE_API_KEY", AltEnvVars: []string{"GEMINI_API_KEY"}},
 	{Name: "Mistral", Vendor: "mistral", DefaultModel: "mistral-large-latest", KeyPrefix: "", SecretName: "MISTRAL_API_KEY"},
 	{Name: "Groq", Vendor: "groq", DefaultModel: "llama-3.3-70b-versatile", KeyPrefix: "gsk_", SecretName: "GROQ_API_KEY"},
 	{Name: "xAI", Vendor: "xai", DefaultModel: "grok-4", KeyPrefix: "xai-", SecretName: "XAI_API_KEY"},

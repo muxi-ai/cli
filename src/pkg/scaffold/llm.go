@@ -171,16 +171,20 @@ func configureProviderAPIKey(rootDir string) error {
 
 	var apiKey string
 
-	// Check for existing env var
-	envValue := os.Getenv(selectedProvider.SecretName)
-	if envValue != "" {
-		maskedEnv := maskAPIKey(envValue, selectedProvider.KeyPrefix)
-		useEnv, err := wizard.PromptConfirm(fmt.Sprintf("ℹ Found %s in environment [%s]. Use it?", selectedProvider.SecretName, maskedEnv), true)
-		if err != nil {
-			return err
-		}
-		if useEnv {
-			apiKey = envValue
+	// Check for existing env var (primary and alternatives)
+	envVarsToCheck := append([]string{selectedProvider.SecretName}, selectedProvider.AltEnvVars...)
+	for _, envName := range envVarsToCheck {
+		envValue := os.Getenv(envName)
+		if envValue != "" {
+			maskedEnv := maskAPIKey(envValue, selectedProvider.KeyPrefix)
+			useEnv, err := wizard.PromptConfirm(fmt.Sprintf("ℹ Found %s in environment [%s]. Use it?", envName, maskedEnv), true)
+			if err != nil {
+				return err
+			}
+			if useEnv {
+				apiKey = envValue
+				break
+			}
 		}
 	}
 
@@ -532,16 +536,20 @@ func promptForAPIKey(rootDir string, provider LLMProvider) error {
 
 	var apiKey string
 
-	// Check for existing env var
-	envValue := os.Getenv(provider.SecretName)
-	if envValue != "" {
-		maskedEnv := maskAPIKey(envValue, provider.KeyPrefix)
-		useEnv, err := wizard.PromptConfirm(fmt.Sprintf("ℹ Found %s in environment [%s]. Use it?", provider.SecretName, maskedEnv), true)
-		if err != nil {
-			return err
-		}
-		if useEnv {
-			apiKey = envValue
+	// Check for existing env var (primary and alternatives)
+	envVarsToCheck := append([]string{provider.SecretName}, provider.AltEnvVars...)
+	for _, envName := range envVarsToCheck {
+		envValue := os.Getenv(envName)
+		if envValue != "" {
+			maskedEnv := maskAPIKey(envValue, provider.KeyPrefix)
+			useEnv, err := wizard.PromptConfirm(fmt.Sprintf("ℹ Found %s in environment [%s]. Use it?", envName, maskedEnv), true)
+			if err != nil {
+				return err
+			}
+			if useEnv {
+				apiKey = envValue
+				break
+			}
 		}
 	}
 
