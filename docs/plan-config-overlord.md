@@ -93,7 +93,6 @@ Response Format
 overlord:
   response:
     format: "markdown"
-    widgets: true
     streaming: true
     progress: true
 ```
