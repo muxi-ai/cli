@@ -134,8 +134,8 @@ Persistent Memory
   Long-term memory stored in a database, persists across sessions.
 
   Select database type:
-    ◯ PostgreSQL (requires PostgreSQL 17+ with pgvector extension)
-    ◯ SQLite (local file, good for development)
+    ◉ PostgreSQL (multi-tenant; requires PostgreSQL + pgvector)
+    ◯ SQLite (single-tenant; good for development)
 ```
 
 #### If PostgreSQL:

@@ -278,8 +278,8 @@ func configurePersistentMemory(rootDir string) error {
 
 	// Select database type
 	dbOptions := []wizard.SelectOption{
-		{Value: "postgres", Label: "PostgreSQL (requires PostgreSQL 17+ with pgvector extension)"},
-		{Value: "sqlite", Label: "SQLite (local file, good for development)"},
+		{Value: "postgres", Label: "PostgreSQL (multi-tenant; requires PostgreSQL + pgvector)"},
+		{Value: "sqlite", Label: "SQLite (single-tenant; good for development)"},
 	}
 
 	dbType, err := wizard.PromptSelect("  Select database type", dbOptions, 0)
