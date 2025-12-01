@@ -43,6 +43,30 @@ Examples:
 	},
 }
 
+var configMemoryCmd = &cobra.Command{
+	Use:   "memory",
+	Short: "Configure memory settings",
+	Long: `Configure memory settings in formation.yaml.
+
+This command provides an interactive wizard for:
+  - Working memory (in-memory vector storage, local or remote FAISSx)
+  - Buffer memory (conversation context)
+  - Persistent memory (PostgreSQL or SQLite database)
+
+Must be run inside a formation directory.
+
+Examples:
+  # Configure with interactive wizard
+  muxi config memory`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := scaffold.ConfigureMemory(); err != nil {
+			return fmt.Errorf("failed to configure memory: %w", err)
+		}
+		return nil
+	},
+}
+
 var configA2ACmd = &cobra.Command{
 	Use:   "a2a",
 	Short: "Configure A2A (Agent-to-Agent) communication",
@@ -85,6 +109,7 @@ func init() {
 	// Add subcommands to config
 	configCmd.AddCommand(configA2ACmd)
 	configCmd.AddCommand(configLLMCmd)
+	configCmd.AddCommand(configMemoryCmd)
 
 	// Add config to root
 	rootCmd.AddCommand(configCmd)

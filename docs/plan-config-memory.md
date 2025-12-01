@@ -23,79 +23,94 @@ muxi config memory
 ### Step 1: Memory Type Selection
 ```
 What would you like to configure?
-  [1] Working memory (in-memory, always enabled)
-  [2] Buffer memory (conversation context)
-  [3] Persistent memory (database-backed, long-term)
-
-Select (1-3): _
+  ◯ Working memory (in-memory, always enabled)
+  ◯ Buffer memory (conversation context)
+  ◯ Persistent memory (database-backed, long-term)
 ```
 
 ---
 
 ### Flow 1: Working Memory
+
 ```
-Working Memory Configuration
-────────────────────────────
+Working Memory
+  
+  Short-term vector memory for semantic search within a session.
 
-Mode:
-  [1] Local (default, in-process)
-  [2] Remote (FAISSx server)
-
-Select (1-2): _
+  Select mode:
+    ◯ Local (default, in-process)
+    ◯ Remote (FAISSx server)
 ```
 
 #### If Local:
 ```
-Max memory (MB):
-  "auto" = 10% of RAM (min 64MB, max 1GB)
-  Or specify integer (e.g., 256)
-
-Max memory ["auto"]: _
-
-Vector dimension [1536]: _
-
-FIFO cleanup interval (minutes) [5]: _
+  "auto" uses 10% of RAM (min 64MB, max 1GB)
+  ✓ Max memory: auto
+  
+  Dimensions of embedding vectors (must match your embedding model)
+  ✓ Vector dimension: 1536
+  
+  How often to clean up old vectors (FIFO)
+  ✓ Cleanup interval (minutes): 5
 ```
 
 #### If Remote:
 ```
-FAISSx server URL: tcp://localhost:8000
+  FAISSx server endpoint (tcp:// or tcps://)
+  ✓ Server URL: tcp://localhost:8000
 
-API key (will be stored in secrets):
-  API Key: _
+  API key for FAISSx authentication
+  ✓ Saved FAISSX_API_KEY to secrets
+  
+  Tenant identifier for multi-tenant FAISSx
+  ✓ Saved FAISSX_TENANT_ID to secrets
 
-Tenant ID: _
-
-Max memory (MB) [256]: _
-  Note: Remote mode requires explicit integer, not "auto"
+  Remote mode requires explicit memory limit
+  ✓ Max memory (MB): 256
 ```
 
-**Output:**
+**Output (Local):**
 ```yaml
 memory:
   working:
-    mode: "local"  # or "remote"
+    mode: "local"
     max_memory_mb: "auto"
     vector_dimension: 1536
     fifo_interval_min: 5
-    # remote:  # if remote mode
-    #   url: "tcp://localhost:8000"
-    #   api_key: "${{ secrets.FAISSX_API_KEY }}"
-    #   tenant: "tenant-id"
+```
+
+**Output (Remote):**
+```yaml
+memory:
+  working:
+    mode: "remote"
+    max_memory_mb: 256
+    vector_dimension: 1536
+    fifo_interval_min: 5
+    remote:
+      url: "tcp://localhost:8000"
+      api_key: "${{ secrets.FAISSX_API_KEY }}"
+      tenant: "${{ secrets.FAISSX_TENANT_ID }}"
 ```
 
 ---
 
 ### Flow 2: Buffer Memory
+
 ```
-Buffer Memory Configuration
-───────────────────────────
+Buffer Memory
 
-Context window size (recent messages) [10]: _
+  Conversation context that persists across messages in a session.
 
-Buffer multiplier (total = size × multiplier) [10]: _
+  Number of recent messages to keep in context
+  ✓ Context window size: 10
 
-Enable vector similarity search? (Y/n): _
+  Multiplier for total buffer (total = size × multiplier)
+  ✓ Buffer multiplier: 10
+
+  Use vector similarity to find relevant past messages
+  Enable vector similarity search? [Y/n]: y
+  ✓ Vector search: enabled
 ```
 
 **Output:**
@@ -110,68 +125,118 @@ memory:
 ---
 
 ### Flow 3: Persistent Memory
+
 ```
-Persistent Memory Configuration
-───────────────────────────────
+Persistent Memory
 
-ℹ Persistent memory requires a PostgreSQL or SQLite database.
+  Long-term memory stored in a database, persists across sessions.
 
-Database type:
-  [1] PostgreSQL
-  [2] SQLite
-
-Select (1-2): _
+  Select database type:
+    ◯ PostgreSQL (requires PostgreSQL 17+ with pgvector extension)
+    ◯ SQLite (local file, good for development)
 ```
 
 #### If PostgreSQL:
 ```
-Connection details:
-  Host [localhost]: _
-  Port [5432]: _
-  Database: mydb
-  Username: _
-  Password (will be stored in secrets): _
+  Requires PostgreSQL 17+ with pgvector extension installed.
+  
+  Enter connection string or hostname:
+  > postgres://user:pass@host:5432/db
+  
+  ✓ Saved PERSISTENT_DB_CONNECTION_STRING to secrets
+```
 
-  Connection string: postgres://user:***@localhost:5432/mydb
+**Or if hostname entered:**
+```
+  Enter connection string or hostname:
+  > db.example.com
+
+  ✓ Host: db.example.com
+  
+  PostgreSQL port (default: 5432)
+  ✓ Port: 5432
+  
+  Database name
+  ✓ Database: muxi_memory
+  
+  Database username
+  ✓ Username: muxi
+  
+  Database password
+  ✓ Password: ********
+
+  Built connection string: postgres://muxi:***@db.example.com:5432/muxi_memory
+  ✓ Saved PERSISTENT_DB_CONNECTION_STRING to secrets
 ```
 
 #### If SQLite:
 ```
-Database file path [./memory.db]: _
-
-  Connection string: sqlite:///./memory.db
+  Path to SQLite database file (will be created if doesn't exist)
+  ✓ Database path: ./memory.db
 ```
 
-#### Common settings:
+#### Common settings (PostgreSQL only):
 ```
-Query timeout (seconds) [30]: _
+  Maximum time to wait for database queries
+  ✓ Query timeout (seconds): 30
 
-Enable user synopsis generation? (Y/n): _
-  ℹ Generates LLM-synthesized summaries of user context
+  Generate LLM-synthesized summaries of user context
+  Enable user synopsis? [Y/n]: y
+  ✓ User synopsis: enabled
 
-Synopsis cache TTL (seconds) [3600]: _
+  How long to cache generated synopses
+  ✓ Synopsis cache TTL (seconds): 3600
 ```
 
-**Output:**
+**Output (PostgreSQL):**
 ```yaml
 memory:
   persistent:
-    connection_string: "postgres://user:${{ secrets.DB_PASSWORD }}@localhost:5432/mydb"
+    connection_string: "${{ secrets.PERSISTENT_DB_CONNECTION_STRING }}"
     query_timeout_seconds: 30
     user_synopsis:
       enabled: true
       cache_ttl: 3600
 ```
 
+**Output (SQLite):**
+```yaml
+memory:
+  persistent:
+    connection_string: "sqlite:///./memory.db"
+```
+
+---
+
 ## Secrets Created
-- `FAISSX_API_KEY` (if remote working memory)
-- `DB_PASSWORD` (if PostgreSQL persistent memory)
+
+| Secret | When Created |
+|--------|--------------|
+| `FAISSX_API_KEY` | Remote working memory selected |
+| `FAISSX_TENANT_ID` | Remote working memory selected |
+| `PERSISTENT_DB_CONNECTION_STRING` | PostgreSQL persistent memory selected |
+
+Note: SQLite doesn't use secrets (just a file path).
+
+## Environment Variable Detection
+
+Check for existing env vars and offer to import:
+- `FAISSX_API_KEY` → for remote working memory
+- `DATABASE_URL` → for PostgreSQL connection string
 
 ## Validation
-- PostgreSQL connection string format
-- SQLite path exists/writable
-- Remote URL format (tcp:// or tcps://)
 
-## Questions
-1. Should we test database connection before saving?
-2. Should embedding_model be configurable here or in `muxi config llm`?
+- PostgreSQL connection string format (`postgres://` or `postgresql://`)
+- SQLite path is valid and parent directory exists
+- Remote URL format (`tcp://` or `tcps://`)
+- Vector dimension is positive integer
+- Memory limits are positive integers
+
+## Implementation Notes
+
+1. Use radio boxes (◯) for selections, not numbered lists
+2. Add dimmed hints above each prompt explaining the setting
+3. Indent content under section headers by 2 spaces
+4. Store sensitive values in secrets, reference with `${{ secrets.NAME }}`
+5. Detect env vars and offer to import (like LLM config)
+6. For PostgreSQL, accept either full connection string OR hostname (then prompt for details)
