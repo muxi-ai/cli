@@ -13,8 +13,8 @@ muxi config overlord
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure Overlord                                  MUXI │
 │──────────────────────────────────────────────────────────────│
-│ The Overlord orchestrates your agents, routes tasks, and     │
-│ manages conversations. Configure personality and behavior.   │
+│ The Overlord orchestrates agents, creates and routes tasks,  │
+│ manages conversations, and handles clarifications.           │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
@@ -24,7 +24,7 @@ muxi config overlord
 ```
 What would you like to configure?
   ◯ Persona (identity and communication style)
-  ◯ Response format (markdown, streaming, widgets)
+  ◯ Response options (format, streaming, progress)
   ◯ Workflow behavior (routing, decomposition, timeouts)
   ◯ Clarification settings (question style, limits)
 ```
@@ -39,14 +39,13 @@ Overlord Persona
   The persona defines how the Overlord communicates with users.
 
   How would you like to set the persona?
-    ◯ Enter text directly
+    ◯ Enter text directly (opens $EDITOR)
     ◯ Load from file
-    ◯ Use a template
 ```
 
 #### Enter directly:
 ```
-  Enter persona (opens $EDITOR for multi-line editing)
+  Opens $EDITOR with current persona for editing
 
   ✓ Persona updated
 ```
@@ -59,37 +58,17 @@ Overlord Persona
   ✓ Persona loaded from ./persona.md
 ```
 
-#### Use template:
-```
-  Select template:
-    ◯ Professional assistant
-    ◯ Technical expert
-    ◯ Creative helper
-    ◯ Customer support
-    ◯ Research assistant
-  ✓ Template: Technical expert
-
-  Company or product name (used in persona)
-  ✓ Name: TechCorp
-
-  Area of specialization
-  ✓ Specialization: cloud infrastructure
-
-  ✓ Persona generated from template
-```
-
 **Output:**
 ```yaml
 overlord:
   persona: |
-    You are a technical expert AI assistant for TechCorp.
-    You specialize in cloud infrastructure and provide
-    detailed, accurate technical guidance.
+    You are a helpful AI assistant.
+    You are professional, concise, and accurate.
 ```
 
 ---
 
-### Flow 2: Response Format
+### Flow 2: Response Options
 
 ```
 Response Format
@@ -99,10 +78,6 @@ Response Format
     ◯ text (plain text only)
     ◯ html (web rendering)
   ✓ Format: markdown
-
-  Allow interactive elements in responses (buttons, forms)
-  Enable widgets? [Y/n]: y
-  ✓ Widgets: enabled
 
   Stream responses as they're generated
   Enable streaming? [Y/n]: y
