@@ -18,7 +18,7 @@ var commonTextModels = []string{
 	"openai/gpt-5",
 	"openai/gpt-5-mini",
 	"anthropic/claude-sonnet-4-5",
-	"anthropic/claude-haiku-4.5",
+	"anthropic/claude-haiku-4-5",
 	"google/gemini-2.5-flash",
 }
 
@@ -46,7 +46,7 @@ var commonEmbeddingModels = []string{
 
 var commonStreamingModels = []string{
 	"openai/gpt-5-mini",
-	"anthropic/claude-haiku-4.5",
+	"anthropic/claude-haiku-4-5",
 	"google/gemini-2.5-flash",
 }
 
@@ -945,10 +945,10 @@ func addAPIKeyToFormation(rootDir string, provider LLMProvider) error {
 	}
 
 	keyLine := fmt.Sprintf("    %s: \"${{ secrets.%s }}\"", provider.Vendor, provider.SecretName)
-
-	// Check if this key is already configured (not in comments)
 	lines := strings.Split(string(content), "\n")
 	secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
+
+	// Check if this key is already configured (not in comments)
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "#") {
@@ -958,68 +958,57 @@ func addAPIKeyToFormation(rootDir string, provider LLMProvider) error {
 			return nil // Already configured
 		}
 	}
-	var result []string
+
+	// First pass: find if llm.api_keys exists and where
+	llmLineIdx := -1
+	llmApiKeysIdx := -1
 	inLLM := false
-	addedKey := false
 
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
-		// Track when we enter/exit llm section
+		// Found llm: section
 		if trimmed == "llm:" {
+			llmLineIdx = i
 			inLLM = true
-			result = append(result, line)
-			continue
-		}
-
-		// If in llm section and we hit api_keys:
-		if inLLM && trimmed == "api_keys:" && strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
-			result = append(result, line)
-			result = append(result, keyLine)
-			addedKey = true
 			continue
 		}
 
 		// Exit llm section if we hit a new top-level key
 		if inLLM && len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "#") {
-			// Before exiting, check if we need to add api_keys section
-			if !addedKey {
-				// Insert api_keys section before this line
+			inLLM = false
+			continue
+		}
+
+		// Found api_keys: under llm (2-space indent, not 4)
+		if inLLM && trimmed == "api_keys:" && strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
+			llmApiKeysIdx = i
+			// Don't break - we want the LAST api_keys in case there are duplicates
+		}
+	}
+
+	var result []string
+
+	if llmApiKeysIdx >= 0 {
+		// Add key after existing api_keys line
+		for i, line := range lines {
+			result = append(result, line)
+			if i == llmApiKeysIdx {
+				result = append(result, keyLine)
+			}
+		}
+	} else if llmLineIdx >= 0 {
+		// llm exists but no api_keys - add api_keys right after llm:
+		for i, line := range lines {
+			result = append(result, line)
+			if i == llmLineIdx {
 				result = append(result, "  api_keys:")
 				result = append(result, keyLine)
-				addedKey = true
-			}
-			inLLM = false
-		}
-
-		result = append(result, line)
-
-		// If this is the llm: line and next line is not api_keys, we might need to add it
-		if inLLM && !addedKey && i > 0 {
-			prevTrimmed := strings.TrimSpace(lines[i-1])
-			if prevTrimmed == "llm:" {
-				// Check if current line is already api_keys
-				if trimmed != "api_keys:" {
-					// Insert api_keys before current line
-					result = result[:len(result)-1]
-					result = append(result, "  api_keys:")
-					result = append(result, keyLine)
-					result = append(result, line)
-					addedKey = true
-				}
 			}
 		}
-	}
-
-	// If llm section exists but we never added the key (end of file case)
-	if inLLM && !addedKey {
-		result = append(result, "  api_keys:")
-		result = append(result, keyLine)
-		addedKey = true
-	}
-
-	// If no llm section exists, add one
-	if !addedKey {
+	} else {
+		// No llm section - add at end
+		result = lines
 		result = append(result, "")
 		result = append(result, "llm:")
 		result = append(result, "  api_keys:")
