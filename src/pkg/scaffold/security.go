@@ -90,12 +90,13 @@ func configureRedirectMode(rootDir string) error {
 	ui.Dimmed("  URL where users configure their credentials")
 	urlDefault := currentURL
 	if urlDefault == "" {
-		urlDefault = "https://example.com/credentials"
+		urlDefault = "https://yourcompany.com/manage/credentials"
 	}
 	redirectURL, err := wizard.PromptString("  Redirect URL", urlDefault, nil)
 	if err != nil {
 		return err
 	}
+	redirectURL = normalizeURL(redirectURL)
 	ui.PromptSuccess("  Redirect URL", redirectURL)
 
 	// Custom message (optional)
@@ -140,6 +141,14 @@ func truncateForDisplay(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
+// normalizeURL adds https:// if no protocol is specified
+func normalizeURL(url string) string {
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		return "https://" + url
+	}
+	return url
+}
+
 // configureDynamicMode handles Flow 2: Dynamic Mode (Development)
 func configureDynamicMode(rootDir string) error {
 	fmt.Println()
@@ -166,6 +175,7 @@ func configureDynamicMode(rootDir string) error {
 	if err != nil {
 		return err
 	}
+	redirectURL = normalizeURL(redirectURL)
 	ui.PromptSuccess("  Redirect URL", redirectURL)
 
 	// Allowed environments
