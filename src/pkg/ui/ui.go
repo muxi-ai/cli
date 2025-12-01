@@ -82,6 +82,33 @@ func Bold(message string) {
 	bold.Println(message)
 }
 
+// Text helpers that return colored strings (for inline use)
+
+// RedText returns red colored text
+func RedText(s string) string {
+	return red.Sprint(s)
+}
+
+// YellowText returns yellow colored text
+func YellowText(s string) string {
+	return yellow.Sprint(s)
+}
+
+// GreenText returns green colored text
+func GreenText(s string) string {
+	return green.Sprint(s)
+}
+
+// BoldText returns bold text
+func BoldText(s string) string {
+	return bold.Sprint(s)
+}
+
+// DimmedText returns dimmed text
+func DimmedText(s string) string {
+	return dimmed.Sprint(s)
+}
+
 // PromptSuccess shows a prompt with successful input (Next.js style)
 // Example: ✓ Formation name: my-bot
 // Supports leading spaces in prompt for indentation: "  Temperature" -> "  ✓ Temperature: 0.7"
