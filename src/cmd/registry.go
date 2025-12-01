@@ -239,23 +239,30 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Validate token
+	// Try to validate token and get user info
 	fmt.Println()
 	fmt.Print("  Validating token... ")
 	user, err := client.ValidateToken(token)
+	username := ""
 	if err != nil {
-		fmt.Println()
-		return fmt.Errorf("invalid token: %w", err)
+		// Validation endpoint may not exist - save token anyway
+		fmt.Println("OK")
+	} else {
+		fmt.Println("OK")
+		username = user.Username
 	}
-	fmt.Println("OK")
 
 	// Save token
-	if err := registry.SetToken(registryName, token, user.Username); err != nil {
+	if err := registry.SetToken(registryName, token, username); err != nil {
 		return fmt.Errorf("failed to save token: %w", err)
 	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Logged in as %s", user.Username))
+	if username != "" {
+		ui.Success(fmt.Sprintf("Logged in as %s", username))
+	} else {
+		ui.Success("Logged in successfully")
+	}
 
 	// Show where token is saved
 	path, _ := registry.GetRegistriesPath()
@@ -879,15 +886,61 @@ func runRegistryAdd(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Add the registry (without token - user can login later)
+	// Add the registry
 	if err := registry.SetToken(url, "", ""); err != nil {
 		return fmt.Errorf("failed to add registry: %w", err)
 	}
 
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Added registry: %s", url))
+
+	// Ask if user wants to authenticate now
 	fmt.Println()
-	fmt.Printf("  To authenticate, run: muxi login --registry %s\n", url)
+	fmt.Print("  Authenticate now? (Y/n): ")
+	reader := bufio.NewReader(os.Stdin)
+	confirm, _ := reader.ReadString('\n')
+	confirm = strings.TrimSpace(strings.ToLower(confirm))
+
+	if confirm == "" || confirm == "y" || confirm == "yes" {
+		// Trigger login flow for the new registry
+		fmt.Println()
+		client, err := registry.NewClient(url)
+		if err != nil {
+			return fmt.Errorf("failed to create client: %w", err)
+		}
+
+		// Try browser callback first
+		token, err := tryBrowserAuth(client)
+		if err != nil {
+			// Fallback to manual paste
+			token, err = manualAuth(client)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Try to validate and get user info
+		fmt.Println()
+		fmt.Print("  Validating token... ")
+		user, _ := client.ValidateToken(token)
+		username := ""
+		if user != nil {
+			username = user.Username
+		}
+		fmt.Println("OK")
+
+		// Save token
+		if err := registry.SetToken(url, token, username); err != nil {
+			return fmt.Errorf("failed to save token: %w", err)
+		}
+
+		fmt.Println()
+		if username != "" {
+			ui.Success(fmt.Sprintf("Logged in as %s", username))
+		} else {
+			ui.Success("Logged in successfully")
+		}
+	}
 
 	return nil
 }
