@@ -433,12 +433,12 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 	if len(toAdd) > 0 {
 		for _, name := range toAdd {
 			if dryRun {
-				fmt.Printf("  + %s (would add to template)\n", name)
+				fmt.Printf("  %s %s (would add to template)\n", ui.GreenText("+"), name)
 			} else {
 				if err := mgr.AddToTemplate(name); err != nil {
 					ui.Warning(fmt.Sprintf("  Failed to add %s to template: %v", name, err))
 				} else {
-					fmt.Printf("  + %s (added to template)\n", name)
+					fmt.Printf("  %s %s (added to template)\n", ui.GreenText("+"), name)
 				}
 			}
 		}
@@ -450,7 +450,7 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 			ui.Bold("The following secrets are no longer referenced:")
 			for _, name := range toDelete {
-				fmt.Printf("  - %s\n", name)
+				fmt.Printf("  %s %s\n", ui.RedText("-"), name)
 			}
 			fmt.Println()
 			fmt.Print("Delete these secrets? (y/N): ")
@@ -464,7 +464,7 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 
 		for _, name := range toDelete {
 			if dryRun {
-				fmt.Printf("  - %s (would delete)\n", name)
+				fmt.Printf("  %s %s (would delete)\n", ui.RedText("-"), name)
 			} else {
 				// Delete from secrets.enc
 				if _, err := mgr.Delete(name); err != nil {
@@ -475,7 +475,7 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 				if err := mgr.DeleteFromTemplate(name); err != nil {
 					ui.Warning(fmt.Sprintf("  Failed to remove %s from template: %v", name, err))
 				}
-				fmt.Printf("  - %s (deleted)\n", name)
+				fmt.Printf("  %s %s (deleted)\n", ui.RedText("-"), name)
 			}
 		}
 	}
