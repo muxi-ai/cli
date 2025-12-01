@@ -13,7 +13,7 @@ muxi config llm
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure LLM                                       MUXI │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Configure language models for different capabilities:      │
+│ Configure language models for different capabilities:        │
 │ text, vision, audio, documents, embeddings, and streaming.   │
 ╰──────────────────────────────────────────────────────────────╯
 ```

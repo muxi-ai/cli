@@ -34,7 +34,7 @@ func CreateAgent(name string, noWizard bool) error {
 
 	// Show banner in interactive mode
 	if !noWizard {
-		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new agent                                    MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ Agents are the Overlord's workers - each with its own      │\n│ role and capabilities. They can use MCPs and follow SOPs.    │\n╰──────────────────────────────────────────────────────────────╯")
+		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new agent                                    MUXI │\n│──────────────────────────────────────────────────────────────│\n│ Agents are the Overlord's workers - each with its own        │\n│ role and capabilities. They can use MCPs and follow SOPs.    │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
 	// If no name provided, handle based on mode
@@ -66,7 +66,7 @@ func CreateAgent(name string, noWizard bool) error {
 				// Get existing agent info for context
 				existingName, existingDesc := getComponentInfo(agentFile)
 				existingInfo := formatExistingInfo(existingName, existingDesc)
-				
+
 				// Show error and re-prompt
 				ui.PromptError("Agent ID", inputName, fmt.Errorf("agent '%s' already exists%s\n\nChoose a different ID or edit:\n  muxi edit agent %s", name, existingInfo, name))
 				continue
@@ -106,7 +106,7 @@ func CreateAgent(name string, noWizard bool) error {
 					existingInfo = fmt.Sprintf("\n  → %s", existingName)
 				}
 			}
-			
+
 			ui.ErrorBlock(
 				"Agent already exists",
 				fmt.Sprintf("Agent '%s' already exists.%s", name, existingInfo),
@@ -393,7 +393,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 				padding = 0
 			}
 			bannerLine := fmt.Sprintf("│ %s%s MUXI │", header, strings.Repeat(" ", padding))
-			ui.Banner(fmt.Sprintf("╭──────────────────────────────────────────────────────────────╮\n%s\n│──────────────────────────────────────────────────────────────│\n│ ℹ MCPs (Model Context Protocol) are tools that agents use    │\n│ to interact with external services, APIs, and databases.     │\n╰──────────────────────────────────────────────────────────────╯", bannerLine))
+			ui.Banner(fmt.Sprintf("╭──────────────────────────────────────────────────────────────╮\n%s\n│──────────────────────────────────────────────────────────────│\n│ MCPs (Model Context Protocol) are tools that agents use      │\n│ to interact with external services, APIs, and databases.     │\n╰──────────────────────────────────────────────────────────────╯", bannerLine))
 		} else {
 			// Formation-level banner with red warning
 			ui.FormationMCPBanner()
@@ -499,7 +499,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 						existingInfo = fmt.Sprintf("\n  → %s", existingName)
 					}
 				}
-				
+
 				ui.ErrorBlock(
 					"MCP already exists",
 					fmt.Sprintf("MCP '%s' already exists.%s", name, existingInfo),
@@ -795,7 +795,7 @@ func CreateSOP(name string, noWizard bool) error {
 
 	// Show banner in interactive mode
 	if !noWizard {
-		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new SOP                                      MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ SOPs (Standard Operating Procedures) define workflows      │\n│ that agents follow to complete complex tasks.                │\n╰──────────────────────────────────────────────────────────────╯")
+		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new SOP                                      MUXI │\n│──────────────────────────────────────────────────────────────│\n│ SOPs (Standard Operating Procedures) define workflows        │\n│ that agents follow to complete complex tasks.                │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
 	var sopID, sopName, description, mode, tags string
@@ -1012,7 +1012,7 @@ func CreateTrigger(name string, noWizard bool) error {
 
 	// Show banner in interactive mode
 	if !noWizard {
-		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new trigger                                  MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ Triggers are prompt templates invoked via webhooks.        │\n│ Use ${{ data.xxx }} to access webhook payload values.        │\n╰──────────────────────────────────────────────────────────────╯")
+		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new trigger                                  MUXI │\n│──────────────────────────────────────────────────────────────│\n│ Triggers are prompt templates invoked via webhooks.          │\n│ Use ${{ data.xxx }} to access webhook payload values.        │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 
 	var triggerID string
@@ -1170,7 +1170,7 @@ func CreateA2AService(name string, noWizard bool) error {
 	}
 
 	// Show banner
-	ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new A2A service                              MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ A2A services are external agent endpoints your formation   │\n│ can communicate with via Agent-to-Agent protocol.            │\n╰──────────────────────────────────────────────────────────────╯")
+	ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Adding new A2A service                              MUXI │\n│──────────────────────────────────────────────────────────────│\n│ A2A services are external agent endpoints your formation     │\n│ can communicate with via Agent-to-Agent protocol.            │\n╰──────────────────────────────────────────────────────────────╯")
 
 	// Ensure a2a directory exists (A2A services go in a2a/*.yaml per schema)
 	a2aDir := filepath.Join(ctx.RootDir, "a2a")
@@ -1186,7 +1186,7 @@ func CreateA2AService(name string, noWizard bool) error {
 
 	if !noWizard {
 		// === REQUIRED FIELDS ===
-		
+
 		// Service ID - validation loop with normalization (accepts spaces, converts to kebab-case)
 		for {
 			var inputID string
@@ -1435,13 +1435,13 @@ func CreateA2AService(name string, noWizard bool) error {
 		}
 		// Normalize the ID (spaces to hyphens, lowercase)
 		serviceID = normalizeComponentName(name)
-		
+
 		// Validate normalized ID
 		if err := validateComponentName(serviceID); err != nil {
 			ui.ErrorBlock("Invalid service ID", err.Error(), "Example: external-billing")
 			os.Exit(1)
 		}
-		
+
 		// Check for duplicates
 		serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
 		if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
@@ -1462,7 +1462,7 @@ func CreateA2AService(name string, noWizard bool) error {
 					existingInfo = fmt.Sprintf("\n  → %s", existingName)
 				}
 			}
-			
+
 			ui.ErrorBlock(
 				"A2A service already exists",
 				fmt.Sprintf("A2A service '%s' already exists.%s", serviceID, existingInfo),
@@ -1470,7 +1470,7 @@ func CreateA2AService(name string, noWizard bool) error {
 			)
 			os.Exit(1)
 		}
-		
+
 		serviceName = titleCase(serviceID)
 		description = fmt.Sprintf("A2A service: %s", serviceName)
 		serviceURL = "https://api.example.com/a2a"
@@ -1546,9 +1546,9 @@ active: true
 	// Auth section
 	if authType != "none" && authType != "" {
 		b.WriteString("\nauth:\n")
-		
+
 		secretPrefix := "A2A_SERVICE_" + strings.ToUpper(strings.ReplaceAll(id, "-", "_"))
-		
+
 		switch authType {
 		case "api_key":
 			b.WriteString(fmt.Sprintf(`  type: "api_key"
@@ -1621,13 +1621,13 @@ func ConfigureA2A(inbound, outbound, noWizard bool) error {
 		direction = "inbound"
 		// Show inbound banner in interactive mode
 		if !noWizard {
-			ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [⚙] A2A inbound configuration                           MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ Inbound A2A allows external formations to discover and     │\n│ connect to your agents.                                      │\n╰──────────────────────────────────────────────────────────────╯")
+			ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [⚙] A2A inbound configuration                           MUXI │\n│──────────────────────────────────────────────────────────────│\n│ Inbound A2A allows external formations to discover and       │\n│ connect to your agents.                                      │\n╰──────────────────────────────────────────────────────────────╯")
 		}
 	} else if outbound {
 		direction = "outbound"
 		// Show outbound banner in interactive mode
 		if !noWizard {
-			ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [⚙] A2A outbound configuration                          MUXI │\n│──────────────────────────────────────────────────────────────│\n│ ℹ Outbound A2A allows your agents to discover and connect    │\n│ to external formations.                                      │\n╰──────────────────────────────────────────────────────────────╯")
+			ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [⚙] A2A outbound configuration                          MUXI │\n│──────────────────────────────────────────────────────────────│\n│ Outbound A2A allows your agents to discover and connect      │\n│ to external formations.                                      │\n╰──────────────────────────────────────────────────────────────╯")
 		}
 	} else if !noWizard {
 		// Show generic banner when asking for direction
@@ -1672,9 +1672,9 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
 	}
-	
+
 	alreadyConfigured := strings.Contains(string(content), "a2a:") && strings.Contains(string(content), "inbound:")
-	
+
 	// Extract existing values to use as defaults
 	var existingRegistries, existingAuthType, existingAuthHeader, existingTrustedEndpoints string
 	var isEnabled bool
@@ -1685,18 +1685,18 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 		existingTrustedEndpoints = extractA2ATrustedEndpoints(string(content))
 		isEnabled = extractA2AInboundEnabled(string(content))
 	}
-	
+
 	if alreadyConfigured && !noWizard {
 		fmt.Println()
 		red := color.New(color.FgRed, color.Bold)
-		
+
 		if isEnabled {
 			red.Println("  ⚠ A2A inbound is already enabled in the formation")
 		} else {
 			red.Println("  ⚠ A2A inbound is already configured in the formation")
 		}
 		fmt.Println()
-		
+
 		// Ask if they want to enable/disable
 		var togglePrompt string
 		if isEnabled {
@@ -1704,7 +1704,7 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 		} else {
 			togglePrompt = "Enable inbound A2A? (y/N)"
 		}
-		
+
 		toggle, err := wizard.PromptString(togglePrompt, "", nil)
 		if err != nil {
 			// User cancelled (Ctrl+C)
@@ -1732,7 +1732,7 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 				// Fall through to wizard below
 			}
 		}
-		
+
 		// Only ask about replacement if user didn't just enable
 		// (if they enabled, they want to configure it now)
 		if !(strings.ToLower(strings.TrimSpace(toggle)) == "y" && !isEnabled) {
@@ -1740,7 +1740,7 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 			ui.Dimmed("This will replace the entire A2A inbound configuration.")
 			ui.Dimmed("Existing values will be shown as defaults - press Enter to keep them.")
 			fmt.Println()
-			
+
 			confirm, err := wizard.PromptString("Continue and replace? (y/N)", "", nil)
 			if err != nil {
 				// User cancelled (Ctrl+C)
@@ -1759,7 +1759,7 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 			fmt.Println()
 		}
 	}
-	
+
 	var registries []string
 	var authType string
 	var authHeader, authKey, authToken, authUsername, authPassword string
@@ -2000,9 +2000,9 @@ func configureOutboundA2A(rootDir string, noWizard bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
 	}
-	
+
 	alreadyConfigured := strings.Contains(string(content), "a2a:") && strings.Contains(string(content), "outbound:")
-	
+
 	// Extract existing values to use as defaults
 	var existingRegistries string
 	var isEnabled bool
@@ -2010,18 +2010,18 @@ func configureOutboundA2A(rootDir string, noWizard bool) error {
 		existingRegistries = extractA2AOutboundRegistries(string(content))
 		isEnabled = extractA2AOutboundEnabled(string(content))
 	}
-	
+
 	if alreadyConfigured && !noWizard {
 		fmt.Println()
 		red := color.New(color.FgRed, color.Bold)
-		
+
 		if isEnabled {
 			red.Println("  ⚠ A2A outbound is already enabled in the formation")
 		} else {
 			red.Println("  ⚠ A2A outbound is already configured in the formation")
 		}
 		fmt.Println()
-		
+
 		// Ask if they want to enable/disable
 		var togglePrompt string
 		if isEnabled {
@@ -2029,7 +2029,7 @@ func configureOutboundA2A(rootDir string, noWizard bool) error {
 		} else {
 			togglePrompt = "Enable outbound A2A? (y/N)"
 		}
-		
+
 		toggle, err := wizard.PromptString(togglePrompt, "", nil)
 		if err != nil {
 			// User cancelled (Ctrl+C)
@@ -2057,7 +2057,7 @@ func configureOutboundA2A(rootDir string, noWizard bool) error {
 				// Fall through to wizard below
 			}
 		}
-		
+
 		// Only ask about replacement if user didn't just enable
 		// (if they enabled, they want to configure it now)
 		if !(strings.ToLower(strings.TrimSpace(toggle)) == "y" && !isEnabled) {
@@ -2065,7 +2065,7 @@ func configureOutboundA2A(rootDir string, noWizard bool) error {
 			ui.Dimmed("This will replace the entire A2A outbound configuration.")
 			ui.Dimmed("Existing values will be shown as defaults - press Enter to keep them.")
 			fmt.Println()
-			
+
 			confirm, err := wizard.PromptString("Continue and replace? (y/N)", "", nil)
 			if err != nil {
 				// User cancelled (Ctrl+C)
@@ -2084,7 +2084,7 @@ func configureOutboundA2A(rootDir string, noWizard bool) error {
 			fmt.Println()
 		}
 	}
-	
+
 	var registries []string
 
 	if !noWizard {
@@ -2166,7 +2166,7 @@ func configureOutboundA2A(rootDir string, noWizard bool) error {
 	} else {
 		ui.Success("A2A outbound configuration added to the formation")
 	}
-	
+
 	fmt.Println()
 	ui.Dimmed("To configure remote A2A services (auth, endpoints, etc):")
 	ui.Dimmed("  muxi new a2a-service")
@@ -2269,16 +2269,16 @@ func updateFormationA2AInbound(rootDir string, registries []string, authType, au
 		// TODO: Implement proper YAML parsing and merging
 		// For now, remove old a2a section and add new one
 		wasUpdated = true
-		
+
 		// Simple approach: find "a2a:" and remove everything until next top-level key or EOF
 		lines := strings.Split(contentStr, "\n")
 		var newLines []string
 		inA2ASection := false
-		
+
 		for _, line := range lines {
 			if strings.HasPrefix(line, "a2a:") {
 				inA2ASection = true
-				
+
 				// Also remove the comment line before "a2a:" if it exists
 				// Check last line in newLines
 				if len(newLines) > 0 {
@@ -2289,26 +2289,26 @@ func updateFormationA2AInbound(rootDir string, registries []string, authType, au
 				}
 				continue
 			}
-			
+
 			// Check if we're hitting a new top-level key (no leading spaces)
 			if inA2ASection && len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") && line != "" {
 				inA2ASection = false
 			}
-			
+
 			if !inA2ASection {
 				newLines = append(newLines, line)
 			}
 		}
-		
+
 		contentStr = strings.Join(newLines, "\n")
-		
+
 		// Add new a2a section
 		var a2aSection strings.Builder
 		a2aSection.WriteString("\n# Agent-to-Agent communication\n")
 		a2aSection.WriteString("a2a:\n")
 		a2aSection.WriteString("  enabled: true\n\n")
 		a2aSection.WriteString(inboundConfig.String())
-		
+
 		contentStr += a2aSection.String()
 	} else {
 		// No a2a section - add complete section at end
@@ -2352,7 +2352,7 @@ func getComponentInfo(filePath string) (name, description string) {
 	lines := strings.Split(string(content), "\n")
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Match "name: value" or 'name: "value"'
 		if strings.HasPrefix(trimmed, "name:") {
 			value := strings.TrimPrefix(trimmed, "name:")
@@ -2360,7 +2360,7 @@ func getComponentInfo(filePath string) (name, description string) {
 			value = strings.Trim(value, "\"'")
 			name = value
 		}
-		
+
 		// Match "description: value" or 'description: "value"'
 		if strings.HasPrefix(trimmed, "description:") {
 			value := strings.TrimPrefix(trimmed, "description:")
@@ -2368,13 +2368,13 @@ func getComponentInfo(filePath string) (name, description string) {
 			value = strings.Trim(value, "\"'")
 			description = value
 		}
-		
+
 		// Stop after finding both
 		if name != "" && description != "" {
 			break
 		}
 	}
-	
+
 	return name, description
 }
 
@@ -2384,7 +2384,7 @@ func formatExistingInfo(name, description string) string {
 	if name == "" && description == "" {
 		return ""
 	}
-	
+
 	if description != "" {
 		// Truncate long descriptions
 		if len(description) > 60 {
@@ -2395,11 +2395,11 @@ func formatExistingInfo(name, description string) string {
 		}
 		return fmt.Sprintf("\n\n  → %s", description)
 	}
-	
+
 	if name != "" {
 		return fmt.Sprintf("\n\n  → %s", name)
 	}
-	
+
 	return ""
 }
 
@@ -2858,7 +2858,7 @@ func sopTemplate(id, name, description, mode, tags string, bypassApproval bool) 
 
 func triggerTemplate(id string) string {
 	name := titleCase(id)
-	
+
 	var b strings.Builder
 
 	// Header comment
@@ -2924,15 +2924,15 @@ func extractA2ARegistries(content string) string {
 	lines := strings.Split(content, "\n")
 	var registries []string
 	inRegistries := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(trimmed, "registries:") {
 			inRegistries = true
 			continue
 		}
-		
+
 		if inRegistries {
 			// Check if we're still in registries section (indented with -)
 			if strings.HasPrefix(trimmed, "-") {
@@ -2947,7 +2947,7 @@ func extractA2ARegistries(content string) string {
 			}
 		}
 	}
-	
+
 	return strings.Join(registries, ", ")
 }
 
@@ -2955,16 +2955,16 @@ func extractA2ARegistries(content string) string {
 func extractA2AAuthType(content string) string {
 	lines := strings.Split(content, "\n")
 	inAuth := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Look for "auth:" under inbound section
 		if strings.Contains(content, "inbound:") && strings.HasPrefix(trimmed, "auth:") {
 			inAuth = true
 			continue
 		}
-		
+
 		if inAuth && strings.HasPrefix(trimmed, "type:") {
 			authType := strings.TrimPrefix(trimmed, "type:")
 			authType = strings.TrimSpace(authType)
@@ -2972,7 +2972,7 @@ func extractA2AAuthType(content string) string {
 			return authType
 		}
 	}
-	
+
 	return ""
 }
 
@@ -2980,16 +2980,16 @@ func extractA2AAuthType(content string) string {
 func extractA2AAuthHeader(content string) string {
 	lines := strings.Split(content, "\n")
 	inAuth := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Look for "auth:" under inbound section
 		if strings.Contains(content, "inbound:") && strings.HasPrefix(trimmed, "auth:") {
 			inAuth = true
 			continue
 		}
-		
+
 		if inAuth && strings.HasPrefix(trimmed, "header:") {
 			header := strings.TrimPrefix(trimmed, "header:")
 			header = strings.TrimSpace(header)
@@ -2997,7 +2997,7 @@ func extractA2AAuthHeader(content string) string {
 			return header
 		}
 	}
-	
+
 	return ""
 }
 
@@ -3006,15 +3006,15 @@ func extractA2ATrustedEndpoints(content string) string {
 	lines := strings.Split(content, "\n")
 	var endpoints []string
 	inEndpoints := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(trimmed, "trusted_endpoints:") {
 			inEndpoints = true
 			continue
 		}
-		
+
 		if inEndpoints {
 			// Check if we're still in trusted_endpoints section (indented with -)
 			if strings.HasPrefix(trimmed, "-") {
@@ -3029,7 +3029,7 @@ func extractA2ATrustedEndpoints(content string) string {
 			}
 		}
 	}
-	
+
 	return strings.Join(endpoints, ", ")
 }
 
@@ -3044,18 +3044,18 @@ func disableA2AInbound(rootDir string) error {
 	contentStr := string(content)
 	lines := strings.Split(contentStr, "\n")
 	var result []string
-	
+
 	inInbound := false
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Find inbound section
 		if strings.HasPrefix(trimmed, "inbound:") {
 			inInbound = true
 			result = append(result, line)
 			continue
 		}
-		
+
 		// If we're in inbound and find enabled line, change it to false
 		if inInbound && strings.HasPrefix(trimmed, "enabled:") {
 			// Replace enabled: true with enabled: false
@@ -3064,7 +3064,7 @@ func disableA2AInbound(rootDir string) error {
 			inInbound = false
 			continue
 		}
-		
+
 		result = append(result, line)
 	}
 
@@ -3087,18 +3087,18 @@ func disableA2AOutbound(rootDir string) error {
 	contentStr := string(content)
 	lines := strings.Split(contentStr, "\n")
 	var result []string
-	
+
 	inOutbound := false
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Find outbound section
 		if strings.HasPrefix(trimmed, "outbound:") {
 			inOutbound = true
 			result = append(result, line)
 			continue
 		}
-		
+
 		// If we're in outbound and find enabled line, change it to false
 		if inOutbound && strings.HasPrefix(trimmed, "enabled:") {
 			// Replace enabled: true with enabled: false
@@ -3107,7 +3107,7 @@ func disableA2AOutbound(rootDir string) error {
 			inOutbound = false
 			continue
 		}
-		
+
 		result = append(result, line)
 	}
 
@@ -3130,18 +3130,18 @@ func enableA2AInbound(rootDir string) error {
 	contentStr := string(content)
 	lines := strings.Split(contentStr, "\n")
 	var result []string
-	
+
 	inInbound := false
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Find inbound section
 		if strings.HasPrefix(trimmed, "inbound:") {
 			inInbound = true
 			result = append(result, line)
 			continue
 		}
-		
+
 		// If we're in inbound and find enabled line, change it to true
 		if inInbound && strings.HasPrefix(trimmed, "enabled:") {
 			// Replace enabled: false with enabled: true
@@ -3150,7 +3150,7 @@ func enableA2AInbound(rootDir string) error {
 			inInbound = false
 			continue
 		}
-		
+
 		result = append(result, line)
 	}
 
@@ -3173,18 +3173,18 @@ func enableA2AOutbound(rootDir string) error {
 	contentStr := string(content)
 	lines := strings.Split(contentStr, "\n")
 	var result []string
-	
+
 	inOutbound := false
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// Find outbound section
 		if strings.HasPrefix(trimmed, "outbound:") {
 			inOutbound = true
 			result = append(result, line)
 			continue
 		}
-		
+
 		// If we're in outbound and find enabled line, change it to true
 		if inOutbound && strings.HasPrefix(trimmed, "enabled:") {
 			// Replace enabled: false with enabled: true
@@ -3193,7 +3193,7 @@ func enableA2AOutbound(rootDir string) error {
 			inOutbound = false
 			continue
 		}
-		
+
 		result = append(result, line)
 	}
 
@@ -3209,20 +3209,20 @@ func enableA2AOutbound(rootDir string) error {
 func extractA2AInboundEnabled(content string) bool {
 	lines := strings.Split(content, "\n")
 	inInbound := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(trimmed, "inbound:") {
 			inInbound = true
 			continue
 		}
-		
+
 		if inInbound && strings.HasPrefix(trimmed, "enabled:") {
 			return strings.Contains(trimmed, "true")
 		}
 	}
-	
+
 	return false
 }
 
@@ -3230,20 +3230,20 @@ func extractA2AInboundEnabled(content string) bool {
 func extractA2AOutboundEnabled(content string) bool {
 	lines := strings.Split(content, "\n")
 	inOutbound := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(trimmed, "outbound:") {
 			inOutbound = true
 			continue
 		}
-		
+
 		if inOutbound && strings.HasPrefix(trimmed, "enabled:") {
 			return strings.Contains(trimmed, "true")
 		}
 	}
-	
+
 	return false
 }
 
@@ -3253,20 +3253,20 @@ func extractA2AOutboundRegistries(content string) string {
 	var registries []string
 	inOutbound := false
 	inRegistries := false
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		if strings.HasPrefix(trimmed, "outbound:") {
 			inOutbound = true
 			continue
 		}
-		
+
 		if inOutbound && strings.HasPrefix(trimmed, "registries:") {
 			inRegistries = true
 			continue
 		}
-		
+
 		if inRegistries {
 			// Check if we're still in registries section (indented with -)
 			if strings.HasPrefix(trimmed, "-") {
@@ -3281,7 +3281,7 @@ func extractA2AOutboundRegistries(content string) string {
 			}
 		}
 	}
-	
+
 	return strings.Join(registries, ", ")
 }
 
@@ -3317,15 +3317,15 @@ func updateFormationA2AOutbound(rootDir string, registries []string) (bool, erro
 			lines := strings.Split(contentStr, "\n")
 			var newLines []string
 			inOutbound := false
-			
+
 			for _, line := range lines {
 				trimmed := strings.TrimSpace(line)
-				
+
 				if strings.HasPrefix(trimmed, "outbound:") {
 					inOutbound = true
 					continue
 				}
-				
+
 				// Check if we're hitting a new top-level key (no leading spaces at a2a level)
 				if inOutbound && len(line) > 0 && !strings.HasPrefix(line, "    ") && !strings.HasPrefix(line, "\t\t") {
 					// Check if it's not empty and not indented (meaning next section)
@@ -3333,33 +3333,33 @@ func updateFormationA2AOutbound(rootDir string, registries []string) (bool, erro
 						inOutbound = false
 					}
 				}
-				
+
 				if !inOutbound {
 					newLines = append(newLines, line)
 				}
 			}
-			
+
 			contentStr = strings.Join(newLines, "\n")
 		}
-		
+
 		// Add outbound section to existing a2a section
 		// Find where to insert (after inbound or after a2a:)
 		lines := strings.Split(contentStr, "\n")
 		var result []string
 		inserted := false
-		
+
 		for i, line := range lines {
 			result = append(result, line)
-			
+
 			// Insert after the last line of inbound section OR after "a2a:" if no inbound
 			if !inserted {
 				trimmed := strings.TrimSpace(line)
-				
+
 				// Look ahead to see if next line is less indented (end of inbound section)
 				if i+1 < len(lines) {
 					nextLine := lines[i+1]
 					nextTrimmed := strings.TrimSpace(nextLine)
-					
+
 					// If current line is in a2a section and next line is not indented as much or is a comment
 					if strings.Contains(contentStr, "inbound:") && strings.Contains(line, "enabled:") && i > 0 {
 						// We might be at the end of inbound, check if next is less indented
@@ -3370,7 +3370,7 @@ func updateFormationA2AOutbound(rootDir string, registries []string) (bool, erro
 						}
 					}
 				}
-				
+
 				// If we have a2a: but no inbound, insert after "enabled: true"
 				if !strings.Contains(contentStr, "inbound:") && trimmed == "enabled: true" && strings.Contains(contentStr, "a2a:") {
 					result = append(result, "")
@@ -3379,13 +3379,13 @@ func updateFormationA2AOutbound(rootDir string, registries []string) (bool, erro
 				}
 			}
 		}
-		
+
 		if !inserted {
 			// Fallback: append at end
 			result = append(result, "")
 			result = append(result, strings.Split(strings.TrimRight(outboundConfig.String(), "\n"), "\n")...)
 		}
-		
+
 		contentStr = strings.Join(result, "\n")
 	} else {
 		// No a2a section - create complete section with outbound only
@@ -3420,11 +3420,11 @@ func EditComponent(component, id string) error {
 	}
 
 	var filePath string
-	
+
 	switch component {
 	case "formation":
 		filePath = filepath.Join(ctx.RootDir, "formation.yaml")
-		
+
 	case "agent":
 		if id == "" {
 			return fmt.Errorf("agent ID required: muxi edit agent <id>")
@@ -3438,12 +3438,12 @@ func EditComponent(component, id string) error {
 			)
 			return fmt.Errorf("agent not found: %s", id)
 		}
-		
+
 	case "mcp":
 		if id == "" {
 			return fmt.Errorf("MCP ID required: muxi edit mcp <id>")
 		}
-		
+
 		// Check formation-level first
 		formationMCPFile := filepath.Join(ctx.RootDir, "mcps", id+".yaml")
 		if _, err := os.Stat(formationMCPFile); err == nil {
@@ -3465,7 +3465,7 @@ func EditComponent(component, id string) error {
 				return fmt.Errorf("MCP not found: %s", id)
 			}
 		}
-		
+
 	case "sop":
 		if id == "" {
 			return fmt.Errorf("SOP ID required: muxi edit sop <id>")
@@ -3479,7 +3479,7 @@ func EditComponent(component, id string) error {
 			)
 			return fmt.Errorf("SOP not found: %s", id)
 		}
-		
+
 	case "trigger":
 		if id == "" {
 			return fmt.Errorf("trigger ID required: muxi edit trigger <id>")
@@ -3507,7 +3507,7 @@ func EditComponent(component, id string) error {
 			)
 			return fmt.Errorf("A2A service not found: %s", id)
 		}
-		
+
 	default:
 		return fmt.Errorf("unknown component type: %s\nSupported: formation, agent, mcp, sop, trigger, a2a-service", component)
 	}
@@ -3530,7 +3530,7 @@ func EditComponent(component, id string) error {
 	cmd.Stderr = os.Stderr
 
 	fmt.Printf("Opening %s in %s...\n", filePath, editor)
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to open editor: %w", err)
 	}

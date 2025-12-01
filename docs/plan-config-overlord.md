@@ -13,8 +13,8 @@ muxi config overlord
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure Overlord                                  MUXI │
 │──────────────────────────────────────────────────────────────│
-│ ℹ The Overlord orchestrates your agents, routes tasks, and   │
-│ manages conversations. Configure its personality and behavior.│
+│ The Overlord orchestrates your agents, routes tasks, and     │
+│ manages conversations. Configure personality and behavior.   │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
@@ -47,7 +47,7 @@ Overlord Persona
 #### Enter directly:
 ```
   Enter persona (opens $EDITOR for multi-line editing)
-  
+
   ✓ Persona updated
 ```
 

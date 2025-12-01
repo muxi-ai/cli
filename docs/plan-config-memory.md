@@ -13,7 +13,7 @@ muxi config memory
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure Memory                                    MUXI │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Memory enables agents to remember context and information. │
+│ Memory enables agents to remember context and information.   │
 │ Working memory is always on. Persistent memory needs a DB.   │
 ╰──────────────────────────────────────────────────────────────╯
 ```
@@ -34,7 +34,7 @@ What would you like to configure?
 
 ```
 Working Memory
-  
+
   Short-term vector memory for semantic search within a session.
 
   Select mode:
@@ -46,10 +46,10 @@ Working Memory
 ```
   "auto" uses 10% of RAM (min 64MB, max 1GB)
   ✓ Max memory: auto
-  
+
   Vector dimension from embedding model: openai/text-embedding-3-large
   ✓ Vector dimension: 3072
-  
+
   How often to clean up old vectors (FIFO)
   ✓ Cleanup interval (minutes): 5
 ```
@@ -63,7 +63,7 @@ Note: Vector dimension is auto-detected from the configured embedding model.
 
   API key for FAISSx authentication
   ✓ Saved FAISSX_API_KEY to secrets
-  
+
   Tenant identifier for multi-tenant FAISSx
   ✓ Saved FAISSX_TENANT_ID to secrets
 
@@ -141,10 +141,10 @@ Persistent Memory
 #### If PostgreSQL:
 ```
   Requires PostgreSQL 17+ with pgvector extension installed.
-  
+
   Enter connection string or hostname:
   > postgres://user:pass@host:5432/db
-  
+
   ✓ Saved PERSISTENT_DB_CONNECTION_STRING to secrets
 ```
 
@@ -154,16 +154,16 @@ Persistent Memory
   > db.example.com
 
   ✓ Host: db.example.com
-  
+
   PostgreSQL port (default: 5432)
   ✓ Port: 5432
-  
+
   Database name
   ✓ Database: muxi_memory
-  
+
   Database username
   ✓ Username: muxi
-  
+
   Database password
   ✓ Password: ********
 

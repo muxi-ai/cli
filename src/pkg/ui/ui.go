@@ -106,7 +106,7 @@ func PromptSuccess(prompt, value string) {
 func PromptError(prompt, value string, err error) {
 	red.Printf("%s ", SymbolError)
 	fmt.Printf("%s: %s\n\n", prompt, value)
-	
+
 	// Print error message indented
 	lines := strings.Split(err.Error(), "\n")
 	for _, line := range lines {
@@ -150,7 +150,7 @@ func Section(title string) {
 //     muxi formation list
 func ErrorBlock(title string, details string, suggestion string) {
 	red.Printf("%s %s\n\n", SymbolError, title)
-	
+
 	if details != "" {
 		lines := strings.Split(details, "\n")
 		for _, line := range lines {
@@ -161,7 +161,7 @@ func ErrorBlock(title string, details string, suggestion string) {
 			}
 		}
 	}
-	
+
 	if suggestion != "" {
 		fmt.Println()
 		dimmed.Println("  " + strings.ReplaceAll(suggestion, "\n", "\n  "))
@@ -171,7 +171,7 @@ func ErrorBlock(title string, details string, suggestion string) {
 // SuccessBlock prints a formatted success block with title and next steps
 func SuccessBlock(title string, nextSteps string) {
 	green.Printf("%s %s\n", SymbolSuccess, title)
-	
+
 	if nextSteps != "" {
 		fmt.Println()
 		dimmed.Println(nextSteps)
@@ -191,7 +191,7 @@ func StatusList(items []StatusItem) {
 	for _, item := range items {
 		var symbol string
 		var printer *color.Color
-		
+
 		switch item.Status {
 		case "success":
 			symbol = SymbolSuccess
@@ -209,14 +209,14 @@ func StatusList(items []StatusItem) {
 			symbol = SymbolInfo
 			printer = blue
 		}
-		
+
 		printer.Printf("  %s ", symbol)
 		fmt.Printf("%s", item.Text)
-		
+
 		if item.Detail != "" {
 			dimmed.Printf(" (%s)", item.Detail)
 		}
-		
+
 		fmt.Println()
 	}
 }
@@ -282,15 +282,15 @@ func FormationMCPBanner() {
 	gold.Print("MUXI")
 	fmt.Println(" │")
 	fmt.Println("│──────────────────────────────────────────────────────────────│")
-	fmt.Println("│ ℹ MCPs (Model Context Protocol) are tools that agents use    │")
+	fmt.Println("│ MCPs (Model Context Protocol) are tools that agents use      │")
 	fmt.Println("│ to interact with external services, APIs, and databases.     │")
 	fmt.Println("│──────────────────────────────────────────────────────────────│")
-	
+
 	// Warning line in red
 	fmt.Print("│ ")
 	red.Print("⚠ Formation-level MCPs can be used by all agents.")
 	fmt.Println("            │")
-	
+
 	fmt.Println("│                                                              │")
 	fmt.Println("│ For tools specific to one agent, use:                        │")
 	fmt.Println("│   $ muxi new mcp --agent <agent-id>                          │")
@@ -302,12 +302,12 @@ func FormationMCPBanner() {
 func InfoBanner(message string) {
 	const frameWidth = 64  // Total frame width including borders
 	const contentWidth = 60 // Content area width (frameWidth - 4 for borders and padding)
-	
+
 	lines := strings.Split(message, "\n")
-	
+
 	// Top border
 	fmt.Printf("╭%s╮\n", strings.Repeat("─", frameWidth-2))
-	
+
 	// Content lines
 	for _, line := range lines {
 		if len(line) > contentWidth {
@@ -317,7 +317,7 @@ func InfoBanner(message string) {
 		padding := contentWidth - len(line)
 		fmt.Printf("│ %s%s │\n", line, strings.Repeat(" ", padding))
 	}
-	
+
 	// Bottom border
 	fmt.Printf("╰%s╯\n", strings.Repeat("─", frameWidth-2))
 	fmt.Println()

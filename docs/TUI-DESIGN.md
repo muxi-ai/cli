@@ -1,6 +1,6 @@
 # MUXI CLI - Terminal UI Design System
 
-**Version:** 1.0  
+**Version:** 1.0
 **Date:** 2025-11-26
 
 ---
@@ -61,7 +61,7 @@ Bold:     \033[1m / color.Bold
 
 ### Visual Style
 
-**Selected option:** Green bold with filled circle (◉)  
+**Selected option:** Green bold with filled circle (◉)
 **Unselected options:** Normal color with empty circle (◯)
 
 ```
@@ -76,7 +76,7 @@ Transport (↑↓ to select, Enter to confirm):
 // pkg/wizard/wizard.go
 func displayOptions(options []SelectOption, selected int) {
     green := color.New(color.FgGreen, color.Bold)
-    
+
     for i, opt := range options {
         if i == selected {
             // Selected: green bold
@@ -173,7 +173,7 @@ Banners appear at the start of interactive wizards to provide context and helpfu
 ╭──────────────────────────────────────────────────────────────╮
 │ [+] Add new agent                                            │
 │──────────────────────────────────────────────────────────────│
-│ ℹ This formation has A2A enabled. You can make this agent    │
+│ This formation has A2A enabled. You can make this agent      │
 │ visible externally for Agent-to-Agent communication.         │
 ╰──────────────────────────────────────────────────────────────╯
 ```
@@ -183,7 +183,7 @@ Banners appear at the start of interactive wizards to provide context and helpfu
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure A2A inbound settings                           │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Inbound A2A allows external formations to discover and     │
+│ Inbound A2A allows external formations to discover and       │
 │ connect to your agents.                                      │
 ╰──────────────────────────────────────────────────────────────╯
 ```
@@ -207,7 +207,7 @@ func FormationMCPBanner() {
 if !noWizard {
     // Simple banner
     ui.Banner("╭─────...╮\n│ [+] Add new agent │\n╰─────...╯")
-    
+
     // Or special colored banner for formation MCP
     ui.FormationMCPBanner()
 }
@@ -273,7 +273,7 @@ Registry URLs (comma or line-separated, must start with https://):
 func PromptString(prompt, defaultValue string, validator func(string) error) (string, error) {
     // For long prompts (>60 chars), put input on new line
     useTwoLines := len(prompt) > 60
-    
+
     if useTwoLines {
         // Print prompt on first line, cursor on second (indented)
         fmt.Printf("%s:\n  ", prompt)
@@ -394,7 +394,7 @@ Summary:
 
   Error details here (normal, red text)
   More context or explanation
-  
+
   Suggestion or fix:
     command to run (dimmed)
 ```
@@ -413,7 +413,7 @@ Summary:
 ✗ Formation directory exists
 
   Directory 'my-bot' already exists
-  
+
   Choose a different name or remove:
     rm -rf my-bot
 ```
@@ -426,7 +426,7 @@ Summary:
     • Line 12: Missing required field 'overlord.persona'
     • Line 25: Invalid model format 'gpt4' (use 'openai/gpt-4')
     • Line 40: Undefined secret reference 'DATABASE_URL'
-  
+
   Fix these errors and try again:
     vim formation.yaml
 ```
@@ -438,7 +438,7 @@ Summary:
   This secret is referenced in:
     • formation.yaml (line 52)
     • agents/research-agent.yaml (line 18)
-  
+
   Remove references first, then delete
 ```
 
@@ -452,7 +452,7 @@ Summary:
 ⚠ WARNING_TITLE (yellow, bold)
 
   Warning details (normal text)
-  
+
   Confirmation or action
 ```
 
@@ -463,7 +463,7 @@ Summary:
 ⚠ This is a destructive operation
 
   Formation 'my-bot' will be permanently deleted
-  
+
   Are you sure? [y/N]: _
 ```
 
@@ -472,7 +472,7 @@ Summary:
 ⚠ secrets.enc is out of sync
 
   You added a new secret but secrets template is missing it
-  
+
   Add 'NEW_SECRET_KEY' to secrets? [Y/n]: _
 ```
 
@@ -597,7 +597,7 @@ Formation ID: my-bot
     • Start with a letter
     • Contain only letters, numbers, and hyphens
     • Be 3-50 characters long
-  
+
   Example: my-bot
 ```
 
@@ -681,7 +681,7 @@ Select secrets to configure:
   ◉ OPENAI_API_KEY
   ◯ DATABASE_URL
   ◉ SLACK_WEBHOOK
-  
+
 Use arrow keys to move, space to select, enter to confirm
 ```
 
@@ -750,7 +750,7 @@ Setup secrets:
   Files created:
     • file1
     • file2
-  
+
   Next steps:
     cd my-formation
 ```

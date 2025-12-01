@@ -13,7 +13,7 @@ muxi config logging
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure Logging                                   MUXI │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Configure where logs and events are sent. Supports multiple│
+│ Configure where logs and events are sent. Supports multiple. │
 │ destinations with different formats and filters.             │
 ╰──────────────────────────────────────────────────────────────╯
 ```
@@ -77,7 +77,7 @@ File Output
   Log level (debug shows everything, error shows only errors)
     ◯ debug
     ◯ info
-    ◯ warn  
+    ◯ warn
     ◯ error
   ✓ Level: info
 

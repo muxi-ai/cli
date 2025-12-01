@@ -47,7 +47,7 @@ func ConfigureMemory() error {
 	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure Memory                                    MUXI │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Memory enables agents to remember context and information. │
+│ Memory enables agents to remember context and information.   │
 │ Working memory is always on. Persistent memory needs a DB.   │
 ╰──────────────────────────────────────────────────────────────╯`)
 
@@ -699,7 +699,7 @@ func updatePersistentMemoryInFormation(rootDir, dbType, queryTimeout string, ena
 	memoryYAML.WriteString("  persistent:\n")
 	memoryYAML.WriteString("    connection_string: \"${{ secrets.PERSISTENT_DB_CONNECTION_STRING }}\"\n")
 	memoryYAML.WriteString(fmt.Sprintf("    query_timeout_seconds: %s\n", queryTimeout))
-	
+
 	if enableSynopsis {
 		memoryYAML.WriteString("    user_synopsis:\n")
 		memoryYAML.WriteString("      enabled: true\n")

@@ -1,7 +1,7 @@
 # Wizard Banners
 
-**Date:** 2025-11-27  
-**Status:** ✅ Implemented  
+**Date:** 2025-11-27
+**Status:** ✅ Implemented
 **Purpose:** Contextual banners at the start of each wizard
 
 ---
@@ -59,7 +59,7 @@ For multi-section banners (action + info/warning):
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi new formation`  
+**Command:** `muxi new formation`
 **When:** Interactive mode only (not shown with `--no-wizard`)
 
 ---
@@ -78,13 +78,13 @@ For multi-section banners (action + info/warning):
 ╭──────────────────────────────────────────────────────────────╮
 │ [+] Add new agent                                            │
 │──────────────────────────────────────────────────────────────│
-│ ℹ This formation has A2A enabled. You can make this agent    │
+│ This formation has A2A enabled. You can make this agent      │
 │ visible externally for Agent-to-Agent communication.         │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi new agent`  
-**Condition:** Checks if `a2a.enabled: true` in `formation.yaml`  
+**Command:** `muxi new agent`
+**Condition:** Checks if `a2a.enabled: true` in `formation.yaml`
 **When:** Interactive mode only
 
 ---
@@ -104,8 +104,8 @@ For multi-section banners (action + info/warning):
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi new mcp`  
-**When:** Interactive mode, no `--agent` flag  
+**Command:** `muxi new mcp`
+**When:** Interactive mode, no `--agent` flag
 **Note:** Warning line is displayed in **red bold** for emphasis
 
 #### Agent-Level
@@ -115,8 +115,8 @@ For multi-section banners (action + info/warning):
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi new mcp --agent weather-assistant`  
-**Note:** Agent name is dynamically inserted (title-cased from agent ID)  
+**Command:** `muxi new mcp --agent weather-assistant`
+**Note:** Agent name is dynamically inserted (title-cased from agent ID)
 **When:** Interactive mode with `--agent` flag
 
 ---
@@ -130,7 +130,7 @@ For multi-section banners (action + info/warning):
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi config a2a`  
+**Command:** `muxi config a2a`
 **When:** Interactive mode, no `--inbound` or `--outbound` flag
 
 #### Inbound
@@ -138,12 +138,12 @@ For multi-section banners (action + info/warning):
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure A2A inbound settings                           │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Inbound A2A allows external formations to discover and     │
+│ Inbound A2A allows external formations to discover and       │
 │ connect to your agents.                                      │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi config a2a --inbound`  
+**Command:** `muxi config a2a --inbound`
 **When:** Interactive mode
 
 #### Outbound
@@ -151,13 +151,13 @@ For multi-section banners (action + info/warning):
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure A2A outbound settings                          │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Outbound A2A allows your agents to discover and connect    │
+│ Outbound A2A allows your agents to discover and connect      │
 │ to external formations.                                      │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi config a2a --outbound`  
-**When:** Interactive mode  
+**Command:** `muxi config a2a --outbound`
+**When:** Interactive mode
 **Status:** Not yet implemented (wizard pending)
 
 ---
@@ -169,7 +169,7 @@ For multi-section banners (action + info/warning):
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi new sop`  
+**Command:** `muxi new sop`
 **When:** Interactive mode only
 
 ---
@@ -179,12 +179,12 @@ For multi-section banners (action + info/warning):
 ╭──────────────────────────────────────────────────────────────╮
 │ [+] Add new trigger                                          │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Triggers allow external systems to invoke your agents      │
+│ Triggers allow external systems to invoke your agents        │
 │ via webhooks or scheduled events.                            │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-**Command:** `muxi new trigger`  
+**Command:** `muxi new trigger`
 **When:** Interactive mode only
 
 ---
@@ -330,7 +330,7 @@ Based on formation state:
 ╭──────────────────────────────────────────────────────────────╮
 │ [+] Add new agent                                            │
 │──────────────────────────────────────────────────────────────│
-│ ℹ You have 3 formation-level MCPs available:                 │
+│ You have 3 formation-level MCPs available:                   │
 │   • weather-api, database, web-search                        │
 ╰──────────────────────────────────────────────────────────────╯
 ```

@@ -67,7 +67,7 @@ func ConfigureLLM() error {
 	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure LLM                                       MUXI │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Configure language models for different capabilities:      │
+│ Configure language models for different capabilities:        │
 │ text, vision, audio, documents, embeddings, and streaming.   │
 ╰──────────────────────────────────────────────────────────────╯`)
 
@@ -1072,7 +1072,7 @@ func updateModelInFormation(rootDir, capability, model string) error {
 				if len(capMatch) > 1 {
 					existingCap := capMatch[1]
 					existingIdx := getCapabilityIndex(existingCap)
-					
+
 					// If new capability should come before this one, insert here
 					if newCapIdx < existingIdx {
 						result = append(result, modelLine)
