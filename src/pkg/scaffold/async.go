@@ -38,7 +38,6 @@ func ConfigureAsync() error {
 	currentConfig := getAsyncConfig(ctx.RootDir)
 
 	// Show options menu
-	fmt.Println()
 	options := []wizard.SelectOption{
 		{Value: "configure", Label: "Configure async settings"},
 		{Value: "disable", Label: "Disable async responses"},
@@ -116,7 +115,6 @@ func getAsyncConfig(rootDir string) *AsyncConfig {
 
 // configureAsyncSettings handles the async configuration flow
 func configureAsyncSettings(rootDir string, current *AsyncConfig) error {
-	fmt.Println()
 	ui.Bold("Async Response Configuration")
 	fmt.Println()
 
@@ -130,7 +128,7 @@ func configureAsyncSettings(rootDir string, current *AsyncConfig) error {
 	}
 
 	// Threshold
-	ui.Dimmed("  Time threshold before switching to async mode")
+	ui.Dimmed("  Switch to async mode if processing time exceeds this threshold")
 	thresholdOptions := []wizard.SelectOption{
 		{Value: "15", Label: "15 seconds"},
 		{Value: "30", Label: "30 seconds"},
