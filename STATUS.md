@@ -87,27 +87,36 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
    - Add/view/remove streams
    - User guide created: `docs/guides/logging.md`
 
-2. ✅ **`muxi config security` Command Complete:**
+2. ✅ **YAML Formatting & UX Improvements:**
+   - Password masking for all sensitive inputs (tokens, keys, passwords)
+   - 2-space YAML indentation (standard convention)
+   - Blank lines before top-level keys for readability
+   - Blank lines before second-level keys with children
+   - Auto-remove commented sections when real config is added
+   - "Additional configuration" section always at bottom
+   - Developer guide: `docs/dev/config-commands.md`
+
+3. ✅ **`muxi config security` Command Complete:**
    - Two modes: Redirect (production) and Dynamic (development)
    - URL validation, user-provided or auto-generated encryption key
    - User guide created: `docs/guides/security.md`
 
-3. ✅ **`muxi config overlord` Command Complete:**
+4. ✅ **`muxi config overlord` Command Complete:**
    - Four flows: Persona, Response options, Workflow behavior, Clarification
    - Persona: Edit via $EDITOR or load from file
    - [current] indicators for existing values
    - User guide created: `docs/guides/overlord.md`
 
-4. ✅ **`muxi config memory` Command Complete:**
+5. ✅ **`muxi config memory` Command Complete:**
    - Three flows: Working memory, Buffer memory, Persistent memory
    - Vector dimension auto-detected from embedding model
    - User guide created: `docs/guides/memory.md`
 
-5. ✅ **`muxi config llm` Command Complete:**
+6. ✅ **`muxi config llm` Command Complete:**
    - Environment variable detection for API keys
    - User guide created: `docs/guides/llm.md`
 
-6. ✅ **User Guides (docs/guides/):**
+7. ✅ **User Guides (docs/guides/):**
    - `logging.md` - Logging configuration guide (NEW)
    - `security.md` - Security configuration guide
    - `overlord.md` - Overlord configuration guide
