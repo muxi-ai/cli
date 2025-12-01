@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -96,7 +97,7 @@ func displayValidationResults(formationID string, result *validate.Result) {
 			}
 
 			fmt.Printf("  %s %s\n", ui.RedText("✗"), location)
-			fmt.Printf("    %s\n", issue.Message)
+			printIssueMessage(issue.Message)
 			fmt.Println()
 		}
 	}
@@ -116,7 +117,7 @@ func displayValidationResults(formationID string, result *validate.Result) {
 			}
 
 			fmt.Printf("  %s %s\n", ui.YellowText("⚠"), location)
-			fmt.Printf("    %s\n", issue.Message)
+			printIssueMessage(issue.Message)
 			fmt.Println()
 		}
 	}
@@ -129,4 +130,19 @@ func displayValidationResults(formationID string, result *validate.Result) {
 		fmt.Printf("  Run %s to set missing secrets\n", ui.BoldText("muxi secrets set <KEY>"))
 	}
 	fmt.Println()
+}
+
+// printIssueMessage prints the issue message with hints dimmed
+func printIssueMessage(message string) {
+	lines := strings.Split(message, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "*") {
+			// Hint line - print dimmed
+			fmt.Printf("    %s\n", ui.DimmedText(line))
+		} else {
+			// Regular line
+			fmt.Printf("    %s\n", line)
+		}
+	}
 }
