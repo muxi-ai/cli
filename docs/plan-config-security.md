@@ -13,7 +13,7 @@ muxi config security
 ╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure Security                                  MUXI │
 │──────────────────────────────────────────────────────────────│
-│ ℹ Configure how the formation handles user credentials when  │
+│ Configure how the formation handles user credentials when    │
 │ MCP tools or services request authentication.                │
 ╰──────────────────────────────────────────────────────────────╯
 ```
@@ -28,7 +28,7 @@ User Credentials
   Controls how the formation handles credential requests from tools.
 
   Select credential handling mode:
-    ◯ redirect (always redirect to external credential management)
+    ◉ redirect (always redirect to external credential management)
     ◯ dynamic (collect credentials inline when safe)
 ```
 
@@ -39,14 +39,15 @@ User Credentials
 ```
 Redirect Mode
 
-  Users will be redirected to configure credentials externally.
+  Users will be redirected to configure credentials on an external system,
+  where you can collect credentials and store them securely using the SDKs.
   This is the recommended mode for production deployments.
 
-  Custom message to show when credentials are needed (opens $EDITOR)
-  ✓ Redirect message: configured
+  Custom message to show when credentials are needed
+  ✓ Redirect message: <CURRENT>
 
-  Example message:
-    "For security, please configure your credentials at https://portal.company.com/credentials"
+  Default message:  # ONLY SHOW IF CURRENT IS EMPTY
+    "For security, please configure your credentials at <REDIRECT_URL>."
 ```
 
 **Output:**

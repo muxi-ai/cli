@@ -193,7 +193,7 @@ Clarification Settings
 ```
 Clarification Limits
 
-  Maximum questions per conversation mode:
+  Maximum questions per conversation cycle:
 
   Direct mode (quick disambiguation)
   ✓ Max rounds: 3

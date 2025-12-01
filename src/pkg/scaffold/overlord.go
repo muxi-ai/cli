@@ -388,7 +388,7 @@ func configureOverlordClarification(rootDir string) error {
 	fmt.Println()
 	ui.Bold("Clarification Limits")
 	fmt.Println()
-	ui.Dimmed("  Maximum questions per conversation mode:")
+	ui.Dimmed("  Maximum questions per conversation cycle:")
 	fmt.Println()
 
 	// Direct
