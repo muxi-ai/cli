@@ -344,13 +344,25 @@ func configureCapabilityModel(rootDir string, capability string) error {
 	}
 
 	if provider != nil {
-		// Check if API key is configured
+		// Check if API key is configured (not in comments)
 		formationFile := filepath.Join(rootDir, "formation.yaml")
 		content, _ := os.ReadFile(formationFile)
-		contentStr := string(content)
+		lines := strings.Split(string(content), "\n")
 		secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
 
-		if !strings.Contains(contentStr, secretRef) {
+		keyConfigured := false
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "#") {
+				continue
+			}
+			if strings.Contains(line, secretRef) {
+				keyConfigured = true
+				break
+			}
+		}
+
+		if !keyConfigured {
 			// API key not configured - prompt for it
 			fmt.Println()
 			ui.Warning(fmt.Sprintf("No API key configured for %s", provider.Name))
@@ -506,13 +518,26 @@ func checkFallbackModelAPIKey(rootDir, fallbackModel string) error {
 		return nil // Unknown provider, skip check
 	}
 
-	// Check if API key is configured
+	// Check if API key is configured (not in comments)
 	formationFile := filepath.Join(rootDir, "formation.yaml")
 	content, _ := os.ReadFile(formationFile)
-	contentStr := string(content)
+	lines := strings.Split(string(content), "\n")
 	secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
 
-	if !strings.Contains(contentStr, secretRef) {
+	keyConfigured := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		// Skip commented lines
+		if strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if strings.Contains(line, secretRef) {
+			keyConfigured = true
+			break
+		}
+	}
+
+	if !keyConfigured {
 		fmt.Println()
 		ui.Warning(fmt.Sprintf("No API key configured for fallback provider %s", provider.Name))
 		if err := promptForAPIKey(rootDir, *provider); err != nil {
@@ -1060,9 +1085,82 @@ func updateModelInFormation(rootDir, capability, model string) error {
 }
 
 func updateModelSettingsInFormation(rootDir, capability string, settings ModelSettings) error {
-	// For now, just log - full implementation would update YAML structure
-	// TODO: Implement proper YAML structure update for model settings
-	ui.Success("Settings saved (note: manual YAML update may be needed for capability-specific settings)")
+	formationFile := filepath.Join(rootDir, "formation.yaml")
+	content, err := os.ReadFile(formationFile)
+	if err != nil {
+		return err
+	}
+
+	// Build settings YAML based on capability
+	var settingsYAML strings.Builder
+	settingsYAML.WriteString("      settings:\n")
+	settingsYAML.WriteString(fmt.Sprintf("        temperature: %s\n", settings.Temperature))
+	settingsYAML.WriteString(fmt.Sprintf("        max_tokens: %s\n", settings.MaxTokens))
+	settingsYAML.WriteString(fmt.Sprintf("        timeout_seconds: %s\n", settings.Timeout))
+	settingsYAML.WriteString(fmt.Sprintf("        max_retries: %s\n", settings.MaxRetries))
+	if settings.FallbackModel != "" {
+		settingsYAML.WriteString(fmt.Sprintf("        fallback_model: \"%s\"\n", settings.FallbackModel))
+	}
+
+	// Add capability-specific settings
+	switch capability {
+	case "vision":
+		settingsYAML.WriteString("        image:\n")
+		settingsYAML.WriteString(fmt.Sprintf("          max_size_mb: %s\n", settings.ImageMaxSizeMB))
+		settingsYAML.WriteString("          preprocessing:\n")
+		settingsYAML.WriteString(fmt.Sprintf("            resize: %t\n", settings.ImageResize))
+		if settings.ImageResize {
+			settingsYAML.WriteString(fmt.Sprintf("            max_width: %s\n", settings.ImageMaxWidth))
+			settingsYAML.WriteString(fmt.Sprintf("            max_height: %s\n", settings.ImageMaxHeight))
+		}
+	case "audio":
+		settingsYAML.WriteString(fmt.Sprintf("        max_size_mb: %s\n", settings.AudioMaxSizeMB))
+		settingsYAML.WriteString(fmt.Sprintf("        language: \"%s\"\n", settings.AudioLanguage))
+	case "video":
+		settingsYAML.WriteString(fmt.Sprintf("        max_size_mb: %s\n", settings.VideoMaxSizeMB))
+		settingsYAML.WriteString(fmt.Sprintf("        max_duration_seconds: %s\n", settings.VideoMaxDuration))
+		settingsYAML.WriteString(fmt.Sprintf("        include_audio_analysis: %t\n", settings.VideoIncludeAudio))
+	case "documents":
+		settingsYAML.WriteString(fmt.Sprintf("        max_size_mb: %s\n", settings.DocsMaxSizeMB))
+		settingsYAML.WriteString("        extraction:\n")
+		settingsYAML.WriteString(fmt.Sprintf("          chunk_size: %s\n", settings.DocsChunkSize))
+		settingsYAML.WriteString(fmt.Sprintf("          overlap: %s\n", settings.DocsOverlap))
+		settingsYAML.WriteString(fmt.Sprintf("          strategy: \"%s\"\n", settings.DocsStrategy))
+		settingsYAML.WriteString(fmt.Sprintf("        cache_ttl_seconds: %s\n", settings.DocsCacheTTL))
+	}
+
+	// Find the model line and add settings after it
+	contentStr := string(content)
+	lines := strings.Split(contentStr, "\n")
+	var result []string
+	modelPattern := fmt.Sprintf(`^\s*-\s*%s:\s*"?[^"\s]+"?`, capability)
+	modelRegex := regexp.MustCompile(modelPattern)
+
+	for i, line := range lines {
+		result = append(result, line)
+
+		// Check if this line is our model definition
+		if modelRegex.MatchString(line) {
+			// Check if next line already has settings
+			if i+1 < len(lines) {
+				nextLine := lines[i+1]
+				if strings.Contains(nextLine, "settings:") {
+					// Settings already exist - skip adding (would need more complex merge)
+					ui.Warning("Settings section already exists for this model - please update manually")
+					return nil
+				}
+			}
+			// Add settings after model line
+			result = append(result, settingsYAML.String())
+		}
+	}
+
+	contentStr = strings.Join(result, "\n")
+	if err := os.WriteFile(formationFile, []byte(contentStr), 0644); err != nil {
+		return err
+	}
+
+	ui.Success("Settings saved to formation.yaml")
 	return nil
 }
 
