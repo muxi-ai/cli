@@ -83,20 +83,14 @@ func configureOverlordPersona(rootDir string) error {
 	var persona string
 
 	if method == "editor" {
-		// Get current persona
-		currentPersona := getCurrentOverlordPersona(rootDir)
-		if currentPersona == "" {
-			currentPersona = "You are a helpful AI assistant."
-		}
-
-		// Open in editor
-		persona, err = editInEditor(currentPersona)
+		// Open editor with empty content (like git commit)
+		persona, err = editInEditor("")
 		if err != nil {
 			return fmt.Errorf("failed to open editor: %w", err)
 		}
 
 		if persona == "" {
-			ui.PromptSkipped("  Persona")
+			ui.PromptSkipped("  Persona (empty, no changes made)")
 			return nil
 		}
 		ui.PromptSuccess("  Persona", "updated via editor")
