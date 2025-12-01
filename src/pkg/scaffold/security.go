@@ -211,13 +211,24 @@ func configureDynamicMode(rootDir string) error {
 	ui.Bold("Encryption Settings")
 	fmt.Println()
 	ui.Dimmed("  User credentials collected in dynamic mode are encrypted at rest using Fernet.")
-	ui.Dimmed("  An encryption key will be auto-generated and stored in secrets.")
 	fmt.Println()
 
-	// Generate encryption key
-	encryptionKey, err := generateFernetKey()
+	// Prompt for encryption key
+	ui.Dimmed("  Enter your Fernet key or leave empty to auto-generate one")
+	encryptionKey, err := wizard.PromptString("  Encryption key [auto-generate]", "", nil)
 	if err != nil {
-		return fmt.Errorf("failed to generate encryption key: %w", err)
+		return err
+	}
+
+	if encryptionKey == "" {
+		// Auto-generate
+		encryptionKey, err = generateFernetKey()
+		if err != nil {
+			return fmt.Errorf("failed to generate encryption key: %w", err)
+		}
+		ui.PromptSuccess("  Encryption key", "auto-generated")
+	} else {
+		ui.PromptSuccess("  Encryption key", "provided")
 	}
 
 	// Save to secrets
@@ -225,7 +236,7 @@ func configureDynamicMode(rootDir string) error {
 	if err := sm.Set("USER_CREDENTIALS_ENCRYPTION_KEY", encryptionKey, true); err != nil {
 		return fmt.Errorf("failed to save encryption key: %w", err)
 	}
-	ui.PromptSuccess("  Generated", "USER_CREDENTIALS_ENCRYPTION_KEY")
+	ui.PromptSuccess("  Saved", "USER_CREDENTIALS_ENCRYPTION_KEY")
 
 	return updateSecurityDynamicInFormation(rootDir, redirectURL)
 }
