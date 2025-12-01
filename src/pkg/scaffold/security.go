@@ -215,7 +215,7 @@ func configureDynamicMode(rootDir string) error {
 
 	// Prompt for encryption key
 	ui.Dimmed("  Enter your Fernet key or leave empty to auto-generate one")
-	encryptionKey, err := wizard.PromptString("  Encryption key [auto-generate]", "", nil)
+	encryptionKey, err := wizard.PromptPassword("  Encryption key [auto-generate]", true)
 	if err != nil {
 		return err
 	}

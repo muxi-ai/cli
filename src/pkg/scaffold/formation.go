@@ -343,16 +343,16 @@ func promptLLMProvider(config *FormationConfig) error {
 		// Show which provider was selected
 		ui.PromptSuccess("Provider", provider.Name)
 
-		// Prompt for API key (visible while typing, shown as *** after)
+		// Prompt for API key (hidden while typing)
 		fmt.Println()
-		apiKey, err := wizard.PromptString(fmt.Sprintf("%s API Key", provider.Name), "", nil)
+		apiKey, err := wizard.PromptPassword(fmt.Sprintf("%s API Key", provider.Name), true)
 		if err != nil {
 			return err
 		}
 
 		if apiKey != "" {
 			config.APIKey = apiKey
-			ui.PromptSuccess("API Key", "***")
+			ui.PromptSuccess("API Key", "********")
 			ui.PromptSuccess("Model", fmt.Sprintf("%s/%s", provider.Vendor, provider.DefaultModel))
 		} else {
 			ui.PromptSkipped("API Key")

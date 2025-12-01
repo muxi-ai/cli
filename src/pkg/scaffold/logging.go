@@ -274,7 +274,7 @@ func configureHTTPStream(rootDir string) error {
 		switch authType {
 		case "bearer":
 			ui.Dimmed("  Bearer token for authentication")
-			token, err := wizard.PromptString("  Token", "", nil)
+			token, err := wizard.PromptPassword("  Token", false)
 			if err != nil {
 				return err
 			}
@@ -293,7 +293,7 @@ func configureHTTPStream(rootDir string) error {
 			ui.PromptSuccess("  Header name", headerName)
 
 			ui.Dimmed("  API key value")
-			apiKey, err := wizard.PromptString("  API key", "", nil)
+			apiKey, err := wizard.PromptPassword("  API key", false)
 			if err != nil {
 				return err
 			}
@@ -313,7 +313,7 @@ func configureHTTPStream(rootDir string) error {
 			ui.PromptSuccess("  Username", username)
 
 			ui.Dimmed("  Password for basic auth")
-			password, err := wizard.PromptString("  Password", "", nil)
+			password, err := wizard.PromptPassword("  Password", false)
 			if err != nil {
 				return err
 			}
@@ -402,7 +402,7 @@ func configureKafkaStream(rootDir string) error {
 		ui.PromptSuccess("  Username", username)
 
 		ui.Dimmed("  SASL password")
-		password, err := wizard.PromptString("  Password", "", nil)
+		password, err := wizard.PromptPassword("  Password", false)
 		if err != nil {
 			return err
 		}

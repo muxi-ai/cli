@@ -622,23 +622,15 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 					authHeader, _ = wizard.PromptString("API Key header name", "X-API-Key", nil)
 					ui.PromptSuccess("Header name", authHeader)
 
-					apiKey, _ := wizard.PromptString("API Key value", "", nil)
-					if len(apiKey) > 4 {
-						ui.PromptSuccess("API Key", "***"+apiKey[len(apiKey)-4:])
-					} else {
-						ui.PromptSuccess("API Key", "***")
-					}
+					apiKey, _ := wizard.PromptPassword("API Key value", false)
+					ui.PromptSuccess("API Key", "********")
 
 					secretName := secretPrefix + "_API_KEY"
 					secretValues[secretName] = apiKey
 
 				case "bearer":
-					bearerToken, _ := wizard.PromptString("Bearer token value", "", nil)
-					if len(bearerToken) > 4 {
-						ui.PromptSuccess("Bearer token", "***"+bearerToken[len(bearerToken)-4:])
-					} else {
-						ui.PromptSuccess("Bearer token", "***")
-					}
+					bearerToken, _ := wizard.PromptPassword("Bearer token value", false)
+					ui.PromptSuccess("Bearer token", "********")
 
 					secretName := secretPrefix + "_BEARER_TOKEN"
 					secretValues[secretName] = bearerToken
@@ -647,8 +639,8 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 					username, _ := wizard.PromptString("Username", "", nil)
 					ui.PromptSuccess("Username", username)
 
-					password, _ := wizard.PromptString("Password", "", nil)
-					ui.PromptSuccess("Password", "***")
+					password, _ := wizard.PromptPassword("Password", false)
+					ui.PromptSuccess("Password", "********")
 
 					usernameSecret := secretPrefix + "_USERNAME"
 					passwordSecret := secretPrefix + "_PASSWORD"
@@ -1333,32 +1325,24 @@ func CreateA2AService(name string, noWizard bool) error {
 				}
 				ui.PromptSuccess("Header name", authHeader)
 
-				authKey, err = wizard.PromptString("API Key value", "", nil)
+				authKey, err = wizard.PromptPassword("API Key value", false)
 				if err != nil {
 					fmt.Println()
 					ui.Dimmed("A2A service creation cancelled")
 					return nil
 				}
-				if len(authKey) > 4 {
-					ui.PromptSuccess("API Key", "***"+authKey[len(authKey)-4:])
-				} else {
-					ui.PromptSuccess("API Key", "***")
-				}
+				ui.PromptSuccess("API Key", "********")
 
 				secretValues[secretPrefix+"_API_KEY"] = authKey
 
 			case "bearer":
-				authToken, err = wizard.PromptString("Bearer token value", "", nil)
+				authToken, err = wizard.PromptPassword("Bearer token value", false)
 				if err != nil {
 					fmt.Println()
 					ui.Dimmed("A2A service creation cancelled")
 					return nil
 				}
-				if len(authToken) > 4 {
-					ui.PromptSuccess("Bearer token", "***"+authToken[len(authToken)-4:])
-				} else {
-					ui.PromptSuccess("Bearer token", "***")
-				}
+				ui.PromptSuccess("Bearer token", "********")
 				secretValues[secretPrefix+"_BEARER_TOKEN"] = authToken
 
 			case "basic":
@@ -1370,13 +1354,13 @@ func CreateA2AService(name string, noWizard bool) error {
 				}
 				ui.PromptSuccess("Username", authUsername)
 
-				authPassword, err = wizard.PromptString("Password", "", nil)
+				authPassword, err = wizard.PromptPassword("Password", false)
 				if err != nil {
 					fmt.Println()
 					ui.Dimmed("A2A service creation cancelled")
 					return nil
 				}
-				ui.PromptSuccess("Password", "***")
+				ui.PromptSuccess("Password", "********")
 
 				secretValues[secretPrefix+"_USERNAME"] = authUsername
 				secretValues[secretPrefix+"_PASSWORD"] = authPassword
@@ -1877,32 +1861,24 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 				}
 				ui.PromptSuccess("Header name", authHeader)
 
-				authKey, err = wizard.PromptString("API Key value", "", nil)
+				authKey, err = wizard.PromptPassword("API Key value", false)
 				if err != nil {
 					fmt.Println()
 					ui.Dimmed("A2A configuration cancelled")
 					return nil
 				}
-				if len(authKey) > 4 {
-					ui.PromptSuccess("API Key", "***"+authKey[len(authKey)-4:])
-				} else {
-					ui.PromptSuccess("API Key", "***")
-				}
+				ui.PromptSuccess("API Key", "********")
 
 				secretValues["A2A_INBOUND_API_KEY"] = authKey
 
 			case "bearer":
-				authToken, err = wizard.PromptString("Bearer token value", "", nil)
+				authToken, err = wizard.PromptPassword("Bearer token value", false)
 				if err != nil {
 					fmt.Println()
 					ui.Dimmed("A2A configuration cancelled")
 					return nil
 				}
-				if len(authToken) > 4 {
-					ui.PromptSuccess("Bearer token", "***"+authToken[len(authToken)-4:])
-				} else {
-					ui.PromptSuccess("Bearer token", "***")
-				}
+				ui.PromptSuccess("Bearer token", "********")
 				secretValues["A2A_INBOUND_BEARER_TOKEN"] = authToken
 
 			case "basic":
@@ -1914,13 +1890,13 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 				}
 				ui.PromptSuccess("Username", authUsername)
 
-				authPassword, err = wizard.PromptString("Password", "", nil)
+				authPassword, err = wizard.PromptPassword("Password", false)
 				if err != nil {
 					fmt.Println()
 					ui.Dimmed("A2A configuration cancelled")
 					return nil
 				}
-				ui.PromptSuccess("Password", "***")
+				ui.PromptSuccess("Password", "********")
 
 				secretValues["A2A_INBOUND_USERNAME"] = authUsername
 				secretValues["A2A_INBOUND_PASSWORD"] = authPassword
