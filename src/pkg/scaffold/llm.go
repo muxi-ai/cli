@@ -220,7 +220,13 @@ func configureModelCapability(rootDir string) error {
 	// Build capability options with current status
 	fmt.Println()
 	ui.Dimmed("ℹ Vision/audio/documents/streaming default to text model if not set.")
-	ui.Dimmed("  Embedding requires a dedicated model for semantic search.")
+	
+	// Embedding fallback info when not configured
+	embeddingFallback := ""
+	if embeddingModel == "" {
+		embeddingFallback = "all-MiniLM-L6-v2 (local)*"
+		fmt.Println("* For better quality, configure: openai/text-embedding-3-large")
+	}
 	fmt.Println()
 
 	options := []wizard.SelectOption{
@@ -228,7 +234,7 @@ func configureModelCapability(rootDir string) error {
 		{Value: "vision", Label: formatCapabilityOption("Vision (image understanding)", visionModel, textModel, true)},
 		{Value: "audio", Label: formatCapabilityOption("Audio (speech-to-text)", audioModel, textModel, true)},
 		{Value: "documents", Label: formatCapabilityOption("Documents (PDF/doc processing)", documentsModel, textModel, true)},
-		{Value: "embedding", Label: formatCapabilityOption("Embedding (vector search)", embeddingModel, "", false)},
+		{Value: "embedding", Label: formatCapabilityOption("Embedding (vector search)", embeddingModel, embeddingFallback, false)},
 		{Value: "streaming", Label: formatCapabilityOption("Streaming (progress updates)", streamingModel, textModel, true)},
 	}
 
@@ -477,12 +483,16 @@ func getMaskedSecretPreview(rootDir, secretName string) string {
 	return value[:3] + "..." + value[len(value)-4:]
 }
 
-func formatCapabilityOption(name, currentModel, textModel string, defaultsToText bool) string {
+func formatCapabilityOption(name, currentModel, fallbackInfo string, defaultsToText bool) string {
 	if currentModel != "" {
 		return fmt.Sprintf("%s [%s]", name, currentModel)
 	}
-	if defaultsToText && textModel != "" {
+	if defaultsToText && fallbackInfo != "" {
 		return fmt.Sprintf("%s [using text]", name)
+	}
+	if fallbackInfo != "" {
+		// Special fallback info (e.g., for embedding)
+		return fmt.Sprintf("%s [%s]", name, fallbackInfo)
 	}
 	return name
 }
