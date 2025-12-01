@@ -37,18 +37,16 @@ func ConfigureAsync() error {
 	// Check current async config
 	currentConfig := getAsyncConfig(ctx.RootDir)
 
-	// Action selection
+	// If not configured, go directly to configure
+	if currentConfig == nil {
+		return configureAsyncSettings(ctx.RootDir, nil)
+	}
+
+	// Already configured - show options
 	fmt.Println()
-	var options []wizard.SelectOption
-	if currentConfig != nil {
-		options = []wizard.SelectOption{
-			{Value: "configure", Label: "Update async settings"},
-			{Value: "disable", Label: "Disable async responses"},
-		}
-	} else {
-		options = []wizard.SelectOption{
-			{Value: "configure", Label: "Enable and configure async responses"},
-		}
+	options := []wizard.SelectOption{
+		{Value: "configure", Label: "Update async settings"},
+		{Value: "disable", Label: "Disable async responses"},
 	}
 
 	action, err := wizard.PromptSelect("What would you like to do?", options, 0)
