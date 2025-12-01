@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -92,11 +93,19 @@ func configureRedirectMode(rootDir string) error {
 	if urlDefault == "" {
 		urlDefault = "https://yourcompany.com/manage/credentials"
 	}
-	redirectURL, err := wizard.PromptString("  Redirect URL", urlDefault, nil)
-	if err != nil {
-		return err
+	var redirectURL string
+	for {
+		input, err := wizard.PromptString("  Redirect URL", urlDefault, nil)
+		if err != nil {
+			return err
+		}
+		redirectURL = normalizeURL(input)
+		if err := validateURL(redirectURL); err != nil {
+			ui.PromptError("  Redirect URL", input, err)
+			continue
+		}
+		break
 	}
-	redirectURL = normalizeURL(redirectURL)
 	ui.PromptSuccess("  Redirect URL", redirectURL)
 
 	// Custom message (optional)
@@ -142,11 +151,27 @@ func truncateForDisplay(s string, maxLen int) string {
 }
 
 // normalizeURL adds https:// if no protocol is specified
-func normalizeURL(url string) string {
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		return "https://" + url
+func normalizeURL(u string) string {
+	if !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+		return "https://" + u
 	}
-	return url
+	return u
+}
+
+// validateURL checks if a URL is valid
+func validateURL(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format")
+	}
+	if parsed.Host == "" {
+		return fmt.Errorf("invalid URL: missing host")
+	}
+	// Check for valid host (must have at least one dot and valid TLD-like structure)
+	if !strings.Contains(parsed.Host, ".") || strings.HasSuffix(parsed.Host, ".") {
+		return fmt.Errorf("invalid URL: invalid host")
+	}
+	return nil
 }
 
 // configureDynamicMode handles Flow 2: Dynamic Mode (Development)
@@ -171,11 +196,19 @@ func configureDynamicMode(rootDir string) error {
 	if urlDefault == "" {
 		urlDefault = "https://example.com/credentials"
 	}
-	redirectURL, err := wizard.PromptString("  Redirect URL", urlDefault, nil)
-	if err != nil {
-		return err
+	var redirectURL string
+	for {
+		input, err := wizard.PromptString("  Redirect URL", urlDefault, nil)
+		if err != nil {
+			return err
+		}
+		redirectURL = normalizeURL(input)
+		if err := validateURL(redirectURL); err != nil {
+			ui.PromptError("  Redirect URL", input, err)
+			continue
+		}
+		break
 	}
-	redirectURL = normalizeURL(redirectURL)
 	ui.PromptSuccess("  Redirect URL", redirectURL)
 
 	// Allowed environments
