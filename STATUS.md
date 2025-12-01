@@ -2,14 +2,14 @@
 
 **Last Updated:** 2025-12-01  
 **Version:** 0.2.0-dev  
-**Status:** 🚀 Active Development - Scaffolding, Secrets, LLM, Memory & Overlord Config Complete
+**Status:** 🚀 Active Development - Scaffolding, Secrets, LLM, Memory, Overlord & Security Config Complete
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, **LLM configuration**, **memory configuration**, **overlord configuration**, and comprehensive documentation. Registry commands are planned, and remaining config commands are in progress.
+MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, **LLM configuration**, **memory configuration**, **overlord configuration**, **security configuration**, and comprehensive documentation. Registry commands and logging config are planned.
 
 ### What Exists ✅
 
@@ -24,6 +24,7 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi config llm` - Full LLM configuration wizard
 - ✅ `muxi config memory` - Full memory configuration wizard
 - ✅ `muxi config overlord` - Full overlord configuration wizard
+- ✅ `muxi config security` - User credential handling wizard
 - ✅ `muxi edit <type>` - Open files in $EDITOR
 
 **Secrets Management:**
@@ -53,8 +54,8 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi config llm` - Configure LLM provider (COMPLETE)
 - ✅ `muxi config memory` - Configure memory settings (COMPLETE)
 - ✅ `muxi config overlord` - Configure overlord persona/behavior (COMPLETE)
+- ✅ `muxi config security` - Configure user credentials handling (COMPLETE)
 - ⏳ `muxi config logging` - Configure logging/observability
-- ⏳ `muxi config security` - Configure user credentials handling
 
 **Registry Commands (Not Blocked):**
 - ⏳ `muxi login` - Authenticate with registry (browser callback + paste fallback)
@@ -78,30 +79,34 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 
 ### Latest Changes (2025-12-01)
 
-1. ✅ **`muxi config overlord` Command Complete:**
+1. ✅ **`muxi config security` Command Complete:**
+   - Two modes: Redirect (production) and Dynamic (development)
+   - Redirect: Custom message via $EDITOR or file
+   - Dynamic: Environment restrictions, HTTPS, TTL, max attempts
+   - Auto-generates Fernet encryption key for dynamic mode
+   - User guide created: `docs/guides/security.md`
+
+2. ✅ **`muxi config overlord` Command Complete:**
    - Four flows: Persona, Response options, Workflow behavior, Clarification
    - Persona: Edit via $EDITOR or load from file
-   - Response: Format (markdown/text/html), streaming, progress
-   - Workflow: Routing strategy, decomposition, parallel execution, timeouts
-   - Clarification: Style, persist info, max rounds per mode
    - [current] indicators for existing values
    - User guide created: `docs/guides/overlord.md`
 
-2. ✅ **`muxi config memory` Command Complete:**
+3. ✅ **`muxi config memory` Command Complete:**
    - Three flows: Working memory, Buffer memory, Persistent memory
    - Working memory: Local (in-process) or Remote (FAISSx server)
    - Persistent memory: PostgreSQL or SQLite with query timeout, user synopsis
    - Vector dimension auto-detected from embedding model
    - User guide created: `docs/guides/memory.md`
 
-3. ✅ **`muxi config llm` Command Complete:**
+4. ✅ **`muxi config llm` Command Complete:**
    - Three flows: Configure capability, Add API key, Global settings
    - Environment variable detection for API keys
-   - Model ordering in YAML (text, vision, audio, documents, embedding, streaming)
    - User guide created: `docs/guides/llm.md`
 
-4. ✅ **User Guides (docs/guides/):**
-   - `overlord.md` - Overlord configuration guide (NEW)
+5. ✅ **User Guides (docs/guides/):**
+   - `security.md` - Security configuration guide (NEW)
+   - `overlord.md` - Overlord configuration guide
    - `memory.md` - Memory configuration guide
    - `llm.md` - LLM configuration guide
    - `formations.md` - Creating formations, LLM providers
@@ -123,11 +128,11 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ Golden MUXI branding
 
 ### Current Focus
-**Overlord configuration complete!** ✅
+**Security configuration complete!** ✅
 
 **Next up:**
 - Implement `muxi config logging` command
-- Implement `muxi config security` command
+- Implement `muxi validate` command
 - Implement registry commands (login, push, pull, search, show)
 
 ---
@@ -360,6 +365,7 @@ None - design is solid and comprehensive.
 - ✅ llm.md - LLM configuration and model settings
 - ✅ memory.md - Memory configuration (working, buffer, persistent)
 - ✅ overlord.md - Overlord configuration (persona, workflow, clarification)
+- ✅ security.md - Security configuration (redirect, dynamic modes)
 
 ### Needs Creation
 - ⏳ docs/AUTHENTICATION.md - HMAC implementation (blocked)

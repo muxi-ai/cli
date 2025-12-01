@@ -92,6 +92,29 @@ Examples:
 	},
 }
 
+var configSecurityCmd = &cobra.Command{
+	Use:   "security",
+	Short: "Configure user credential handling",
+	Long: `Configure user credential handling in formation.yaml.
+
+This command provides an interactive wizard for:
+  - Redirect mode (production) - redirect to external credential management
+  - Dynamic mode (development) - collect credentials inline with encryption
+
+Must be run inside a formation directory.
+
+Examples:
+  # Configure with interactive wizard
+  muxi config security`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := scaffold.ConfigureSecurity(); err != nil {
+			return fmt.Errorf("failed to configure security: %w", err)
+		}
+		return nil
+	},
+}
+
 var configA2ACmd = &cobra.Command{
 	Use:   "a2a",
 	Short: "Configure A2A (Agent-to-Agent) communication",
@@ -136,6 +159,7 @@ func init() {
 	configCmd.AddCommand(configLLMCmd)
 	configCmd.AddCommand(configMemoryCmd)
 	configCmd.AddCommand(configOverlordCmd)
+	configCmd.AddCommand(configSecurityCmd)
 
 	// Add config to root
 	rootCmd.AddCommand(configCmd)
