@@ -47,12 +47,14 @@ Working Memory
   "auto" uses 10% of RAM (min 64MB, max 1GB)
   ✓ Max memory: auto
   
-  Dimensions of embedding vectors (must match your embedding model)
-  ✓ Vector dimension: 1536
+  Vector dimension from embedding model: openai/text-embedding-3-large
+  ✓ Vector dimension: 3072
   
   How often to clean up old vectors (FIFO)
   ✓ Cleanup interval (minutes): 5
 ```
+
+Note: Vector dimension is auto-detected from the configured embedding model.
 
 #### If Remote:
 ```

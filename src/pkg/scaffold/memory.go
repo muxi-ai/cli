@@ -13,6 +13,23 @@ import (
 	"github.com/muxi-ai/cli/pkg/wizard"
 )
 
+// Known embedding model dimensions
+var embeddingModelDimensions = map[string]int{
+	// OpenAI
+	"openai/text-embedding-3-large": 3072,
+	"openai/text-embedding-3-small": 1536,
+	"openai/text-embedding-ada-002": 1536,
+	// Cohere
+	"cohere/embed-english-v3.0":      1024,
+	"cohere/embed-multilingual-v3.0": 1024,
+	"cohere/embed-english-light-v3.0": 384,
+	// Voyage
+	"voyage/voyage-large-2": 1536,
+	"voyage/voyage-code-2":  1536,
+	// Local default
+	"all-MiniLM-L6-v2": 384,
+}
+
 // ConfigureMemory runs the memory configuration wizard
 func ConfigureMemory() error {
 	// Must be in formation directory
@@ -94,10 +111,12 @@ func configureLocalWorkingMemory(rootDir string) error {
 	}
 	ui.PromptSuccess("  Max memory", maxMemory)
 
-	ui.Dimmed("  Dimensions of embedding vectors (must match your embedding model)")
-	vectorDim, err := wizard.PromptString("  Vector dimension", "1536", validatePositiveInt)
-	if err != nil {
-		return err
+	// Auto-detect vector dimension from embedding model
+	vectorDim, embeddingModel := getEmbeddingVectorDimension(rootDir)
+	if embeddingModel != "" {
+		ui.Dimmed(fmt.Sprintf("  Vector dimension from embedding model: %s", embeddingModel))
+	} else {
+		ui.Dimmed("  Vector dimension (no embedding model configured, using default)")
 	}
 	ui.PromptSuccess("  Vector dimension", vectorDim)
 
@@ -147,10 +166,12 @@ func configureRemoteWorkingMemory(rootDir string) error {
 	}
 	ui.PromptSuccess("  Max memory", maxMemory+" MB")
 
-	ui.Dimmed("  Dimensions of embedding vectors (must match your embedding model)")
-	vectorDim, err := wizard.PromptString("  Vector dimension", "1536", validatePositiveInt)
-	if err != nil {
-		return err
+	// Auto-detect vector dimension from embedding model
+	vectorDim, embeddingModel := getEmbeddingVectorDimension(rootDir)
+	if embeddingModel != "" {
+		ui.Dimmed(fmt.Sprintf("  Vector dimension from embedding model: %s", embeddingModel))
+	} else {
+		ui.Dimmed("  Vector dimension (no embedding model configured, using default)")
 	}
 	ui.PromptSuccess("  Vector dimension", vectorDim)
 
@@ -429,6 +450,34 @@ func validateNotEmpty(input string) error {
 }
 
 // Helper functions
+
+// getEmbeddingVectorDimension reads the embedding model from formation.yaml and returns its dimension
+func getEmbeddingVectorDimension(rootDir string) (string, string) {
+	formationFile := filepath.Join(rootDir, "formation.yaml")
+	content, err := os.ReadFile(formationFile)
+	if err != nil {
+		return "1536", "" // Default to OpenAI's common dimension
+	}
+
+	// Look for embedding model in formation.yaml
+	// Pattern: - embedding: "model/name"
+	contentStr := string(content)
+	embeddingPattern := regexp.MustCompile(`-\s*embedding:\s*"?([^"\s\n]+)"?`)
+	matches := embeddingPattern.FindStringSubmatch(contentStr)
+
+	if len(matches) > 1 {
+		model := matches[1]
+		if dim, ok := embeddingModelDimensions[model]; ok {
+			return fmt.Sprintf("%d", dim), model
+		}
+		// Unknown model, default to 1536
+		return "1536", model
+	}
+
+	// No embedding model configured - check if using local fallback
+	// Default local model is all-MiniLM-L6-v2 with 384 dimensions
+	return "384", "all-MiniLM-L6-v2 (local)"
+}
 
 func maskSecretValue(value string) string {
 	if len(value) <= 8 {

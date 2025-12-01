@@ -122,8 +122,10 @@ The wizard detects and offers to import:
 |---------|---------|-------------|
 | `mode` | `local` | `local` or `remote` |
 | `max_memory_mb` | `auto` | Memory limit (`auto` = 10% of RAM) |
-| `vector_dimension` | `1536` | Must match embedding model dimensions |
+| `vector_dimension` | (auto) | Auto-detected from embedding model |
 | `fifo_interval_min` | `5` | How often to clean up old vectors |
+
+**Note:** Vector dimension is automatically detected from your configured embedding model. If no embedding model is configured, it defaults to 384 (local all-MiniLM-L6-v2 model).
 
 ### Buffer Memory Settings
 
