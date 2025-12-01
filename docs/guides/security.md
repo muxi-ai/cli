@@ -60,7 +60,7 @@ user_credentials:
 | `redirect_url` | Fallback URL when dynamic mode is not available |
 
 **Security features:**
-- Fernet encryption (auto-generated key stored in secrets)
+- Fernet encryption (user-provided or auto-generated key stored in secrets)
 
 ---
 
@@ -68,7 +68,7 @@ user_credentials:
 
 | Secret | Mode | Description |
 |--------|------|-------------|
-| `USER_CREDENTIALS_ENCRYPTION_KEY` | Dynamic | Auto-generated Fernet encryption key |
+| `USER_CREDENTIALS_ENCRYPTION_KEY` | Dynamic | Fernet encryption key (user-provided or auto-generated) |
 
 ---
 
@@ -96,6 +96,7 @@ user_credentials:
 muxi config security
 # Select: Dynamic
 # Enter fallback redirect URL
+# Enter encryption key or press Enter to auto-generate
 ```
 
 Result:
