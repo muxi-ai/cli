@@ -93,7 +93,7 @@ Select (1-21): _
 | # | Provider | Vendor Key | Default Model | API Key Prefix |
 |---|----------|------------|---------------|----------------|
 | 1 | OpenAI | `openai` | gpt-5-mini | sk- |
-| 2 | Anthropic | `anthropic` | claude-4.5-sonnet | sk-ant- |
+| 2 | Anthropic | `anthropic` | claude-sonnet-4-5 | sk-ant- |
 | 3 | Google | `google` | gemini-2.0-flash | AI |
 | 4 | Mistral | `mistral` | mistral-large-latest | |
 | 5 | Groq | `groq` | llama-3.3-70b-versatile | gsk_ |

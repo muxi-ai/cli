@@ -84,10 +84,10 @@ func ConfigureLLM() error {
 	}
 
 	switch choice {
-	case "api_key":
-		return configureProviderAPIKey(ctx.RootDir)
 	case "capability":
 		return configureModelCapability(ctx.RootDir)
+	case "api_key":
+		return configureProviderAPIKey(ctx.RootDir)
 	case "settings":
 		return configureGlobalSettings(ctx.RootDir)
 	}
@@ -219,16 +219,17 @@ func configureModelCapability(rootDir string) error {
 
 	// Build capability options with current status
 	fmt.Println()
-	ui.Dimmed("ℹ Capabilities without explicit models will use the text model.")
+	ui.Dimmed("ℹ Vision/audio/documents/streaming default to text model if not set.")
+	ui.Dimmed("  Embedding requires a dedicated model for semantic search.")
 	fmt.Println()
 
 	options := []wizard.SelectOption{
-		{Value: "text", Label: formatCapabilityOption("Text (main reasoning model)", textModel, "")},
-		{Value: "vision", Label: formatCapabilityOption("Vision (image understanding)", visionModel, textModel)},
-		{Value: "audio", Label: formatCapabilityOption("Audio (speech-to-text)", audioModel, textModel)},
-		{Value: "documents", Label: formatCapabilityOption("Documents (PDF/doc processing)", documentsModel, textModel)},
-		{Value: "embedding", Label: formatCapabilityOption("Embedding (vector search)", embeddingModel, "")},
-		{Value: "streaming", Label: formatCapabilityOption("Streaming (progress updates)", streamingModel, textModel)},
+		{Value: "text", Label: formatCapabilityOption("Text (main reasoning model)", textModel, "", false)},
+		{Value: "vision", Label: formatCapabilityOption("Vision (image understanding)", visionModel, textModel, true)},
+		{Value: "audio", Label: formatCapabilityOption("Audio (speech-to-text)", audioModel, textModel, true)},
+		{Value: "documents", Label: formatCapabilityOption("Documents (PDF/doc processing)", documentsModel, textModel, true)},
+		{Value: "embedding", Label: formatCapabilityOption("Embedding (vector search)", embeddingModel, "", false)},
+		{Value: "streaming", Label: formatCapabilityOption("Streaming (progress updates)", streamingModel, textModel, true)},
 	}
 
 	capability, err := wizard.PromptSelect("Select capability to configure", options, 0)
@@ -476,11 +477,11 @@ func getMaskedSecretPreview(rootDir, secretName string) string {
 	return value[:3] + "..." + value[len(value)-4:]
 }
 
-func formatCapabilityOption(name, currentModel, textModel string) string {
+func formatCapabilityOption(name, currentModel, textModel string, defaultsToText bool) string {
 	if currentModel != "" {
 		return fmt.Sprintf("%s [%s]", name, currentModel)
 	}
-	if textModel != "" {
+	if defaultsToText && textModel != "" {
 		return fmt.Sprintf("%s [using text]", name)
 	}
 	return name

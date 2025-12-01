@@ -12,7 +12,7 @@ type LLMProvider struct {
 // LLMProviders is the list of all supported providers
 var LLMProviders = []LLMProvider{
 	{Name: "OpenAI", Vendor: "openai", DefaultModel: "gpt-5-mini", KeyPrefix: "sk-", SecretName: "OPENAI_API_KEY"},
-	{Name: "Anthropic", Vendor: "anthropic", DefaultModel: "claude-4.5-sonnet", KeyPrefix: "sk-ant-", SecretName: "ANTHROPIC_API_KEY"},
+	{Name: "Anthropic", Vendor: "anthropic", DefaultModel: "claude-sonnet-4-5", KeyPrefix: "sk-ant-", SecretName: "ANTHROPIC_API_KEY"},
 	{Name: "Google", Vendor: "google", DefaultModel: "gemini-2.0-flash", KeyPrefix: "", SecretName: "GOOGLE_API_KEY"},
 	{Name: "Mistral", Vendor: "mistral", DefaultModel: "mistral-large-latest", KeyPrefix: "", SecretName: "MISTRAL_API_KEY"},
 	{Name: "Groq", Vendor: "groq", DefaultModel: "llama-3.3-70b-versatile", KeyPrefix: "gsk_", SecretName: "GROQ_API_KEY"},
