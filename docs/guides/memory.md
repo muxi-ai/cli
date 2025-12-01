@@ -79,6 +79,10 @@ memory:
 memory:
   persistent:
     connection_string: "sqlite:///./memory.db"
+    query_timeout_seconds: 30
+    user_synopsis:
+      enabled: true
+      cache_ttl: 3600
 ```
 
 ## Connection String Options
@@ -135,7 +139,9 @@ The wizard detects and offers to import:
 | `multiplier` | `10` | Total buffer = size × multiplier |
 | `vector_search` | `true` | Use similarity search for relevance |
 
-### Persistent Memory Settings (PostgreSQL)
+### Persistent Memory Settings
+
+These settings apply to both PostgreSQL and SQLite:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -170,9 +176,10 @@ memory:
 
 1. **Start with local working memory** - No setup required
 2. **Use SQLite for development** - Switch to PostgreSQL for production
-3. **Match vector dimensions** - Must align with your embedding model (1536 for OpenAI)
+3. **Vector dimensions are auto-detected** - From your configured embedding model
 4. **Enable user synopsis** - Improves context awareness with LLM-generated summaries
 5. **Set appropriate timeouts** - Prevent hanging queries in production
+6. **Look for [current]** - The wizard shows which options are already configured
 
 ## PostgreSQL Setup
 
