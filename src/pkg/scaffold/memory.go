@@ -493,11 +493,35 @@ func getCurrentWorkingMemoryMode(rootDir string) string {
 		return ""
 	}
 
-	// Look for mode under memory.working
-	modePattern := regexp.MustCompile(`(?m)^\s*working:\s*\n(?:.*\n)*?\s*mode:\s*"?(\w+)"?`)
-	matches := modePattern.FindStringSubmatch(string(content))
-	if len(matches) > 1 {
-		return matches[1]
+	contentStr := string(content)
+
+	// Check if we're in memory.working section and find mode
+	if !strings.Contains(contentStr, "working:") {
+		return ""
+	}
+
+	// Simple approach: find mode: "local" or mode: "remote" after working:
+	lines := strings.Split(contentStr, "\n")
+	inWorking := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "working:" {
+			inWorking = true
+			continue
+		}
+		// Exit if we hit another section at same or higher level
+		if inWorking && len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			break
+		}
+		if inWorking && strings.HasPrefix(trimmed, "mode:") {
+			// Extract value
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) > 1 {
+				val := strings.TrimSpace(parts[1])
+				val = strings.Trim(val, "\"'")
+				return val
+			}
+		}
 	}
 	return ""
 }
@@ -512,18 +536,36 @@ func getCurrentPersistentMemoryType(rootDir string) string {
 
 	contentStr := string(content)
 
-	// Check for connection_string under memory.persistent
-	if strings.Contains(contentStr, "persistent:") {
-		// Look for connection string pattern
-		connPattern := regexp.MustCompile(`connection_string:\s*"?([^"\s\n]+)`)
-		matches := connPattern.FindStringSubmatch(contentStr)
-		if len(matches) > 1 {
-			connStr := matches[1]
-			if strings.HasPrefix(connStr, "sqlite") {
-				return "sqlite"
-			}
-			if strings.HasPrefix(connStr, "postgres") || strings.Contains(connStr, "PERSISTENT_DB") {
-				return "postgres"
+	// Check if persistent: section exists
+	if !strings.Contains(contentStr, "persistent:") {
+		return ""
+	}
+
+	// Find connection_string value after persistent:
+	lines := strings.Split(contentStr, "\n")
+	inPersistent := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "persistent:" {
+			inPersistent = true
+			continue
+		}
+		// Exit if we hit another section at same or higher level
+		if inPersistent && len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			break
+		}
+		if inPersistent && strings.HasPrefix(trimmed, "connection_string:") {
+			// Extract value
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) > 1 {
+				val := strings.TrimSpace(parts[1])
+				val = strings.Trim(val, "\"'")
+				if strings.HasPrefix(val, "sqlite") {
+					return "sqlite"
+				}
+				if strings.HasPrefix(val, "postgres") || strings.Contains(val, "PERSISTENT_DB") {
+					return "postgres"
+				}
 			}
 		}
 	}
