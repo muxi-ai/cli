@@ -247,7 +247,7 @@ func validateSecretRefs(rootDir string, refs []string, result *Result) {
 		if !existing[ref] {
 			result.Errors = append(result.Errors, Issue{
 				Field:   ref,
-				Message: fmt.Sprintf("Secret `%s` is referenced but not set.\n * Run `muxi secrets set %s` to set it", ref, ref),
+				Message: fmt.Sprintf("Secret `%s` is referenced but not set.\n * Run `muxi secrets set %s <VALUE>` to set it", ref, ref),
 			})
 		}
 	}

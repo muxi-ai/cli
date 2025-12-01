@@ -88,16 +88,13 @@ func displayValidationResults(formationID string, result *validate.Result) {
 		fmt.Println()
 
 		for _, issue := range result.Errors {
-			location := issue.File
-			if issue.Field != "" {
-				location = fmt.Sprintf("%s → %s", issue.File, issue.Field)
+			// Print first line of message with error symbol
+			lines := strings.Split(issue.Message, "\n")
+			fmt.Printf("  %s %s\n", ui.RedText("✗"), lines[0])
+			// Print remaining lines (hints) dimmed
+			for _, line := range lines[1:] {
+				fmt.Printf("    %s\n", ui.DimmedText(strings.TrimPrefix(line, " ")))
 			}
-			if location == "" {
-				location = issue.Field
-			}
-
-			fmt.Printf("  %s %s\n", ui.RedText("✗"), location)
-			printIssueMessage(issue.Message)
 			fmt.Println()
 		}
 	}
@@ -108,16 +105,13 @@ func displayValidationResults(formationID string, result *validate.Result) {
 		fmt.Println()
 
 		for _, issue := range result.Warnings {
-			location := issue.File
-			if issue.Field != "" {
-				location = fmt.Sprintf("%s → %s", issue.File, issue.Field)
+			// Print first line of message with warning symbol
+			lines := strings.Split(issue.Message, "\n")
+			fmt.Printf("  %s %s\n", ui.YellowText("⚠"), lines[0])
+			// Print remaining lines (hints) dimmed
+			for _, line := range lines[1:] {
+				fmt.Printf("    %s\n", ui.DimmedText(strings.TrimPrefix(line, " ")))
 			}
-			if location == "" {
-				location = issue.Field
-			}
-
-			fmt.Printf("  %s %s\n", ui.YellowText("⚠"), location)
-			printIssueMessage(issue.Message)
 			fmt.Println()
 		}
 	}
@@ -130,19 +124,4 @@ func displayValidationResults(formationID string, result *validate.Result) {
 		fmt.Printf("  Run %s to set missing secrets\n", ui.BoldText("muxi secrets set <KEY>"))
 	}
 	fmt.Println()
-}
-
-// printIssueMessage prints the issue message with hints dimmed
-func printIssueMessage(message string) {
-	lines := strings.Split(message, "\n")
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "*") {
-			// Hint line - print dimmed
-			fmt.Printf("    %s\n", ui.DimmedText(line))
-		} else {
-			// Regular line
-			fmt.Printf("    %s\n", line)
-		}
-	}
 }
