@@ -239,7 +239,7 @@ func configureModelCapability(rootDir string) error {
 	// Build capability options with current status
 	fmt.Println()
 	ui.Dimmed("ℹ Vision/audio/documents/streaming default to text model if not set.")
-	
+
 	// Embedding fallback info when not configured
 	embeddingFallback := ""
 	if embeddingModel == "" {
@@ -329,6 +329,34 @@ func configureCapabilityModel(rootDir string, capability string) error {
 
 	ui.PromptSuccess("Model", selectedModel)
 
+	// Check if provider has API key configured
+	vendor := strings.Split(selectedModel, "/")[0]
+	var provider *LLMProvider
+	for i := range LLMProviders {
+		if LLMProviders[i].Vendor == vendor {
+			provider = &LLMProviders[i]
+			break
+		}
+	}
+
+	if provider != nil {
+		// Check if API key is configured
+		formationFile := filepath.Join(rootDir, "formation.yaml")
+		content, _ := os.ReadFile(formationFile)
+		contentStr := string(content)
+		secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
+
+		if !strings.Contains(contentStr, secretRef) {
+			// API key not configured - prompt for it
+			fmt.Println()
+			ui.Warning(fmt.Sprintf("No API key configured for %s", provider.Name))
+
+			if err := promptForAPIKey(rootDir, *provider); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Update formation.yaml
 	if err := updateModelInFormation(rootDir, capability, selectedModel); err != nil {
 		return fmt.Errorf("failed to update formation.yaml: %w", err)
@@ -336,17 +364,15 @@ func configureCapabilityModel(rootDir string, capability string) error {
 
 	ui.Success(fmt.Sprintf("Updated %s model to %s", capability, selectedModel))
 
-	// Ask about settings for text capability
-	if capability == "text" {
-		fmt.Println()
-		configSettings, err := wizard.PromptConfirm("Configure settings for this model?", false)
-		if err != nil {
-			return err
-		}
+	// Ask about model settings
+	fmt.Println()
+	configSettings, err := wizard.PromptConfirm("Configure settings for this model?", false)
+	if err != nil {
+		return err
+	}
 
-		if configSettings {
-			return configureModelSettings(rootDir, capability, selectedModel)
-		}
+	if configSettings {
+		return configureModelSettings(rootDir, capability, selectedModel)
 	}
 
 	return nil
@@ -466,7 +492,7 @@ func configureGlobalSettings(rootDir string) error {
 	if enableCaching {
 		ui.PromptSuccess("  Caching", "enabled")
 
-		ui.Dimmed("  Maximum number of cached responses")
+		ui.Dimmed("  Maximum number of cached responses (FIFO)")
 		maxEntries, err = wizard.PromptString("  Max cache entries", "10000", validatePositiveInt)
 		if err != nil {
 			return err
@@ -492,6 +518,61 @@ func configureGlobalSettings(rootDir string) error {
 
 	// Update formation.yaml
 	return updateGlobalSettingsInFormation(rootDir, tempStr, tokensStr, timeoutStr, retriesStr, fallbackModel, enableCaching, maxEntries, similarityThreshold, cacheTTL)
+}
+
+// promptForAPIKey prompts for an API key with env var detection
+func promptForAPIKey(rootDir string, provider LLMProvider) error {
+	// Build prompt label
+	fmt.Println()
+	var keyHint string
+	if provider.KeyPrefix != "" {
+		keyHint = fmt.Sprintf(" (starts with %s)", provider.KeyPrefix)
+	}
+	fmt.Printf("%s API Key%s:\n", provider.Name, keyHint)
+
+	var apiKey string
+
+	// Check for existing env var
+	envValue := os.Getenv(provider.SecretName)
+	if envValue != "" {
+		maskedEnv := maskAPIKey(envValue, provider.KeyPrefix)
+		useEnv, err := wizard.PromptConfirm(fmt.Sprintf("ℹ Found %s in environment [%s]. Use it?", provider.SecretName, maskedEnv), true)
+		if err != nil {
+			return err
+		}
+		if useEnv {
+			apiKey = envValue
+		}
+	}
+
+	// If not using env var, prompt for key
+	if apiKey == "" {
+		var err error
+		apiKey, err = wizard.PromptPassword("Enter key", true)
+		if err != nil {
+			return err
+		}
+
+		if apiKey == "" {
+			ui.PromptSkipped("API Key")
+			return nil
+		}
+	}
+
+	// Save to secrets
+	secretsManager := secrets.NewManager(rootDir)
+	if err := secretsManager.Set(provider.SecretName, apiKey, true); err != nil {
+		return fmt.Errorf("failed to save secret: %w", err)
+	}
+	ui.Success(fmt.Sprintf("Saved %s to secrets", provider.SecretName))
+
+	// Update formation.yaml to include the API key reference
+	if err := addAPIKeyToFormation(rootDir, provider); err != nil {
+		return fmt.Errorf("failed to update formation.yaml: %w", err)
+	}
+	ui.Success("Updated formation.yaml with API key reference")
+
+	return nil
 }
 
 // Helper functions
