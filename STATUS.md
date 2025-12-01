@@ -26,6 +26,7 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi config overlord` - Full overlord configuration wizard
 - ✅ `muxi config security` - User credential handling wizard
 - ✅ `muxi config logging` - Logging streams wizard
+- ✅ `muxi config async` - Async response settings wizard
 - ✅ `muxi validate` - Validate formation configuration
 - ✅ `muxi edit <type>` - Open files in $EDITOR
 

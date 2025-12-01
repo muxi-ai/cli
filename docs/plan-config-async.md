@@ -29,9 +29,9 @@ async:
 
 ```
 ╭──────────────────────────────────────────────────────────────╮
-│ [⚙] Configure Async Responses                          MUXI │
+│ [⚙] Configure Async Responses                           MUXI │
 │──────────────────────────────────────────────────────────────│
-│ Configure how long-running tasks are handled. When a task   │
+│ Configure how long-running tasks are handled. When a task    │
 │ exceeds the threshold, the response is delivered via webhook.│
 ╰──────────────────────────────────────────────────────────────╯
 

@@ -19,6 +19,31 @@ logging, and more.
 Must be run inside a formation directory.`,
 }
 
+var configAsyncCmd = &cobra.Command{
+	Use:   "async",
+	Short: "Configure async response settings",
+	Long: `Configure async response settings in formation.yaml.
+
+This command provides an interactive wizard for:
+  - Enabling/disabling async responses
+  - Setting the time threshold before switching to async
+  - Configuring webhook URL for async delivery
+  - Setting retry count and delay
+
+Must be run inside a formation directory.
+
+Examples:
+  # Configure with interactive wizard
+  muxi config async`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := scaffold.ConfigureAsync(); err != nil {
+			return fmt.Errorf("failed to configure async: %w", err)
+		}
+		return nil
+	},
+}
+
 var configLLMCmd = &cobra.Command{
 	Use:   "llm",
 	Short: "Configure LLM providers and models",
@@ -180,6 +205,7 @@ func init() {
 
 	// Add subcommands to config
 	configCmd.AddCommand(configA2ACmd)
+	configCmd.AddCommand(configAsyncCmd)
 	configCmd.AddCommand(configLLMCmd)
 	configCmd.AddCommand(configLoggingCmd)
 	configCmd.AddCommand(configMemoryCmd)
