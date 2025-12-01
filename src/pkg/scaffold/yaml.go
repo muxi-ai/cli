@@ -65,22 +65,53 @@ func removeCommentedSection(content string, key string) string {
 }
 
 // ensureBlankLineBeforeTopLevel ensures there's a blank line before top-level keys
+// and before second-level keys that have children (nested content)
 func ensureBlankLineBeforeTopLevel(content string) string {
 	lines := strings.Split(content, "\n")
 	result := make([]string, 0, len(lines))
 
-	// Top-level keys that should have a blank line before them
+	// Top-level keys (no indentation)
 	topLevelPattern := regexp.MustCompile(`^[a-z_]+:`)
+	// Second-level keys (exactly 2 spaces of indentation)
+	secondLevelPattern := regexp.MustCompile(`^  [a-z_]+:`)
 
 	for i, line := range lines {
-		// If this is a top-level key (not indented, ends with :)
+		needsBlankLine := false
+
+		// Check for top-level key
 		if topLevelPattern.MatchString(line) && i > 0 {
-			// Check if previous line is not empty and not a comment
 			prevLine := strings.TrimSpace(lines[i-1])
 			if prevLine != "" && !strings.HasPrefix(prevLine, "#") {
-				// Add blank line before this top-level key
-				result = append(result, "")
+				needsBlankLine = true
 			}
+		}
+
+		// Check for second-level key with children
+		if secondLevelPattern.MatchString(line) && i > 0 {
+			// Check if this key has children (next non-empty line is more indented)
+			hasChildren := false
+			for j := i + 1; j < len(lines); j++ {
+				nextLine := lines[j]
+				if strings.TrimSpace(nextLine) == "" {
+					continue // skip empty lines
+				}
+				// Check indentation of next non-empty line
+				if strings.HasPrefix(nextLine, "    ") { // 4+ spaces = child
+					hasChildren = true
+				}
+				break
+			}
+
+			if hasChildren {
+				prevLine := strings.TrimSpace(lines[i-1])
+				if prevLine != "" && !strings.HasPrefix(prevLine, "#") {
+					needsBlankLine = true
+				}
+			}
+		}
+
+		if needsBlankLine {
+			result = append(result, "")
 		}
 		result = append(result, line)
 	}
