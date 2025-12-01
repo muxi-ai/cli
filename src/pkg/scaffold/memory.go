@@ -463,8 +463,37 @@ func configureSQLiteMemory(rootDir string) error {
 	}
 	ui.PromptSuccess("  Database path", dbPath)
 
-	// Update formation.yaml (no secrets for SQLite)
-	return updateSQLiteMemoryInFormation(rootDir, dbPath)
+	// Common persistent memory settings
+	fmt.Println()
+	ui.Dimmed("  Maximum time to wait for database queries")
+	queryTimeout, err := wizard.PromptString("  Query timeout (seconds)", "30", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	ui.PromptSuccess("  Query timeout", queryTimeout+"s")
+
+	ui.Dimmed("  Generate LLM-synthesized summaries of user context")
+	enableSynopsis, err := wizard.PromptConfirm("  Enable user synopsis?", true)
+	if err != nil {
+		return err
+	}
+
+	var synopsisTTL string
+	if enableSynopsis {
+		ui.PromptSuccess("  User synopsis", "enabled")
+
+		ui.Dimmed("  How long to cache generated synopses")
+		synopsisTTL, err = wizard.PromptString("  Synopsis cache TTL (seconds)", "3600", validatePositiveInt)
+		if err != nil {
+			return err
+		}
+		ui.PromptSuccess("  Synopsis cache TTL", synopsisTTL+"s")
+	} else {
+		ui.PromptSkipped("  User synopsis")
+	}
+
+	// Update formation.yaml (no secrets for SQLite - just file path)
+	return updateSQLiteMemoryInFormation(rootDir, dbPath, queryTimeout, enableSynopsis, synopsisTTL)
 }
 
 // Validation functions
@@ -680,7 +709,7 @@ func updatePersistentMemoryInFormation(rootDir, dbType, queryTimeout string, ena
 	return updateMemorySectionInFormation(formationFile, content, "persistent", memoryYAML.String())
 }
 
-func updateSQLiteMemoryInFormation(rootDir, dbPath string) error {
+func updateSQLiteMemoryInFormation(rootDir, dbPath, queryTimeout string, enableSynopsis bool, synopsisTTL string) error {
 	formationFile := filepath.Join(rootDir, "formation.yaml")
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
@@ -691,6 +720,13 @@ func updateSQLiteMemoryInFormation(rootDir, dbPath string) error {
 	var memoryYAML strings.Builder
 	memoryYAML.WriteString("  persistent:\n")
 	memoryYAML.WriteString(fmt.Sprintf("    connection_string: \"sqlite:///%s\"\n", dbPath))
+	memoryYAML.WriteString(fmt.Sprintf("    query_timeout_seconds: %s\n", queryTimeout))
+
+	if enableSynopsis {
+		memoryYAML.WriteString("    user_synopsis:\n")
+		memoryYAML.WriteString("      enabled: true\n")
+		memoryYAML.WriteString(fmt.Sprintf("      cache_ttl: %s\n", synopsisTTL))
+	}
 
 	return updateMemorySectionInFormation(formationFile, content, "persistent", memoryYAML.String())
 }
