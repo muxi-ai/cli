@@ -128,9 +128,9 @@ func configureOverlordResponse(rootDir string) error {
 	// Format selection
 	ui.Dimmed("  Default output format for responses")
 	formatOptions := []wizard.SelectOption{
-		{Value: "markdown", Label: addCurrentIndicator("markdown (rich formatting, default)", currentFormat == "markdown")},
-		{Value: "text", Label: addCurrentIndicator("text (plain text only)", currentFormat == "text")},
-		{Value: "html", Label: addCurrentIndicator("html (web rendering)", currentFormat == "html")},
+		{Value: "markdown", Label: addCurrentIndicator("Markdown (rich formatting, default)", currentFormat == "markdown" || currentFormat == "")},
+		{Value: "text", Label: addCurrentIndicator("Plain text", currentFormat == "text")},
+		{Value: "html", Label: addCurrentIndicator("HTML (web rendering)", currentFormat == "html")},
 	}
 
 	defaultFormatIdx := 0
@@ -197,10 +197,10 @@ func configureOverlordWorkflow(rootDir string) error {
 	// Routing strategy
 	ui.Dimmed("  How to select agents for tasks")
 	routingOptions := []wizard.SelectOption{
-		{Value: "capability", Label: addCurrentIndicator("capability (match task to agent skills)", currentRouting == "capability" || currentRouting == "")},
-		{Value: "load_balanced", Label: addCurrentIndicator("load_balanced (distribute work evenly)", currentRouting == "load_balanced")},
-		{Value: "round_robin", Label: addCurrentIndicator("round_robin (rotate through agents)", currentRouting == "round_robin")},
-		{Value: "priority", Label: addCurrentIndicator("priority (prefer higher-priority agents)", currentRouting == "priority")},
+		{Value: "capability", Label: addCurrentIndicator("Capability-based (match task to agent skills)", currentRouting == "capability" || currentRouting == "")},
+		{Value: "load_balanced", Label: addCurrentIndicator("Load-balanced (distribute work evenly)", currentRouting == "load_balanced")},
+		{Value: "round_robin", Label: addCurrentIndicator("Round-robin (rotate through agents)", currentRouting == "round_robin")},
+		{Value: "priority", Label: addCurrentIndicator("Priority-based (prefer higher-priority agents)", currentRouting == "priority")},
 	}
 
 	defaultRoutingIdx := getIndexForValue([]string{"capability", "load_balanced", "round_robin", "priority"}, currentRouting, 0)
@@ -238,12 +238,12 @@ func configureOverlordWorkflow(rootDir string) error {
 	// Complexity method
 	ui.Dimmed("  How to calculate task complexity")
 	complexityOptions := []wizard.SelectOption{
-		{Value: "heuristic", Label: addCurrentIndicator("heuristic (fast, rule-based)", currentComplexity == "heuristic")},
-		{Value: "llm", Label: addCurrentIndicator("llm (accurate, uses LLM)", currentComplexity == "llm")},
-		{Value: "hybrid", Label: addCurrentIndicator("hybrid (balanced approach)", currentComplexity == "hybrid" || currentComplexity == "")},
+		{Value: "hybrid", Label: addCurrentIndicator("Hybrid (balanced approach)", currentComplexity == "hybrid" || currentComplexity == "")},
+		{Value: "heuristic", Label: addCurrentIndicator("Heuristic (fast, rule-based)", currentComplexity == "heuristic")},
+		{Value: "llm", Label: addCurrentIndicator("LLM (accurate, uses LLM)", currentComplexity == "llm")},
 	}
 
-	defaultComplexityIdx := getIndexForValue([]string{"heuristic", "llm", "hybrid"}, currentComplexity, 2)
+	defaultComplexityIdx := getIndexForValue([]string{"hybrid", "heuristic", "llm"}, currentComplexity, 0)
 	complexity, err := wizard.PromptSelect("  Complexity method", complexityOptions, defaultComplexityIdx)
 	if err != nil {
 		return err
@@ -323,10 +323,10 @@ func configureOverlordWorkflow(rootDir string) error {
 	// Error recovery
 	ui.Dimmed("  What to do when a task fails")
 	errorOptions := []wizard.SelectOption{
-		{Value: "retry_with_backoff", Label: addCurrentIndicator("retry_with_backoff (retry with increasing delays)", currentErrorRecovery == "retry_with_backoff" || currentErrorRecovery == "")},
-		{Value: "retry_with_alternate", Label: addCurrentIndicator("retry_with_alternate (try a different agent)", currentErrorRecovery == "retry_with_alternate")},
-		{Value: "fail_fast", Label: addCurrentIndicator("fail_fast (stop immediately)", currentErrorRecovery == "fail_fast")},
-		{Value: "skip_and_continue", Label: addCurrentIndicator("skip_and_continue (return partial results)", currentErrorRecovery == "skip_and_continue")},
+		{Value: "retry_with_backoff", Label: addCurrentIndicator("Retry with backoff (retry with increasing delays)", currentErrorRecovery == "retry_with_backoff" || currentErrorRecovery == "")},
+		{Value: "retry_with_alternate", Label: addCurrentIndicator("Retry with alternate (try a different agent)", currentErrorRecovery == "retry_with_alternate")},
+		{Value: "fail_fast", Label: addCurrentIndicator("Fail fast (stop immediately)", currentErrorRecovery == "fail_fast")},
+		{Value: "skip_and_continue", Label: addCurrentIndicator("Skip and continue (return partial results)", currentErrorRecovery == "skip_and_continue")},
 	}
 
 	defaultErrorIdx := getIndexForValue([]string{"retry_with_backoff", "retry_with_alternate", "fail_fast", "skip_and_continue"}, currentErrorRecovery, 0)
@@ -359,9 +359,9 @@ func configureOverlordClarification(rootDir string) error {
 	// Style
 	ui.Dimmed("  Communication style for clarifying questions")
 	styleOptions := []wizard.SelectOption{
-		{Value: "conversational", Label: addCurrentIndicator("conversational (friendly, natural)", currentStyle == "conversational" || currentStyle == "")},
-		{Value: "formal", Label: addCurrentIndicator("formal (professional, structured)", currentStyle == "formal")},
-		{Value: "brief", Label: addCurrentIndicator("brief (minimal, direct)", currentStyle == "brief")},
+		{Value: "conversational", Label: addCurrentIndicator("Conversational (friendly, natural)", currentStyle == "conversational" || currentStyle == "")},
+		{Value: "formal", Label: addCurrentIndicator("Formal (professional, structured)", currentStyle == "formal")},
+		{Value: "brief", Label: addCurrentIndicator("Brief (minimal, direct)", currentStyle == "brief")},
 	}
 
 	defaultStyleIdx := getIndexForValue([]string{"conversational", "formal", "brief"}, currentStyle, 0)
