@@ -15,6 +15,7 @@ import (
 
 	"github.com/muxi-ai/cli/pkg/registry"
 	"github.com/muxi-ai/cli/pkg/ui"
+	"github.com/muxi-ai/cli/pkg/wizard"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -115,6 +116,26 @@ var (
 		Args:  cobra.ExactArgs(1),
 		RunE:  runShow,
 	}
+	registryListCmd = &cobra.Command{
+		Use:   "list",
+		Short: "List configured registries",
+		RunE:  runRegistryList,
+	}
+	registryAddCmd = &cobra.Command{
+		Use:   "add",
+		Short: "Add a registry",
+		RunE:  runRegistryAdd,
+	}
+	registryRemoveCmd = &cobra.Command{
+		Use:   "remove",
+		Short: "Remove a registry",
+		RunE:  runRegistryRemove,
+	}
+	registryDefaultCmd = &cobra.Command{
+		Use:   "default",
+		Short: "Set default registry",
+		RunE:  runRegistryDefault,
+	}
 )
 
 func init() {
@@ -174,6 +195,10 @@ func init() {
 	registryCmd.AddCommand(registryPullCmd)
 	registryCmd.AddCommand(registrySearchCmd)
 	registryCmd.AddCommand(registryShowCmd)
+	registryCmd.AddCommand(registryListCmd)
+	registryCmd.AddCommand(registryAddCmd)
+	registryCmd.AddCommand(registryRemoveCmd)
+	registryCmd.AddCommand(registryDefaultCmd)
 }
 
 // runLogin handles the login command
@@ -770,4 +795,208 @@ func formatTimeAgo(t time.Time) string {
 		}
 		return fmt.Sprintf("%d years ago", years)
 	}
+}
+
+// runRegistryList handles muxi registry list
+func runRegistryList(cmd *cobra.Command, args []string) error {
+	ui.InfoBanner("Configured Registries")
+
+	config, err := registry.LoadRegistries()
+	if err != nil {
+		return fmt.Errorf("failed to load registries: %w", err)
+	}
+
+	if len(config.Registries) == 0 {
+		fmt.Println()
+		ui.Dimmed("  No registries configured")
+		fmt.Println()
+		fmt.Println("  Add a registry with: muxi registry add")
+		fmt.Println("  Or login to default:  muxi login")
+		return nil
+	}
+
+	fmt.Println()
+	for name, entry := range config.Registries {
+		// Mark default
+		defaultMark := ""
+		if name == config.DefaultRegistry {
+			defaultMark = ui.DimmedText(" (default)")
+		}
+
+		// Status indicator
+		status := ui.GreenText("●")
+		if entry.Token == "" {
+			status = ui.DimmedText("○")
+		}
+
+		fmt.Printf("  %s %s%s\n", status, name, defaultMark)
+
+		if entry.Username != "" {
+			ui.Dimmed(fmt.Sprintf("    Logged in as %s", entry.Username))
+		} else {
+			ui.Dimmed("    Not authenticated")
+		}
+
+		if !entry.CreatedAt.IsZero() {
+			ui.Dimmed(fmt.Sprintf("    Added %s", formatTimeAgo(entry.CreatedAt)))
+		}
+		fmt.Println()
+	}
+
+	return nil
+}
+
+// runRegistryAdd handles muxi registry add
+func runRegistryAdd(cmd *cobra.Command, args []string) error {
+	ui.InfoBanner("Add Registry")
+
+	fmt.Println()
+	ui.Dimmed("  Enter the registry URL (e.g., registry.example.com)")
+	url, err := wizard.PromptString("Registry URL", "", nil)
+	if err != nil {
+		return err
+	}
+
+	url = strings.TrimSpace(url)
+	if url == "" {
+		return fmt.Errorf("registry URL is required")
+	}
+
+	// Clean up URL
+	url = strings.TrimPrefix(url, "https://")
+	url = strings.TrimPrefix(url, "http://")
+	url = strings.TrimSuffix(url, "/")
+
+	// Check if already exists
+	config, err := registry.LoadRegistries()
+	if err != nil {
+		return fmt.Errorf("failed to load registries: %w", err)
+	}
+
+	if _, exists := config.Registries[url]; exists {
+		fmt.Println()
+		ui.Dimmed(fmt.Sprintf("  Registry %s already configured", url))
+		return nil
+	}
+
+	// Add the registry (without token - user can login later)
+	if err := registry.SetToken(url, "", ""); err != nil {
+		return fmt.Errorf("failed to add registry: %w", err)
+	}
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Added registry: %s", url))
+	fmt.Println()
+	fmt.Printf("  To authenticate, run: muxi login --registry %s\n", url)
+
+	return nil
+}
+
+// runRegistryRemove handles muxi registry remove
+func runRegistryRemove(cmd *cobra.Command, args []string) error {
+	ui.InfoBanner("Remove Registry")
+
+	config, err := registry.LoadRegistries()
+	if err != nil {
+		return fmt.Errorf("failed to load registries: %w", err)
+	}
+
+	if len(config.Registries) == 0 {
+		fmt.Println()
+		ui.Dimmed("  No registries configured")
+		return nil
+	}
+
+	// Build options
+	var options []wizard.SelectOption
+	for name := range config.Registries {
+		label := name
+		if name == config.DefaultRegistry {
+			label += " (default)"
+		}
+		options = append(options, wizard.SelectOption{
+			Value: name,
+			Label: label,
+		})
+	}
+
+	fmt.Println()
+	selected, err := wizard.PromptSelect("Select registry to remove", options, 0)
+	if err != nil {
+		return err
+	}
+
+	// Confirm removal
+	fmt.Println()
+	fmt.Printf("  Remove %s? (y/N): ", selected)
+	reader := bufio.NewReader(os.Stdin)
+	confirm, _ := reader.ReadString('\n')
+	confirm = strings.TrimSpace(strings.ToLower(confirm))
+
+	if confirm != "y" && confirm != "yes" {
+		ui.Dimmed("  Cancelled")
+		return nil
+	}
+
+	// Remove the registry
+	if err := registry.RemoveToken(selected); err != nil {
+		return fmt.Errorf("failed to remove registry: %w", err)
+	}
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Removed registry: %s", selected))
+
+	return nil
+}
+
+// runRegistryDefault handles muxi registry default
+func runRegistryDefault(cmd *cobra.Command, args []string) error {
+	ui.InfoBanner("Set Default Registry")
+
+	config, err := registry.LoadRegistries()
+	if err != nil {
+		return fmt.Errorf("failed to load registries: %w", err)
+	}
+
+	if len(config.Registries) == 0 {
+		fmt.Println()
+		ui.Dimmed("  No registries configured")
+		fmt.Println()
+		fmt.Println("  Add a registry first: muxi registry add")
+		return nil
+	}
+
+	// Build options with current default marked
+	var options []wizard.SelectOption
+	currentIndex := 0
+	i := 0
+	for name := range config.Registries {
+		label := name
+		if name == config.DefaultRegistry {
+			label += " [current]"
+			currentIndex = i
+		}
+		options = append(options, wizard.SelectOption{
+			Value: name,
+			Label: label,
+		})
+		i++
+	}
+
+	fmt.Println()
+	selected, err := wizard.PromptSelect("Select default registry", options, currentIndex)
+	if err != nil {
+		return err
+	}
+
+	// Update default
+	config.DefaultRegistry = selected
+	if err := registry.SaveRegistries(config); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Default registry set to: %s", selected))
+
+	return nil
 }
