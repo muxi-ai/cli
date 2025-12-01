@@ -711,8 +711,8 @@ func addStreamToFormation(rootDir string, stream map[string]interface{}) error {
 	streamNode := mapToYAMLNode(stream)
 	streamsNode.Content = append(streamsNode.Content, streamNode)
 
-	// Write back
-	output, err := yaml.Marshal(&root)
+	// Write back with 2-space indentation
+	output, err := marshalYAML(&root)
 	if err != nil {
 		return fmt.Errorf("failed to marshal formation.yaml: %w", err)
 	}
@@ -766,8 +766,8 @@ func removeStreamFromFormation(rootDir string, idx int) error {
 		}
 	}
 
-	// Write back
-	output, err := yaml.Marshal(&root)
+	// Write back with 2-space indentation
+	output, err := marshalYAML(&root)
 	if err != nil {
 		return fmt.Errorf("failed to marshal formation.yaml: %w", err)
 	}

@@ -327,8 +327,8 @@ func updateSecurityRedirectInFormation(rootDir string, redirectURL string, messa
 		docNode.Content = append(docNode.Content, keyNode, userCredsNode)
 	}
 
-	// Write back
-	output, err := yaml.Marshal(&root)
+	// Write back with 2-space indentation
+	output, err := marshalYAML(&root)
 	if err != nil {
 		return fmt.Errorf("failed to marshal formation.yaml: %w", err)
 	}
@@ -413,8 +413,8 @@ func updateSecurityDynamicInFormation(rootDir string, redirectURL string) error 
 		docNode.Content = append(docNode.Content, keyNode, userCredsNode)
 	}
 
-	// Write back
-	output, err := yaml.Marshal(&root)
+	// Write back with 2-space indentation
+	output, err := marshalYAML(&root)
 	if err != nil {
 		return fmt.Errorf("failed to marshal formation.yaml: %w", err)
 	}
