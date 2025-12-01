@@ -41,7 +41,6 @@ func ConfigureSecurity() error {
 	currentMode := getCurrentSecurityValue(ctx.RootDir, "mode")
 
 	// Step 1: Credential mode selection
-	fmt.Println()
 	ui.Bold("User Credentials")
 	fmt.Println()
 	ui.Dimmed("  Controls how the formation handles credential requests from tools.")
@@ -78,62 +77,44 @@ func configureRedirectMode(rootDir string) error {
 	fmt.Println()
 	ui.Bold("Redirect Mode")
 	fmt.Println()
-	ui.Dimmed("  Users will be redirected to configure credentials on an external system.")
+	ui.Dimmed("  Users will be redirected to configure credentials on an external system,")
+	ui.Dimmed("  where you can collect credentials and store them securely using the SDKs.")
 	ui.Dimmed("  This is the recommended mode for production deployments.")
 	fmt.Println()
 
 	// Get current redirect message
 	currentMessage := getCurrentSecurityValue(rootDir, "redirect_message")
+	defaultMessage := "For security, please configure your credentials at <REDIRECT_URL>."
+
+	// Show default message hint if no current message
 	if currentMessage == "" {
-		currentMessage = "For security, credentials must be configured outside of this chat interface.\nPlease use your organization's credential management system."
+		ui.Dimmed("  Default: \"" + defaultMessage + "\"")
 	}
 
-	// Prompt for method to enter redirect message
-	methodOptions := []wizard.SelectOption{
-		{Value: "editor", Label: "Enter message in editor"},
-		{Value: "file", Label: "Load from file"},
-		{Value: "default", Label: "Use default message"},
+	// Prompt for custom message
+	ui.Dimmed("  Custom message to show when credentials are needed")
+	promptDefault := currentMessage
+	if promptDefault == "" {
+		promptDefault = defaultMessage
 	}
 
-	method, err := wizard.PromptSelect("  How would you like to set the redirect message?", methodOptions, 0)
+	message, err := wizard.PromptString("  Redirect message", promptDefault, nil)
 	if err != nil {
 		return err
 	}
-
-	var message string
-
-	switch method {
-	case "editor":
-		// Open editor with empty content
-		message, err = editInEditor("")
-		if err != nil {
-			return fmt.Errorf("failed to open editor: %w", err)
-		}
-		if message == "" {
-			message = currentMessage
-			ui.PromptSkipped("  Redirect message (using current)")
-		} else {
-			ui.PromptSuccess("  Redirect message", "updated via editor")
-		}
-
-	case "file":
-		filePath, err := wizard.PromptString("  Path to message file", "", nil)
-		if err != nil {
-			return err
-		}
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to read file: %w", err)
-		}
-		message = strings.TrimSpace(string(content))
-		ui.PromptSuccess("  Redirect message", fmt.Sprintf("loaded from %s", filePath))
-
-	case "default":
-		message = "For security, credentials must be configured outside of this chat interface.\nPlease use your organization's credential management system."
-		ui.PromptSuccess("  Redirect message", "using default")
-	}
+	ui.PromptSuccess("  Redirect message", truncateForDisplay(message, 50))
 
 	return updateSecurityRedirectInFormation(rootDir, message)
+}
+
+// truncateForDisplay truncates a string for display purposes
+func truncateForDisplay(s string, maxLen int) string {
+	// Replace newlines with spaces for display
+	s = strings.ReplaceAll(s, "\n", " ")
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }
 
 // configureDynamicMode handles Flow 2: Dynamic Mode (Development)

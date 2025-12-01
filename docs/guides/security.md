@@ -38,7 +38,7 @@ user_credentials:
 - Audit-friendly
 
 **Configuration options:**
-- **Redirect message** - Custom message shown to users (supports multi-line)
+- **Redirect message** - Custom message shown to users
 
 ---
 
