@@ -17,14 +17,14 @@ import (
 var commonTextModels = []string{
 	"openai/gpt-5",
 	"openai/gpt-5-mini",
-	"anthropic/claude-sonnet-4.5",
+	"anthropic/claude-sonnet-4-5",
 	"anthropic/claude-haiku-4.5",
 	"google/gemini-2.5-flash",
 }
 
 var commonVisionModels = []string{
 	"google/gemini-2.5-flash",
-	"anthropic/claude-sonnet-4.5",
+	"anthropic/claude-sonnet-4-5",
 	"openai/gpt-5",
 }
 
@@ -34,7 +34,7 @@ var commonAudioModels = []string{
 
 var commonDocumentModels = []string{
 	"openai/gpt-5",
-	"anthropic/claude-sonnet-4.5",
+	"anthropic/claude-sonnet-4-5",
 	"google/gemini-2.5-flash",
 }
 
@@ -944,16 +944,20 @@ func addAPIKeyToFormation(rootDir string, provider LLMProvider) error {
 		return err
 	}
 
-	contentStr := string(content)
 	keyLine := fmt.Sprintf("    %s: \"${{ secrets.%s }}\"", provider.Vendor, provider.SecretName)
 
-	// Check if this key is already configured
+	// Check if this key is already configured (not in comments)
+	lines := strings.Split(string(content), "\n")
 	secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
-	if strings.Contains(contentStr, secretRef) {
-		return nil // Already configured
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if strings.Contains(line, secretRef) {
+			return nil // Already configured
+		}
 	}
-
-	lines := strings.Split(contentStr, "\n")
 	var result []string
 	inLLM := false
 	addedKey := false
@@ -1022,8 +1026,8 @@ func addAPIKeyToFormation(rootDir string, provider LLMProvider) error {
 		result = append(result, keyLine)
 	}
 
-	contentStr = strings.Join(result, "\n")
-	return os.WriteFile(formationFile, []byte(contentStr), 0644)
+	output := strings.Join(result, "\n")
+	return os.WriteFile(formationFile, []byte(output), 0644)
 }
 
 func updateModelInFormation(rootDir, capability, model string) error {

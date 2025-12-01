@@ -85,7 +85,7 @@ Text Model
 Common models:
   ○ openai/gpt-5
   ○ openai/gpt-5-mini
-  ○ anthropic/claude-sonnet-4.5
+  ○ anthropic/claude-sonnet-4-5
   ○ anthropic/claude-haiku-4.5
   ○ google/gemini-2.5-flash
   ○ Other (enter)
@@ -102,7 +102,7 @@ Configure settings for this model? (y/N): y
   Max tokens [1000]: _
   Timeout (seconds) [30]: _
   Max retries [3]: _
-  Fallback model (optional): anthropic/claude-sonnet-4.5
+  Fallback model (optional): anthropic/claude-sonnet-4-5
 ```
 
 #### Vision Model:
@@ -112,7 +112,7 @@ Vision Model
 
 Common models:
   ○ google/gemini-2.5-flash
-  ○ anthropic/claude-sonnet-4.5
+  ○ anthropic/claude-sonnet-4-5
   ○ openai/gpt-5
   ○ Other (enter)
 
@@ -150,7 +150,7 @@ Documents Model
 
 Common models:
   ○ openai/gpt-5
-  ○ anthropic/claude-sonnet-4.5
+  ○ anthropic/claude-sonnet-4-5
   ○ google/gemini-2.5-flash
   ○ Other (enter)
 
@@ -193,7 +193,7 @@ Streaming Model
 
 Common models:
   ○ openai/gpt-5-mini
-  ○ anthropic/claude-sonnet-4.5
+  ○ anthropic/claude-sonnet-4-5
   ○ google/gemini-2.5-flash
   ○ Other (enter)
 
@@ -213,7 +213,7 @@ llm:
       settings:
         temperature: 0.7
         max_tokens: 1000
-        fallback_model: "anthropic/claude-sonnet-4.5"
+        fallback_model: "anthropic/claude-sonnet-4-5"
     - vision: "openai/gpt-5"
       settings:
         image:
