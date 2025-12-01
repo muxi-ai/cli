@@ -236,7 +236,7 @@ Check for existing env vars and offer to import:
 
 ## Validation
 
-- Valid URL format for HTTP destinations (auto-add https:// if missing)
+- URL validation for HTTP destinations (auto-add https://, validate host)
 - Valid broker format for Kafka (host:port)
 - Log level is one of: debug, info, warn, error
 

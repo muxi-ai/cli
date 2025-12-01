@@ -92,6 +92,30 @@ Examples:
 	},
 }
 
+var configLoggingCmd = &cobra.Command{
+	Use:   "logging",
+	Short: "Configure logging streams",
+	Long: `Configure logging streams in formation.yaml.
+
+This command provides an interactive wizard for:
+  - Adding log streams (stdout, file, http, kafka)
+  - Viewing and editing existing streams
+  - Removing streams
+
+Must be run inside a formation directory.
+
+Examples:
+  # Configure with interactive wizard
+  muxi config logging`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := scaffold.ConfigureLogging(); err != nil {
+			return fmt.Errorf("failed to configure logging: %w", err)
+		}
+		return nil
+	},
+}
+
 var configSecurityCmd = &cobra.Command{
 	Use:   "security",
 	Short: "Configure user credential handling",
@@ -157,6 +181,7 @@ func init() {
 	// Add subcommands to config
 	configCmd.AddCommand(configA2ACmd)
 	configCmd.AddCommand(configLLMCmd)
+	configCmd.AddCommand(configLoggingCmd)
 	configCmd.AddCommand(configMemoryCmd)
 	configCmd.AddCommand(configOverlordCmd)
 	configCmd.AddCommand(configSecurityCmd)
