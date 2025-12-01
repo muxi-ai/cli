@@ -83,13 +83,30 @@ func configureWorkingMemory(rootDir string) error {
 	ui.Dimmed("  Short-term vector memory for semantic search within a session.")
 	fmt.Println()
 
-	// Select mode
-	modeOptions := []wizard.SelectOption{
-		{Value: "local", Label: "Local (default, in-process)"},
-		{Value: "remote", Label: "Remote (FAISSx server)"},
+	// Check current mode
+	currentMode := getCurrentWorkingMemoryMode(rootDir)
+
+	// Select mode with [current] indicator
+	localLabel := "Local (default, in-process)"
+	remoteLabel := "Remote (FAISSx server)"
+	if currentMode == "local" {
+		localLabel += " [current]"
+	} else if currentMode == "remote" {
+		remoteLabel += " [current]"
 	}
 
-	mode, err := wizard.PromptSelect("  Select mode", modeOptions, 0)
+	modeOptions := []wizard.SelectOption{
+		{Value: "local", Label: localLabel},
+		{Value: "remote", Label: remoteLabel},
+	}
+
+	// Default selection to current mode
+	defaultIdx := 0
+	if currentMode == "remote" {
+		defaultIdx = 1
+	}
+
+	mode, err := wizard.PromptSelect("  Select mode", modeOptions, defaultIdx)
 	if err != nil {
 		return err
 	}
@@ -276,13 +293,30 @@ func configurePersistentMemory(rootDir string) error {
 	ui.Dimmed("  Long-term memory stored in a database, persists across sessions.")
 	fmt.Println()
 
-	// Select database type
-	dbOptions := []wizard.SelectOption{
-		{Value: "postgres", Label: "PostgreSQL (multi-user; requires PostgreSQL + pgvector)"},
-		{Value: "sqlite", Label: "SQLite (single-user; good for development)"},
+	// Check current database type
+	currentDbType := getCurrentPersistentMemoryType(rootDir)
+
+	// Select database type with [current] indicator
+	postgresLabel := "PostgreSQL (multi-user; requires PostgreSQL + pgvector)"
+	sqliteLabel := "SQLite (single-user; good for development)"
+	if currentDbType == "postgres" {
+		postgresLabel += " [current]"
+	} else if currentDbType == "sqlite" {
+		sqliteLabel += " [current]"
 	}
 
-	dbType, err := wizard.PromptSelect("  Select database type", dbOptions, 0)
+	dbOptions := []wizard.SelectOption{
+		{Value: "postgres", Label: postgresLabel},
+		{Value: "sqlite", Label: sqliteLabel},
+	}
+
+	// Default selection to current type
+	defaultIdx := 0
+	if currentDbType == "sqlite" {
+		defaultIdx = 1
+	}
+
+	dbType, err := wizard.PromptSelect("  Select database type", dbOptions, defaultIdx)
 	if err != nil {
 		return err
 	}
@@ -450,6 +484,51 @@ func validateNotEmpty(input string) error {
 }
 
 // Helper functions
+
+// getCurrentWorkingMemoryMode reads the current working memory mode from formation.yaml
+func getCurrentWorkingMemoryMode(rootDir string) string {
+	formationFile := filepath.Join(rootDir, "formation.yaml")
+	content, err := os.ReadFile(formationFile)
+	if err != nil {
+		return ""
+	}
+
+	// Look for mode under memory.working
+	modePattern := regexp.MustCompile(`(?m)^\s*working:\s*\n(?:.*\n)*?\s*mode:\s*"?(\w+)"?`)
+	matches := modePattern.FindStringSubmatch(string(content))
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
+}
+
+// getCurrentPersistentMemoryType reads the current persistent memory type from formation.yaml
+func getCurrentPersistentMemoryType(rootDir string) string {
+	formationFile := filepath.Join(rootDir, "formation.yaml")
+	content, err := os.ReadFile(formationFile)
+	if err != nil {
+		return ""
+	}
+
+	contentStr := string(content)
+
+	// Check for connection_string under memory.persistent
+	if strings.Contains(contentStr, "persistent:") {
+		// Look for connection string pattern
+		connPattern := regexp.MustCompile(`connection_string:\s*"?([^"\s\n]+)`)
+		matches := connPattern.FindStringSubmatch(contentStr)
+		if len(matches) > 1 {
+			connStr := matches[1]
+			if strings.HasPrefix(connStr, "sqlite") {
+				return "sqlite"
+			}
+			if strings.HasPrefix(connStr, "postgres") || strings.Contains(connStr, "PERSISTENT_DB") {
+				return "postgres"
+			}
+		}
+	}
+	return ""
+}
 
 // getEmbeddingVectorDimension reads the embedding model from formation.yaml and returns its dimension
 func getEmbeddingVectorDimension(rootDir string) (string, string) {
