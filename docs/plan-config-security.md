@@ -67,7 +67,7 @@ user_credentials:
 Dynamic Mode
 
   ⚠ Dynamic credential collection should only be used in development.
-  Credentials will be collected inline when tools request them.
+  User credentials will be collected inline when tools request them.
 
   Environments where dynamic mode is allowed (comma-separated)
   ✓ Allowed environments: development, staging
@@ -86,18 +86,10 @@ Dynamic Mode
 ```
 Encryption Settings
 
-  Credentials collected in dynamic mode are encrypted at rest.
+  User credentials collected in dynamic mode are encrypted at rest using Fernet.
+  An encryption key will be auto-generated and stored in secrets.
 
-  Encryption type
-    ◯ fernet (symmetric, recommended)
-    ◯ aes-256-gcm
-  ✓ Encryption: fernet
-
-  Encryption key (will be stored in secrets)
-  ✓ Saved USER_CREDENTIALS_ENCRYPTION_KEY to secrets
-
-  Custom salt for key derivation (optional, adds isolation)
-  ✓ Salt: (using default)
+  ✓ Generated USER_CREDENTIALS_ENCRYPTION_KEY
 ```
 
 **Output:**
@@ -109,9 +101,7 @@ user_credentials:
   credential_ttl_minutes: 60
   max_attempts: 3
   encryption:
-    type: "fernet"
     key: "${{ secrets.USER_CREDENTIALS_ENCRYPTION_KEY }}"
-    salt: "muxi-user-credentials-salt-v1"
 ```
 
 ---
@@ -141,9 +131,8 @@ Example:
 
 - Mode must be "redirect" or "dynamic"
 - allowed_environments: array of valid environment names
-- credential_ttl_minutes: positive integer
-- max_attempts: 1-10
-- Encryption type: fernet or aes-256-gcm
+- credential_ttl_minutes: positive integer (default: 60)
+- max_attempts: 1-10 (default: 3)
 
 ## Implementation Notes
 
@@ -154,7 +143,7 @@ Example:
 5. Default selection to current value when editing
 6. Use $EDITOR for multi-line redirect message
 7. Show warning about dynamic mode security implications
-8. Generate secure encryption key automatically if not provided
+8. Auto-generate Fernet encryption key (32 bytes, base64 encoded) for dynamic mode
 
 ## Security Considerations
 
