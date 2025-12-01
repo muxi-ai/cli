@@ -73,8 +73,8 @@ func ConfigureLLM() error {
 
 	// Step 1: What to configure
 	options := []wizard.SelectOption{
-		{Value: "api_key", Label: "Add/update API key for a provider"},
 		{Value: "capability", Label: "Configure model for a capability"},
+		{Value: "api_key", Label: "Add/update API key for a provider"},
 		{Value: "settings", Label: "Global LLM settings (temperature, tokens, caching)"},
 	}
 
@@ -161,21 +161,40 @@ func configureProviderAPIKey(rootDir string) error {
 	}
 	ui.PromptSuccess("Provider", selectedProvider.Name)
 
-	// Prompt for API key
+	// Build prompt label
 	fmt.Println()
 	var keyHint string
 	if selectedProvider.KeyPrefix != "" {
 		keyHint = fmt.Sprintf(" (starts with %s)", selectedProvider.KeyPrefix)
 	}
+	fmt.Printf("%s API Key%s:\n", selectedProvider.Name, keyHint)
 
-	apiKey, err := wizard.PromptPassword(fmt.Sprintf("%s API Key%s", selectedProvider.Name, keyHint), true)
-	if err != nil {
-		return err
+	var apiKey string
+
+	// Check for existing env var
+	envValue := os.Getenv(selectedProvider.SecretName)
+	if envValue != "" {
+		maskedEnv := maskAPIKey(envValue, selectedProvider.KeyPrefix)
+		useEnv, err := wizard.PromptConfirm(fmt.Sprintf("ℹ Found %s in environment [%s]. Use it?", selectedProvider.SecretName, maskedEnv), true)
+		if err != nil {
+			return err
+		}
+		if useEnv {
+			apiKey = envValue
+		}
 	}
 
+	// If not using env var, prompt for key
 	if apiKey == "" {
-		ui.PromptSkipped("API Key")
-		return nil
+		apiKey, err = wizard.PromptPassword("Enter key", true)
+		if err != nil {
+			return err
+		}
+
+		if apiKey == "" {
+			ui.PromptSkipped("API Key")
+			return nil
+		}
 	}
 
 	// Save to secrets
@@ -479,6 +498,20 @@ func getMaskedSecretPreview(rootDir, secretName string) string {
 	// Mask the value: show first 3 and last 4 chars
 	if len(value) <= 8 {
 		return strings.Repeat("*", len(value))
+	}
+	return value[:3] + "..." + value[len(value)-4:]
+}
+
+func maskAPIKey(value, prefix string) string {
+	if value == "" {
+		return ""
+	}
+	// Mask the value: show prefix (if matches) + last 4 chars
+	if len(value) <= 8 {
+		return strings.Repeat("*", len(value))
+	}
+	if prefix != "" && strings.HasPrefix(value, prefix) {
+		return prefix + "..." + value[len(value)-4:]
 	}
 	return value[:3] + "..." + value[len(value)-4:]
 }
