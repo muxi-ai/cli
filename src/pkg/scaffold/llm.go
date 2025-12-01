@@ -254,7 +254,7 @@ func configureModelCapability(rootDir string) error {
 
 	options := []wizard.SelectOption{
 		{Value: "text", Label: formatCapabilityOption("Text (main reasoning model)", textModel, "", false)},
-		{Value: "vision", Label: formatCapabilityOption("Vision (image understanding)", visionModel, textModel, true)},
+		{Value: "vision", Label: formatCapabilityOption("Vision (image/video understanding)", visionModel, textModel, true)},
 		{Value: "audio", Label: formatCapabilityOption("Audio (speech-to-text)", audioModel, textModel, true)},
 		{Value: "documents", Label: formatCapabilityOption("Documents (PDF/doc processing)", documentsModel, textModel, true)},
 		{Value: "embedding", Label: formatCapabilityOption("Embedding (vector search)", embeddingModel, embeddingFallback, false)},
@@ -1019,6 +1019,18 @@ func addAPIKeyToFormation(rootDir string, provider LLMProvider) error {
 	return os.WriteFile(formationFile, []byte(output), 0644)
 }
 
+// capabilityOrder defines the order of model capabilities in formation.yaml
+var capabilityOrder = []string{"text", "vision", "audio", "documents", "embedding", "streaming"}
+
+func getCapabilityIndex(cap string) int {
+	for i, c := range capabilityOrder {
+		if c == cap {
+			return i
+		}
+	}
+	return len(capabilityOrder) // Unknown capabilities go at the end
+}
+
 func updateModelInFormation(rootDir, capability, model string) error {
 	formationFile := filepath.Join(rootDir, "formation.yaml")
 	content, err := os.ReadFile(formationFile)
@@ -1037,38 +1049,61 @@ func updateModelInFormation(rootDir, capability, model string) error {
 		// Update existing capability
 		contentStr = re.ReplaceAllString(contentStr, fmt.Sprintf("- %s: \"%s\"", capability, model))
 	} else if strings.Contains(contentStr, "models:") {
-		// Add to existing models section
+		// Add to existing models section in correct order
 		lines := strings.Split(contentStr, "\n")
 		var result []string
+		inserted := false
+		inModels := false
+		newCapIdx := getCapabilityIndex(capability)
 
-		for _, line := range lines {
+		for i, line := range lines {
+			trimmed := strings.TrimSpace(line)
+
+			if trimmed == "models:" {
+				inModels = true
+				result = append(result, line)
+				continue
+			}
+
+			// Check if we're at a model line (starts with "    - ")
+			if inModels && strings.HasPrefix(line, "    - ") && !inserted {
+				// Extract capability from this line
+				capMatch := regexp.MustCompile(`-\s*(\w+):`).FindStringSubmatch(trimmed)
+				if len(capMatch) > 1 {
+					existingCap := capMatch[1]
+					existingIdx := getCapabilityIndex(existingCap)
+					
+					// If new capability should come before this one, insert here
+					if newCapIdx < existingIdx {
+						result = append(result, modelLine)
+						inserted = true
+					}
+				}
+			}
+
+			// Exit models section if we hit something that's not indented enough
+			if inModels && len(line) > 0 && !strings.HasPrefix(line, "    ") && !strings.HasPrefix(line, "  ") && trimmed != "" {
+				// Before exiting, insert if not yet inserted
+				if !inserted {
+					result = append(result, modelLine)
+					inserted = true
+				}
+				inModels = false
+			}
+
 			result = append(result, line)
-			if strings.TrimSpace(line) == "models:" {
+
+			// If at end of file and still in models, check if we need to insert
+			if inModels && i == len(lines)-1 && !inserted {
 				result = append(result, modelLine)
+				inserted = true
 			}
 		}
 
 		contentStr = strings.Join(result, "\n")
 	} else if strings.Contains(contentStr, "llm:") {
 		// Add models section to existing llm section
-		lines := strings.Split(contentStr, "\n")
-		var result []string
-		addedModels := false
-
-		for _, line := range lines {
-			result = append(result, line)
-			if strings.TrimSpace(line) == "llm:" && !addedModels {
-				// Check if next lines have api_keys - add after that section
-				addedModels = true
-			}
-		}
-
-		// Find the right place to insert (after api_keys if present)
-		contentStr = strings.Join(result, "\n")
-		if !strings.Contains(contentStr, "models:") {
-			// Simple append after llm section
-			contentStr = strings.Replace(contentStr, "llm:\n", fmt.Sprintf("llm:\n  models:\n%s\n", modelLine), 1)
-		}
+		contentStr = strings.Replace(contentStr, "llm:\n", fmt.Sprintf("llm:\n  models:\n%s\n", modelLine), 1)
 	} else {
 		// Add new llm section with models
 		contentStr += fmt.Sprintf("\nllm:\n  models:\n%s\n", modelLine)
