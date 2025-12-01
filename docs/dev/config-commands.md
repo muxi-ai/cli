@@ -7,6 +7,7 @@ This document covers the implementation patterns for `muxi config *` commands.
 | Command | Description | File |
 |---------|-------------|------|
 | `muxi config a2a` | Agent-to-Agent communication | `components.go` |
+| `muxi config async` | Async response settings | `async.go` |
 | `muxi config llm` | LLM providers and models | `llm.go` |
 | `muxi config logging` | Logging streams | `logging.go` |
 | `muxi config memory` | Memory configuration | `memory.go` |
@@ -177,6 +178,7 @@ if err := validateURL(destination); err != nil {
 ```
 src/pkg/scaffold/
 ├── yaml.go          # YAML formatting helpers
+├── async.go         # muxi config async
 ├── logging.go       # muxi config logging
 ├── security.go      # muxi config security  
 ├── memory.go        # muxi config memory

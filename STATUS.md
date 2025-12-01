@@ -82,53 +82,56 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 
 ### Latest Changes (2025-12-01)
 
-1. ✅ **`muxi validate` Command:**
-   - Validates formation.yaml structure and required fields
-   - Checks server config (port range, API keys)
-   - Checks LLM config (api_keys, models)
-   - Validates secret references exist
-   - Validates agent files (id, role)
-   - Validates MCP files (id, transport)
-   - Shows errors and warnings with helpful messages
+1. ✅ **`muxi config async` Command:**
+   - Configure async response settings for long-running tasks
+   - Settings: threshold, webhook URL, retry count/delay
+   - Enable/disable async responses
+   - User guide: `docs/guides/async.md`
 
-2. ✅ **`muxi config logging` Command Complete:**
+2. ✅ **`muxi validate` Command:**
+   - Validates formation.yaml structure and required fields
+   - Checks secret references exist
+   - Validates agent and MCP files
+   - Clean error/warning output with dimmed hints
+
+3. ✅ **`muxi secrets sync` Improvements:**
+   - Colored diff output (green +, red -)
+   - Auto-prompts for newly added secrets
+   - Cleaner output format
+
+4. ✅ **`muxi config logging` Command Complete:**
    - Four transports: stdout, file, http, kafka
    - HTTP: Support for Datadog, Splunk, Elastic, Loki, etc.
    - Multiple auth types: bearer, API key, basic auth, SASL
    - Add/view/remove streams
    - User guide created: `docs/guides/logging.md`
 
-3. ✅ **YAML Formatting & UX Improvements:**
+5. ✅ **YAML Formatting & UX Improvements:**
    - Password masking for all sensitive inputs (tokens, keys, passwords)
    - 2-space YAML indentation (standard convention)
    - Blank lines before top-level keys for readability
    - Blank lines before second-level keys with children
    - Auto-remove commented sections when real config is added
-   - "Additional configuration" section always at bottom
    - Developer guide: `docs/dev/config-commands.md`
 
-4. ✅ **`muxi config security` Command Complete:**
+6. ✅ **`muxi config security` Command Complete:**
    - Two modes: Redirect (production) and Dynamic (development)
-   - URL validation, user-provided or auto-generated encryption key
-   - User guide created: `docs/guides/security.md`
+   - User guide: `docs/guides/security.md`
 
-5. ✅ **`muxi config overlord` Command Complete:**
-   - Four flows: Persona, Response options, Workflow behavior, Clarification
-   - Persona: Edit via $EDITOR or load from file
-   - [current] indicators for existing values
-   - User guide created: `docs/guides/overlord.md`
+7. ✅ **`muxi config overlord` Command Complete:**
+   - Four flows: Persona, Response, Workflow, Clarification
+   - User guide: `docs/guides/overlord.md`
 
-6. ✅ **`muxi config memory` Command Complete:**
-   - Three flows: Working memory, Buffer memory, Persistent memory
-   - Vector dimension auto-detected from embedding model
-   - User guide created: `docs/guides/memory.md`
+8. ✅ **`muxi config memory` Command Complete:**
+   - Three flows: Working, Buffer, Persistent memory
+   - User guide: `docs/guides/memory.md`
 
-7. ✅ **`muxi config llm` Command Complete:**
-   - Environment variable detection for API keys
-   - User guide created: `docs/guides/llm.md`
+9. ✅ **`muxi config llm` Command Complete:**
+   - User guide: `docs/guides/llm.md`
 
-8. ✅ **User Guides (docs/guides/):**
-   - `logging.md` - Logging configuration guide (NEW)
+10. ✅ **User Guides (docs/guides/):**
+   - `async.md` - Async response configuration (NEW)
+   - `logging.md` - Logging configuration guide
    - `security.md` - Security configuration guide
    - `overlord.md` - Overlord configuration guide
    - `memory.md` - Memory configuration guide
