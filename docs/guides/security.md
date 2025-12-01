@@ -27,9 +27,7 @@ In redirect mode, when MCP tools or services request credentials, users are show
 ```yaml
 user_credentials:
   mode: "redirect"
-  redirect_message: |
-    For security, credentials must be configured outside of this chat interface.
-    Please use your organization's credential management system.
+  redirect_url: "https://example.com/credentials"
 ```
 
 **Benefits:**
@@ -38,7 +36,8 @@ user_credentials:
 - Audit-friendly
 
 **Configuration options:**
-- **Redirect message** - Custom message shown to users
+- **Redirect URL** - URL where users configure their credentials
+- **Redirect message** (optional) - Custom message shown to users (runtime generates default)
 
 ---
 
@@ -49,6 +48,7 @@ In dynamic mode, credentials are collected inline when tools request them. Crede
 ```yaml
 user_credentials:
   mode: "dynamic"
+  redirect_url: "https://example.com/credentials"
   allowed_environments: ["development", "staging"]
   require_https: true
   credential_ttl_minutes: 60
@@ -61,6 +61,7 @@ user_credentials:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| `redirect_url` | - | Fallback URL when not in allowed environment |
 | `allowed_environments` | development, staging | Environments where dynamic mode works |
 | `require_https` | true | Require HTTPS for credential collection |
 | `credential_ttl_minutes` | 60 | How long to cache credentials |
@@ -89,16 +90,15 @@ user_credentials:
 ```bash
 muxi config security
 # Select: Redirect
-# Enter custom message or use default
+# Enter redirect URL
+# Keep default message or enter custom
 ```
 
 Result:
 ```yaml
 user_credentials:
   mode: "redirect"
-  redirect_message: |
-    Please configure your API credentials at https://admin.example.com/credentials
-    Contact IT support if you need assistance.
+  redirect_url: "https://admin.example.com/credentials"
 ```
 
 ### Development Setup (Dynamic)
@@ -106,6 +106,7 @@ user_credentials:
 ```bash
 muxi config security
 # Select: Dynamic
+# Enter fallback redirect URL
 # Configure environments, HTTPS, TTL, max attempts
 ```
 
@@ -113,6 +114,7 @@ Result:
 ```yaml
 user_credentials:
   mode: "dynamic"
+  redirect_url: "https://admin.example.com/credentials"
   allowed_environments: ["development", "staging"]
   require_https: true
   credential_ttl_minutes: 60

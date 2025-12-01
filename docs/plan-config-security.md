@@ -43,20 +43,31 @@ Redirect Mode
   where you can collect credentials and store them securely using the SDKs.
   This is the recommended mode for production deployments.
 
-  Custom message to show when credentials are needed
-  ✓ Redirect message: <CURRENT>
+  URL where users configure their credentials
+  ✓ Redirect URL: https://example.com/credentials
 
-  Default message:  # ONLY SHOW IF CURRENT IS EMPTY
-    "For security, please configure your credentials at <REDIRECT_URL>."
+  Custom message to show when credentials are needed (optional)
+
+  Current (default):
+    Runtime generates: "For security, please configure your credentials at <URL>."
+
+  Redirect message [keep current]:
+  ✓ Redirect message: using default
 ```
 
-**Output:**
+**Output (with default message):**
 ```yaml
 user_credentials:
   mode: "redirect"
-  redirect_message: |
-    For security, credentials must be configured outside of this chat interface.
-    Please use your organization's credential management system.
+  redirect_url: "https://example.com/credentials"
+```
+
+**Output (with custom message):**
+```yaml
+user_credentials:
+  mode: "redirect"
+  redirect_url: "https://example.com/credentials"
+  redirect_message: "Please configure your API keys in your account settings."
 ```
 
 ---
@@ -68,6 +79,9 @@ Dynamic Mode
 
   ⚠ Dynamic credential collection should only be used in development.
   User credentials will be collected inline when tools request them.
+
+  Fallback URL when dynamic mode is not allowed in current environment
+  ✓ Redirect URL: https://example.com/credentials
 
   Environments where dynamic mode is allowed (comma-separated)
   ✓ Allowed environments: development, staging
@@ -96,6 +110,7 @@ Encryption Settings
 ```yaml
 user_credentials:
   mode: "dynamic"
+  redirect_url: "https://example.com/credentials"
   allowed_environments: ["development", "staging"]
   require_https: true
   credential_ttl_minutes: 60

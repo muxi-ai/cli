@@ -82,39 +82,52 @@ func configureRedirectMode(rootDir string) error {
 	ui.Dimmed("  This is the recommended mode for production deployments.")
 	fmt.Println()
 
-	ui.Dimmed("  Custom message to show when credentials are needed")
+	// Get current values
+	currentURL := getCurrentSecurityValue(rootDir, "redirect_url")
+	currentMessage := getCurrentSecurityValue(rootDir, "redirect_message")
+
+	// Redirect URL
+	ui.Dimmed("  URL where users configure their credentials")
+	urlDefault := currentURL
+	if urlDefault == "" {
+		urlDefault = "https://example.com/credentials"
+	}
+	redirectURL, err := wizard.PromptString("  Redirect URL", urlDefault, nil)
+	if err != nil {
+		return err
+	}
+	ui.PromptSuccess("  Redirect URL", redirectURL)
+
+	// Custom message (optional)
+	ui.Dimmed("  Custom message to show when credentials are needed (optional)")
 	fmt.Println()
 
-	// Get current redirect message
-	currentMessage := getCurrentSecurityValue(rootDir, "redirect_message")
-	defaultMessage := "For security, please configure your credentials at <REDIRECT_URL>."
-
-	// Show current or default message
-	displayMessage := currentMessage
 	if currentMessage == "" {
 		ui.Dimmed("  Current (default):")
-		displayMessage = defaultMessage
+		ui.Dimmed("    Runtime generates: \"For security, please configure your credentials at <URL>.\"")
 	} else {
 		ui.Dimmed("  Current:")
+		ui.Dimmed("    \"" + currentMessage + "\"")
 	}
-	ui.Dimmed("    \"" + displayMessage + "\"")
 	fmt.Println()
 
-	// Prompt for new message
 	message, err := wizard.PromptString("  Redirect message [keep current]", "", nil)
 	if err != nil {
 		return err
 	}
 
-	// If empty, keep current/default
 	if message == "" {
-		message = displayMessage
-		ui.PromptSuccess("  Redirect message", "kept current")
+		if currentMessage == "" {
+			ui.PromptSuccess("  Redirect message", "using default")
+		} else {
+			message = currentMessage
+			ui.PromptSuccess("  Redirect message", "kept current")
+		}
 	} else {
 		ui.PromptSuccess("  Redirect message", truncateForDisplay(message, 50))
 	}
 
-	return updateSecurityRedirectInFormation(rootDir, message)
+	return updateSecurityRedirectInFormation(rootDir, redirectURL, message)
 }
 
 // truncateForDisplay truncates a string for display purposes
@@ -137,10 +150,23 @@ func configureDynamicMode(rootDir string) error {
 	fmt.Println()
 
 	// Get current values
+	currentURL := getCurrentSecurityValue(rootDir, "redirect_url")
 	currentEnvs := getCurrentSecurityValue(rootDir, "allowed_environments")
 	currentHTTPS := getCurrentSecurityValue(rootDir, "require_https")
 	currentTTL := getCurrentSecurityValue(rootDir, "credential_ttl_minutes")
 	currentAttempts := getCurrentSecurityValue(rootDir, "max_attempts")
+
+	// Redirect URL (for fallback when dynamic mode not allowed in current env)
+	ui.Dimmed("  Fallback URL when dynamic mode is not allowed in current environment")
+	urlDefault := currentURL
+	if urlDefault == "" {
+		urlDefault = "https://example.com/credentials"
+	}
+	redirectURL, err := wizard.PromptString("  Redirect URL", urlDefault, nil)
+	if err != nil {
+		return err
+	}
+	ui.PromptSuccess("  Redirect URL", redirectURL)
 
 	// Allowed environments
 	ui.Dimmed("  Environments where dynamic mode is allowed (comma-separated)")
@@ -219,7 +245,7 @@ func configureDynamicMode(rootDir string) error {
 	ttlInt, _ := strconv.Atoi(ttl)
 	attemptsInt, _ := strconv.Atoi(attempts)
 
-	return updateSecurityDynamicInFormation(rootDir, envList, requireHTTPS, ttlInt, attemptsInt)
+	return updateSecurityDynamicInFormation(rootDir, redirectURL, envList, requireHTTPS, ttlInt, attemptsInt)
 }
 
 // generateFernetKey generates a 32-byte Fernet-compatible key
@@ -294,7 +320,7 @@ func getCurrentSecurityValue(rootDir string, key string) string {
 }
 
 // updateSecurityRedirectInFormation updates formation.yaml with redirect mode settings
-func updateSecurityRedirectInFormation(rootDir string, message string) error {
+func updateSecurityRedirectInFormation(rootDir string, redirectURL string, message string) error {
 	formationPath := filepath.Join(rootDir, "formation.yaml")
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
@@ -316,7 +342,7 @@ func updateSecurityRedirectInFormation(rootDir string, message string) error {
 	}
 
 	// Build user_credentials node
-	userCredsNode := buildRedirectNode(message)
+	userCredsNode := buildRedirectNode(redirectURL, message)
 
 	// Find or create user_credentials
 	found := false
@@ -349,7 +375,7 @@ func updateSecurityRedirectInFormation(rootDir string, message string) error {
 }
 
 // buildRedirectNode creates the user_credentials node for redirect mode
-func buildRedirectNode(message string) *yaml.Node {
+func buildRedirectNode(redirectURL string, message string) *yaml.Node {
 	node := &yaml.Node{Kind: yaml.MappingNode}
 
 	// mode
@@ -358,21 +384,29 @@ func buildRedirectNode(message string) *yaml.Node {
 		&yaml.Node{Kind: yaml.ScalarNode, Value: "redirect"},
 	)
 
-	// redirect_message (literal block style for multi-line)
-	msgNode := &yaml.Node{Kind: yaml.ScalarNode, Value: message}
-	if strings.Contains(message, "\n") {
-		msgNode.Style = yaml.LiteralStyle
-	}
+	// redirect_url
 	node.Content = append(node.Content,
-		&yaml.Node{Kind: yaml.ScalarNode, Value: "redirect_message"},
-		msgNode,
+		&yaml.Node{Kind: yaml.ScalarNode, Value: "redirect_url"},
+		&yaml.Node{Kind: yaml.ScalarNode, Value: redirectURL},
 	)
+
+	// redirect_message (only if custom message provided)
+	if message != "" {
+		msgNode := &yaml.Node{Kind: yaml.ScalarNode, Value: message}
+		if strings.Contains(message, "\n") {
+			msgNode.Style = yaml.LiteralStyle
+		}
+		node.Content = append(node.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "redirect_message"},
+			msgNode,
+		)
+	}
 
 	return node
 }
 
 // updateSecurityDynamicInFormation updates formation.yaml with dynamic mode settings
-func updateSecurityDynamicInFormation(rootDir string, envs []string, requireHTTPS bool, ttl int, maxAttempts int) error {
+func updateSecurityDynamicInFormation(rootDir string, redirectURL string, envs []string, requireHTTPS bool, ttl int, maxAttempts int) error {
 	formationPath := filepath.Join(rootDir, "formation.yaml")
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
@@ -394,7 +428,7 @@ func updateSecurityDynamicInFormation(rootDir string, envs []string, requireHTTP
 	}
 
 	// Build user_credentials node
-	userCredsNode := buildDynamicNode(envs, requireHTTPS, ttl, maxAttempts)
+	userCredsNode := buildDynamicNode(redirectURL, envs, requireHTTPS, ttl, maxAttempts)
 
 	// Find or create user_credentials
 	found := false
@@ -427,13 +461,19 @@ func updateSecurityDynamicInFormation(rootDir string, envs []string, requireHTTP
 }
 
 // buildDynamicNode creates the user_credentials node for dynamic mode
-func buildDynamicNode(envs []string, requireHTTPS bool, ttl int, maxAttempts int) *yaml.Node {
+func buildDynamicNode(redirectURL string, envs []string, requireHTTPS bool, ttl int, maxAttempts int) *yaml.Node {
 	node := &yaml.Node{Kind: yaml.MappingNode}
 
 	// mode
 	node.Content = append(node.Content,
 		&yaml.Node{Kind: yaml.ScalarNode, Value: "mode"},
 		&yaml.Node{Kind: yaml.ScalarNode, Value: "dynamic"},
+	)
+
+	// redirect_url (fallback when not in allowed environment)
+	node.Content = append(node.Content,
+		&yaml.Node{Kind: yaml.ScalarNode, Value: "redirect_url"},
+		&yaml.Node{Kind: yaml.ScalarNode, Value: redirectURL},
 	)
 
 	// allowed_environments
