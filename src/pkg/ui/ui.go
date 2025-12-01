@@ -84,7 +84,15 @@ func Bold(message string) {
 
 // PromptSuccess shows a prompt with successful input (Next.js style)
 // Example: ✓ Formation name: my-bot
+// Supports leading spaces in prompt for indentation: "  Temperature" -> "  ✓ Temperature: 0.7"
 func PromptSuccess(prompt, value string) {
+	indent := ""
+	trimmed := strings.TrimLeft(prompt, " ")
+	if len(trimmed) < len(prompt) {
+		indent = prompt[:len(prompt)-len(trimmed)]
+		prompt = trimmed
+	}
+	fmt.Print(indent)
 	green.Printf("%s ", SymbolSuccess)
 	fmt.Printf("%s: ", prompt)
 	bold.Println(value)
@@ -113,7 +121,15 @@ func PromptError(prompt, value string, err error) {
 
 // PromptSkipped shows a prompt that was skipped
 // Example: ⊘ Description: skipped
+// Supports leading spaces in prompt for indentation
 func PromptSkipped(prompt string) {
+	indent := ""
+	trimmed := strings.TrimLeft(prompt, " ")
+	if len(trimmed) < len(prompt) {
+		indent = prompt[:len(prompt)-len(trimmed)]
+		prompt = trimmed
+	}
+	fmt.Print(indent)
 	cyan.Printf("%s ", SymbolSkipped)
 	fmt.Printf("%s: ", prompt)
 	dimmed.Println("skipped")

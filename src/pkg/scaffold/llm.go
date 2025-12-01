@@ -364,7 +364,7 @@ func configureModelSettings(rootDir, capability, model string) error {
 	ui.PromptSuccess("Temperature", tempStr)
 
 	// Max tokens
-	tokensStr, err := wizard.PromptString("Max tokens", "1000", validatePositiveInt)
+	tokensStr, err := wizard.PromptString("Max tokens", "4096", validatePositiveInt)
 	if err != nil {
 		return err
 	}
@@ -404,81 +404,90 @@ func configureGlobalSettings(rootDir string) error {
 	fmt.Println()
 	ui.Bold("Global LLM Settings")
 	fmt.Println()
-	ui.Dimmed("These are defaults applied to all models unless overridden.")
+	ui.Dimmed("  These are defaults applied to all models unless overridden.")
 	fmt.Println()
 
 	// Temperature
-	tempStr, err := wizard.PromptString("Temperature (0.0-1.0)", "0.7", validateTemperature)
+	ui.Dimmed("  Controls randomness: 0 = deterministic, 1 = creative")
+	tempStr, err := wizard.PromptString("  Temperature (0.0-1.0)", "0.7", validateTemperature)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Temperature", tempStr)
+	ui.PromptSuccess("  Temperature", tempStr)
 
 	// Max tokens
-	tokensStr, err := wizard.PromptString("Max tokens", "1000", validatePositiveInt)
+	ui.Dimmed("  Maximum response length in tokens")
+	tokensStr, err := wizard.PromptString("  Max tokens", "4096", validatePositiveInt)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Max tokens", tokensStr)
+	ui.PromptSuccess("  Max tokens", tokensStr)
 
 	// Timeout
-	timeoutStr, err := wizard.PromptString("Timeout (seconds)", "30", validatePositiveInt)
+	ui.Dimmed("  Request timeout before retry or failure")
+	timeoutStr, err := wizard.PromptString("  Timeout (seconds)", "30", validatePositiveInt)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Timeout", timeoutStr)
+	ui.PromptSuccess("  Timeout", timeoutStr)
 
 	// Max retries
-	retriesStr, err := wizard.PromptString("Max retries", "3", validatePositiveInt)
+	ui.Dimmed("  Number of retry attempts on failure")
+	retriesStr, err := wizard.PromptString("  Max retries", "3", validatePositiveInt)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Max retries", retriesStr)
+	ui.PromptSuccess("  Max retries", retriesStr)
 
 	// Fallback model
-	fallbackModel, err := wizard.PromptString("Default fallback model (optional)", "", nil)
+	ui.Dimmed("  Model to use if primary fails (e.g., openai/gpt-4o-mini)")
+	fallbackModel, err := wizard.PromptString("  Default fallback model (optional)", "", nil)
 	if err != nil {
 		return err
 	}
 	if fallbackModel != "" {
-		ui.PromptSuccess("Default fallback model", fallbackModel)
+		ui.PromptSuccess("  Default fallback model", fallbackModel)
 	} else {
-		ui.PromptSkipped("Default fallback model")
+		ui.PromptSkipped("  Default fallback model")
 	}
 
 	// Response caching
 	fmt.Println()
 	ui.Bold("Response Caching")
 	fmt.Println()
+	ui.Dimmed("  Cache similar requests to reduce API costs and latency")
 
-	enableCaching, err := wizard.PromptConfirm("Enable response caching?", true)
+	enableCaching, err := wizard.PromptConfirm("  Enable response caching?", true)
 	if err != nil {
 		return err
 	}
 
 	var maxEntries, similarityThreshold, cacheTTL string
 	if enableCaching {
-		ui.PromptSuccess("Caching", "enabled")
+		ui.PromptSuccess("  Caching", "enabled")
 
-		maxEntries, err = wizard.PromptString("Max cache entries", "10000", validatePositiveInt)
+		ui.Dimmed("  Maximum number of cached responses")
+		maxEntries, err = wizard.PromptString("  Max cache entries", "10000", validatePositiveInt)
 		if err != nil {
 			return err
 		}
-		ui.PromptSuccess("Max entries", maxEntries)
+		ui.PromptSuccess("  Max entries", maxEntries)
 
-		similarityThreshold, err = wizard.PromptString("Similarity threshold (0.0-1.0)", "0.95", validateTemperature)
+		ui.Dimmed("  How similar requests must be to hit cache (0.95 = 95% similar)")
+		similarityThreshold, err = wizard.PromptString("  Similarity threshold (0.0-1.0)", "0.95", validateTemperature)
 		if err != nil {
 			return err
 		}
-		ui.PromptSuccess("Similarity threshold", similarityThreshold)
+		ui.PromptSuccess("  Similarity threshold", similarityThreshold)
 
-		cacheTTL, err = wizard.PromptString("Cache TTL (seconds)", "86400", validatePositiveInt)
+		ui.Dimmed("  How long to keep cached responses (86400 = 24 hours)")
+		cacheTTL, err = wizard.PromptString("  Cache TTL (seconds)", "86400", validatePositiveInt)
 		if err != nil {
 			return err
 		}
-		ui.PromptSuccess("Cache TTL", cacheTTL)
+		ui.PromptSuccess("  Cache TTL", cacheTTL)
 	} else {
-		ui.PromptSkipped("Caching")
+		ui.PromptSkipped("  Caching")
 	}
 
 	// Update formation.yaml
@@ -719,8 +728,10 @@ func updateGlobalSettingsInFormation(rootDir, temp, tokens, timeout, retries, fa
 		settingsYAML.WriteString(fmt.Sprintf("      ttl: %s\n", ttl))
 	}
 
-	// Check if settings section exists
-	if strings.Contains(contentStr, "llm:") && strings.Contains(contentStr, "settings:") {
+	// Check if settings section exists under llm (not in comments)
+	// Look for "  settings:" at proper indentation (not "# settings:" in comments)
+	hasLLMSettings := regexp.MustCompile(`(?m)^llm:[\s\S]*?\n  settings:`).MatchString(contentStr)
+	if hasLLMSettings {
 		// Replace existing settings - complex, for now just append
 		ui.Warning("Settings section exists - please update manually")
 		fmt.Println(settingsYAML.String())
