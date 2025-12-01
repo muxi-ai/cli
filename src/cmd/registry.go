@@ -72,6 +72,51 @@ var showCmd = &cobra.Command{
 	RunE:  runShow,
 }
 
+// registryCmd is the parent command for registry subcommands
+var registryCmd = &cobra.Command{
+	Use:   "registry",
+	Short: "Registry commands",
+	Long:  "Commands for interacting with the MUXI registry",
+}
+
+// Subcommand aliases for muxi registry *
+var (
+	registryLoginCmd = &cobra.Command{
+		Use:   "login",
+		Short: "Authenticate with the registry",
+		RunE:  runLogin,
+	}
+	registryLogoutCmd = &cobra.Command{
+		Use:   "logout [registry]",
+		Short: "Remove registry credentials",
+		Args:  cobra.MaximumNArgs(1),
+		RunE:  runLogout,
+	}
+	registryPushCmd = &cobra.Command{
+		Use:   "push",
+		Short: "Publish formation to registry",
+		RunE:  runPush,
+	}
+	registryPullCmd = &cobra.Command{
+		Use:   "pull <@user/formation[:version]>",
+		Short: "Download formation from registry",
+		Args:  cobra.ExactArgs(1),
+		RunE:  runPull,
+	}
+	registrySearchCmd = &cobra.Command{
+		Use:   "search <query>",
+		Short: "Search for formations",
+		Args:  cobra.ExactArgs(1),
+		RunE:  runSearch,
+	}
+	registryShowCmd = &cobra.Command{
+		Use:   "show <@user/formation[:version]>",
+		Short: "Display formation details",
+		Args:  cobra.ExactArgs(1),
+		RunE:  runShow,
+	}
+)
+
 func init() {
 	// Login flags
 	loginCmd.Flags().String("registry", "", "Registry to authenticate with")
@@ -97,13 +142,38 @@ func init() {
 	showCmd.Flags().Bool("versions", false, "Show all versions")
 	showCmd.Flags().String("registry", "", "Registry to query")
 
-	// Register commands
+	// Register top-level commands
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(pushCmd)
 	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(showCmd)
+
+	// Register registry parent command with subcommands as aliases
+	rootCmd.AddCommand(registryCmd)
+
+	// Add flags to registry subcommands (same as top-level)
+	registryLoginCmd.Flags().String("registry", "", "Registry to authenticate with")
+	registryPushCmd.Flags().String("org", "", "Publish to organization")
+	registryPushCmd.Flags().Bool("dry-run", false, "Show what would be published")
+	registryPushCmd.Flags().String("registry", "", "Registry to publish to")
+	registryPullCmd.Flags().StringP("output", "o", "", "Output directory")
+	registryPullCmd.Flags().Bool("force", false, "Overwrite existing directory")
+	registryPullCmd.Flags().String("registry", "", "Registry to pull from")
+	registrySearchCmd.Flags().String("sort", "relevance", "Sort by: relevance, downloads, stars, updated")
+	registrySearchCmd.Flags().Int("limit", 20, "Maximum results (1-100)")
+	registrySearchCmd.Flags().String("registry", "", "Registry to search")
+	registryShowCmd.Flags().Bool("versions", false, "Show all versions")
+	registryShowCmd.Flags().String("registry", "", "Registry to query")
+
+	// Register subcommands under registry
+	registryCmd.AddCommand(registryLoginCmd)
+	registryCmd.AddCommand(registryLogoutCmd)
+	registryCmd.AddCommand(registryPushCmd)
+	registryCmd.AddCommand(registryPullCmd)
+	registryCmd.AddCommand(registrySearchCmd)
+	registryCmd.AddCommand(registryShowCmd)
 }
 
 // runLogin handles the login command
