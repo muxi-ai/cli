@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
@@ -183,15 +182,11 @@ func configureDynamicMode(rootDir string) error {
 	ui.Dimmed("  User credentials will be collected inline when tools request them.")
 	fmt.Println()
 
-	// Get current values
+	// Get current URL
 	currentURL := getCurrentSecurityValue(rootDir, "redirect_url")
-	currentEnvs := getCurrentSecurityValue(rootDir, "allowed_environments")
-	currentHTTPS := getCurrentSecurityValue(rootDir, "require_https")
-	currentTTL := getCurrentSecurityValue(rootDir, "credential_ttl_minutes")
-	currentAttempts := getCurrentSecurityValue(rootDir, "max_attempts")
 
-	// Redirect URL (for fallback when dynamic mode not allowed in current env)
-	ui.Dimmed("  Fallback URL when dynamic mode is not allowed in current environment")
+	// Redirect URL (for fallback)
+	ui.Dimmed("  Fallback URL when dynamic mode is not available")
 	urlDefault := currentURL
 	if urlDefault == "" {
 		urlDefault = "https://example.com/credentials"
@@ -210,55 +205,6 @@ func configureDynamicMode(rootDir string) error {
 		break
 	}
 	ui.PromptSuccess("  Redirect URL", redirectURL)
-
-	// Allowed environments
-	ui.Dimmed("  Environments where dynamic mode is allowed (comma-separated)")
-	envsDefault := "development, staging"
-	if currentEnvs != "" {
-		envsDefault = currentEnvs
-	}
-	envs, err := wizard.PromptString("  Allowed environments", envsDefault, nil)
-	if err != nil {
-		return err
-	}
-	ui.PromptSuccess("  Allowed environments", envs)
-
-	// Require HTTPS
-	ui.Dimmed("  Require HTTPS for credential collection (recommended)")
-	httpsDefault := currentHTTPS != "false"
-	requireHTTPS, err := wizard.PromptConfirm("  Require HTTPS?", httpsDefault)
-	if err != nil {
-		return err
-	}
-	if requireHTTPS {
-		ui.PromptSuccess("  Require HTTPS", "enabled")
-	} else {
-		ui.PromptSkipped("  Require HTTPS")
-	}
-
-	// Credential TTL
-	ui.Dimmed("  How long to cache collected credentials (minutes)")
-	ttlDefault := "60"
-	if currentTTL != "" {
-		ttlDefault = currentTTL
-	}
-	ttl, err := wizard.PromptString("  Credential TTL", ttlDefault, validatePositiveInt)
-	if err != nil {
-		return err
-	}
-	ui.PromptSuccess("  Credential TTL", ttl+" minutes")
-
-	// Max attempts
-	ui.Dimmed("  Maximum failed auth attempts before lockout (1-10)")
-	attemptsDefault := "3"
-	if currentAttempts != "" {
-		attemptsDefault = currentAttempts
-	}
-	attempts, err := wizard.PromptString("  Max attempts", attemptsDefault, validateMaxAttempts)
-	if err != nil {
-		return err
-	}
-	ui.PromptSuccess("  Max attempts", attempts)
 
 	// Encryption settings
 	fmt.Println()
@@ -281,14 +227,7 @@ func configureDynamicMode(rootDir string) error {
 	}
 	ui.PromptSuccess("  Generated", "USER_CREDENTIALS_ENCRYPTION_KEY")
 
-	// Parse environments into array
-	envList := parseEnvironmentList(envs)
-
-	// Convert TTL and attempts to int
-	ttlInt, _ := strconv.Atoi(ttl)
-	attemptsInt, _ := strconv.Atoi(attempts)
-
-	return updateSecurityDynamicInFormation(rootDir, redirectURL, envList, requireHTTPS, ttlInt, attemptsInt)
+	return updateSecurityDynamicInFormation(rootDir, redirectURL)
 }
 
 // generateFernetKey generates a 32-byte Fernet-compatible key
@@ -298,31 +237,6 @@ func generateFernetKey() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(key), nil
-}
-
-// parseEnvironmentList parses a comma-separated list of environments
-func parseEnvironmentList(envs string) []string {
-	parts := strings.Split(envs, ",")
-	result := make([]string, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
-// validateMaxAttempts validates max attempts (1-10)
-func validateMaxAttempts(input string) error {
-	val, err := strconv.Atoi(input)
-	if err != nil {
-		return fmt.Errorf("must be a number")
-	}
-	if val < 1 || val > 10 {
-		return fmt.Errorf("must be between 1 and 10")
-	}
-	return nil
 }
 
 // getCurrentSecurityValue gets a value from user_credentials section
@@ -449,7 +363,7 @@ func buildRedirectNode(redirectURL string, message string) *yaml.Node {
 }
 
 // updateSecurityDynamicInFormation updates formation.yaml with dynamic mode settings
-func updateSecurityDynamicInFormation(rootDir string, redirectURL string, envs []string, requireHTTPS bool, ttl int, maxAttempts int) error {
+func updateSecurityDynamicInFormation(rootDir string, redirectURL string) error {
 	formationPath := filepath.Join(rootDir, "formation.yaml")
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
@@ -471,7 +385,7 @@ func updateSecurityDynamicInFormation(rootDir string, redirectURL string, envs [
 	}
 
 	// Build user_credentials node
-	userCredsNode := buildDynamicNode(redirectURL, envs, requireHTTPS, ttl, maxAttempts)
+	userCredsNode := buildDynamicNode(redirectURL)
 
 	// Find or create user_credentials
 	found := false
@@ -504,7 +418,7 @@ func updateSecurityDynamicInFormation(rootDir string, redirectURL string, envs [
 }
 
 // buildDynamicNode creates the user_credentials node for dynamic mode
-func buildDynamicNode(redirectURL string, envs []string, requireHTTPS bool, ttl int, maxAttempts int) *yaml.Node {
+func buildDynamicNode(redirectURL string) *yaml.Node {
 	node := &yaml.Node{Kind: yaml.MappingNode}
 
 	// mode
@@ -513,38 +427,10 @@ func buildDynamicNode(redirectURL string, envs []string, requireHTTPS bool, ttl 
 		&yaml.Node{Kind: yaml.ScalarNode, Value: "dynamic"},
 	)
 
-	// redirect_url (fallback when not in allowed environment)
+	// redirect_url (fallback)
 	node.Content = append(node.Content,
 		&yaml.Node{Kind: yaml.ScalarNode, Value: "redirect_url"},
 		&yaml.Node{Kind: yaml.ScalarNode, Value: redirectURL},
-	)
-
-	// allowed_environments
-	envsNode := &yaml.Node{Kind: yaml.SequenceNode, Style: yaml.FlowStyle}
-	for _, env := range envs {
-		envsNode.Content = append(envsNode.Content, &yaml.Node{Kind: yaml.ScalarNode, Value: env})
-	}
-	node.Content = append(node.Content,
-		&yaml.Node{Kind: yaml.ScalarNode, Value: "allowed_environments"},
-		envsNode,
-	)
-
-	// require_https
-	node.Content = append(node.Content,
-		&yaml.Node{Kind: yaml.ScalarNode, Value: "require_https"},
-		&yaml.Node{Kind: yaml.ScalarNode, Value: fmt.Sprintf("%t", requireHTTPS)},
-	)
-
-	// credential_ttl_minutes
-	node.Content = append(node.Content,
-		&yaml.Node{Kind: yaml.ScalarNode, Value: "credential_ttl_minutes"},
-		&yaml.Node{Kind: yaml.ScalarNode, Value: fmt.Sprintf("%d", ttl), Tag: "!!int"},
-	)
-
-	// max_attempts
-	node.Content = append(node.Content,
-		&yaml.Node{Kind: yaml.ScalarNode, Value: "max_attempts"},
-		&yaml.Node{Kind: yaml.ScalarNode, Value: fmt.Sprintf("%d", maxAttempts), Tag: "!!int"},
 	)
 
 	// encryption

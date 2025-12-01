@@ -49,29 +49,18 @@ In dynamic mode, credentials are collected inline when tools request them. Crede
 user_credentials:
   mode: "dynamic"
   redirect_url: "https://example.com/credentials"
-  allowed_environments: ["development", "staging"]
-  require_https: true
-  credential_ttl_minutes: 60
-  max_attempts: 3
   encryption:
     key: "${{ secrets.USER_CREDENTIALS_ENCRYPTION_KEY }}"
 ```
 
 **Configuration options:**
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `redirect_url` | - | Fallback URL when not in allowed environment |
-| `allowed_environments` | development, staging | Environments where dynamic mode works |
-| `require_https` | true | Require HTTPS for credential collection |
-| `credential_ttl_minutes` | 60 | How long to cache credentials |
-| `max_attempts` | 3 | Failed attempts before lockout (1-10) |
+| Setting | Description |
+|---------|-------------|
+| `redirect_url` | Fallback URL when dynamic mode is not available |
 
 **Security features:**
 - Fernet encryption (auto-generated key stored in secrets)
-- Environment restrictions
-- HTTPS requirement
-- Attempt limiting
 
 ---
 
@@ -107,7 +96,6 @@ user_credentials:
 muxi config security
 # Select: Dynamic
 # Enter fallback redirect URL
-# Configure environments, HTTPS, TTL, max attempts
 ```
 
 Result:
@@ -115,10 +103,6 @@ Result:
 user_credentials:
   mode: "dynamic"
   redirect_url: "https://admin.example.com/credentials"
-  allowed_environments: ["development", "staging"]
-  require_https: true
-  credential_ttl_minutes: 60
-  max_attempts: 3
   encryption:
     key: "${{ secrets.USER_CREDENTIALS_ENCRYPTION_KEY }}"
 ```
@@ -128,10 +112,8 @@ user_credentials:
 ## Security Best Practices
 
 1. **Always use redirect mode in production** - Keep credentials out of the formation
-2. **Require HTTPS** - Never collect credentials over unencrypted connections
-3. **Limit environments** - Only allow dynamic mode in development/staging
-4. **Short TTL** - Use shorter credential TTL for sensitive operations
-5. **Monitor attempts** - Low max_attempts helps detect brute force attacks
+2. **Use HTTPS redirect URLs** - Ensure credential management happens over secure connections
+3. **Dynamic mode for development only** - Never use dynamic mode in production
 
 ---
 

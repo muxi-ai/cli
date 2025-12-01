@@ -80,24 +80,9 @@ Dynamic Mode
   ⚠ Dynamic credential collection should only be used in development.
   User credentials will be collected inline when tools request them.
 
-  Fallback URL when dynamic mode is not allowed in current environment
+  Fallback URL when dynamic mode is not available
   ✓ Redirect URL: https://example.com/credentials
 
-  Environments where dynamic mode is allowed (comma-separated)
-  ✓ Allowed environments: development, staging
-
-  Require HTTPS for credential collection?
-  Require HTTPS? [Y/n]: y
-  ✓ Require HTTPS: enabled
-
-  How long to cache collected credentials (minutes)
-  ✓ Credential TTL: 60 minutes
-
-  Maximum failed auth attempts before lockout
-  ✓ Max attempts: 3
-```
-
-```
 Encryption Settings
 
   User credentials collected in dynamic mode are encrypted at rest using Fernet.
@@ -111,10 +96,6 @@ Encryption Settings
 user_credentials:
   mode: "dynamic"
   redirect_url: "https://example.com/credentials"
-  allowed_environments: ["development", "staging"]
-  require_https: true
-  credential_ttl_minutes: 60
-  max_attempts: 3
   encryption:
     key: "${{ secrets.USER_CREDENTIALS_ENCRYPTION_KEY }}"
 ```
@@ -145,9 +126,7 @@ Example:
 ## Validation
 
 - Mode must be "redirect" or "dynamic"
-- allowed_environments: array of valid environment names
-- credential_ttl_minutes: positive integer (default: 60)
-- max_attempts: 1-10 (default: 3)
+- redirect_url: valid URL (https:// auto-added if missing)
 
 ## Implementation Notes
 
