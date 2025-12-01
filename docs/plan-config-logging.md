@@ -38,9 +38,8 @@ Add Log Stream
   Select transport type:
     ◯ stdout (console output)
     ◯ file (local file)
-    ◯ http (webhook to logging service)
+    ◯ http (webhook, datadog, splunk, etc.)
     ◯ kafka (message queue)
-    ◯ trail (MUXI Trail observability)
 ```
 
 #### stdout:
@@ -103,18 +102,18 @@ logging:
 ```
 HTTP Stream
 
+  Format (choose based on your logging service)
+    ◯ jsonl (generic JSON lines)
+    ◯ Datadog
+    ◯ Splunk (hec)
+    ◯ Elastic
+    ◯ Grafana (loki)
+    ◯ Newrelic
+    ◯ Opentelemetry
+  ✓ Format: Datadog
+
   Endpoint URL for log ingestion
   ✓ URL: https://logs.company.com/ingest
-
-  Output format (choose based on your logging service)
-    ◯ jsonl (generic JSON lines)
-    ◯ datadog
-    ◯ splunk_hec
-    ◯ elastic
-    ◯ grafana_loki
-    ◯ newrelic
-    ◯ opentelemetry
-  ✓ Format: datadog
 
   Authentication method
     ◯ None
@@ -125,10 +124,6 @@ HTTP Stream
 
   Bearer token for authentication
   ✓ Saved LOGGING_BEARER_TOKEN to secrets
-
-  Filter which events to send (glob patterns, comma-separated)
-  Example: request.*, error.*, agent.*
-  ✓ Events: * (all events)
 
   ✓ Added http stream
 ```
@@ -143,15 +138,14 @@ logging:
       auth:
         type: "bearer"
         token: "${{ secrets.LOGGING_BEARER_TOKEN }}"
-      events: ["*"]
 ```
 
 #### kafka:
 ```
 Kafka Stream
 
-  Broker addresses (comma-separated)
-  ✓ Brokers: broker1:9092,broker2:9092
+  Broker addresses (comma, space, or newline-separated)
+  ✓ Brokers: broker1:9092, broker2:9092
 
   Topic name for log messages
   ✓ Topic: formation-logs
@@ -189,27 +183,6 @@ logging:
         password: "${{ secrets.KAFKA_PASSWORD }}"
 ```
 
-#### trail:
-```
-MUXI Trail
-
-  MUXI Trail is our hosted observability service.
-  Sign up at: https://trail.muxi.ai
-
-  Trail API token
-  ✓ Saved TRAIL_TOKEN to secrets
-
-  ✓ Added trail stream
-```
-
-**Output:**
-```yaml
-logging:
-  streams:
-    - transport: "trail"
-      token: "${{ secrets.TRAIL_TOKEN }}"
-```
-
 ---
 
 ### Flow 2: View/Edit Current Streams
@@ -219,7 +192,7 @@ Current Streams
 
   [1] stdout (info, jsonl)
   [2] file → /var/log/formation.log (info, jsonl)
-  [3] trail (configured)
+  [3] http → https://logs.company.com/ingest (datadog)
 
   Select a stream to edit, or press Enter to go back: _
 ```
@@ -236,7 +209,7 @@ Remove Stream
   Select stream to remove:
     ◯ stdout (info, jsonl)
     ◯ file → /var/log/formation.log (info, jsonl)
-    ◯ trail (configured)
+    ◯ http → https://logs.company.com/ingest (datadog)
 
   ✓ Selected: file
 
@@ -254,21 +227,18 @@ Remove Stream
 | `LOGGING_BEARER_TOKEN` | HTTP stream with bearer auth |
 | `LOGGING_API_KEY` | HTTP stream with API key auth |
 | `KAFKA_PASSWORD` | Kafka stream with SASL auth |
-| `TRAIL_TOKEN` | MUXI Trail stream |
 
 ## Environment Variable Detection
 
 Check for existing env vars and offer to import:
 - `DATADOG_API_KEY` → for Datadog format
 - `SPLUNK_HEC_TOKEN` → for Splunk HEC format
-- `TRAIL_TOKEN` → for MUXI Trail
 
 ## Validation
 
-- Valid URL format for HTTP destinations
+- Valid URL format for HTTP destinations (auto-add https:// if missing)
 - Valid broker format for Kafka (host:port)
 - Log level is one of: debug, info, warn, error
-- Events are valid glob patterns
 
 ## Implementation Notes
 
