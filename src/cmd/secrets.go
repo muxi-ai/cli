@@ -381,7 +381,7 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("  Found %d secret(s): %s\n", len(foundSecrets), strings.Join(foundSecrets, ", "))
+	fmt.Printf("  Found %d secret(s)\n", len(foundSecrets))
 	fmt.Println()
 
 	// Get current secrets
@@ -487,13 +487,14 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println()
+	ui.Success("Secrets synchronized")
 
-	// Run setup for missing values
+	// Run setup for missing values (prompt for newly added secrets)
 	if !noSetup && len(toAdd) > 0 {
+		fmt.Println()
 		return runSecretsSetup(cmd, args)
 	}
 
-	ui.Success("Secrets synchronized")
 	return nil
 }
 
