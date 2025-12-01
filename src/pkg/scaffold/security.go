@@ -82,27 +82,37 @@ func configureRedirectMode(rootDir string) error {
 	ui.Dimmed("  This is the recommended mode for production deployments.")
 	fmt.Println()
 
+	ui.Dimmed("  Custom message to show when credentials are needed")
+	fmt.Println()
+
 	// Get current redirect message
 	currentMessage := getCurrentSecurityValue(rootDir, "redirect_message")
 	defaultMessage := "For security, please configure your credentials at <REDIRECT_URL>."
 
-	// Show default message hint if no current message
+	// Show current or default message
+	displayMessage := currentMessage
 	if currentMessage == "" {
-		ui.Dimmed("  Default: \"" + defaultMessage + "\"")
+		ui.Dimmed("  Current (default):")
+		displayMessage = defaultMessage
+	} else {
+		ui.Dimmed("  Current:")
 	}
+	ui.Dimmed("    \"" + displayMessage + "\"")
+	fmt.Println()
 
-	// Prompt for custom message
-	ui.Dimmed("  Custom message to show when credentials are needed")
-	promptDefault := currentMessage
-	if promptDefault == "" {
-		promptDefault = defaultMessage
-	}
-
-	message, err := wizard.PromptString("  Redirect message", promptDefault, nil)
+	// Prompt for new message
+	message, err := wizard.PromptString("  Redirect message [keep current]", "", nil)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("  Redirect message", truncateForDisplay(message, 50))
+
+	// If empty, keep current/default
+	if message == "" {
+		message = displayMessage
+		ui.PromptSuccess("  Redirect message", "kept current")
+	} else {
+		ui.PromptSuccess("  Redirect message", truncateForDisplay(message, 50))
+	}
 
 	return updateSecurityRedirectInFormation(rootDir, message)
 }
