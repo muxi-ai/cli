@@ -64,6 +64,30 @@ func removeCommentedSection(content string, key string) string {
 	return strings.Join(result, "\n")
 }
 
+// ensureBlankLineBeforeTopLevel ensures there's a blank line before top-level keys
+func ensureBlankLineBeforeTopLevel(content string) string {
+	lines := strings.Split(content, "\n")
+	result := make([]string, 0, len(lines))
+
+	// Top-level keys that should have a blank line before them
+	topLevelPattern := regexp.MustCompile(`^[a-z_]+:`)
+
+	for i, line := range lines {
+		// If this is a top-level key (not indented, ends with :)
+		if topLevelPattern.MatchString(line) && i > 0 {
+			// Check if previous line is not empty and not a comment
+			prevLine := strings.TrimSpace(lines[i-1])
+			if prevLine != "" && !strings.HasPrefix(prevLine, "#") {
+				// Add blank line before this top-level key
+				result = append(result, "")
+			}
+		}
+		result = append(result, line)
+	}
+
+	return strings.Join(result, "\n")
+}
+
 // cleanupAdditionalConfigSection ensures the "Additional configuration" section
 // is at the very end of the file, and removes any empty lines at the end.
 func cleanupAdditionalConfigSection(content string) string {

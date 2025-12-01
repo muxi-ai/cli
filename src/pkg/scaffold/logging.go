@@ -721,11 +721,12 @@ func addStreamToFormation(rootDir string, stream map[string]interface{}) error {
 		return fmt.Errorf("failed to write formation.yaml: %w", err)
 	}
 
-	// Clean up: remove commented logging section, reorganize file
+	// Clean up: remove commented logging section, reorganize file, format
 	content, err := os.ReadFile(formationPath)
 	if err == nil {
 		cleaned := removeCommentedSection(string(content), "logging")
 		cleaned = cleanupAdditionalConfigSection(cleaned)
+		cleaned = ensureBlankLineBeforeTopLevel(cleaned)
 		os.WriteFile(formationPath, []byte(cleaned), 0644)
 	}
 

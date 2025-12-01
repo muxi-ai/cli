@@ -809,11 +809,12 @@ func updateMemorySectionInFormation(formationFile string, content []byte, sectio
 		return err
 	}
 
-	// Clean up: remove commented memory section, reorganize file
+	// Clean up: remove commented memory section, reorganize file, format
 	content, err := os.ReadFile(formationFile)
 	if err == nil {
 		cleaned := removeCommentedSection(string(content), "memory")
 		cleaned = cleanupAdditionalConfigSection(cleaned)
+		cleaned = ensureBlankLineBeforeTopLevel(cleaned)
 		os.WriteFile(formationFile, []byte(cleaned), 0644)
 	}
 
