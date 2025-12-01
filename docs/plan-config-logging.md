@@ -23,47 +23,39 @@ muxi config logging
 ### Step 1: Action Selection
 ```
 What would you like to do?
-  [1] Add a new log stream
-  [2] View current streams
-  [3] Remove a stream
-  [4] Enable/disable logging
-
-Select (1-4): _
+  ◯ Add a new log stream
+  ◯ View/edit current streams
+  ◯ Remove a stream
 ```
 
 ---
 
 ### Flow 1: Add New Stream
-```
-Select transport type:
-  [1] stdout (console output)
-  [2] file (local file)
-  [3] stream (HTTP/Kafka/ZMQ)
-  [4] trail (MUXI Trail service)
 
-Select (1-4): _
+```
+Add Log Stream
+
+  Select transport type:
+    ◯ stdout (console output)
+    ◯ file (local file)
+    ◯ http (webhook to logging service)
+    ◯ kafka (message queue)
+    ◯ trail (MUXI Trail observability)
 ```
 
 #### stdout:
 ```
-Console Output Configuration
-────────────────────────────
+Console Output
 
-Log level:
-  [1] debug (verbose)
-  [2] info (default)
-  [3] warn
-  [4] error
+  Log level (debug shows everything, error shows only errors)
+  ✓ Level: info
 
-Select [2]: _
+  Output format for log entries
+    ◯ jsonl (structured, machine-readable)
+    ◯ text (human-readable)
+  ✓ Format: jsonl
 
-Format:
-  [1] jsonl (structured, default)
-  [2] text (human-readable)
-
-Select [1]: _
-
-✓ stdout stream configured
+  ✓ Added stdout stream
 ```
 
 **Output:**
@@ -77,26 +69,24 @@ logging:
 
 #### file:
 ```
-File Output Configuration
-─────────────────────────
+File Output
 
-File path: /var/log/formation.log
+  Path to log file (will be created if doesn't exist)
+  ✓ Path: /var/log/formation.log
 
-Log level:
-  [1] debug
-  [2] info
-  [3] warn
-  [4] error
+  Log level (debug shows everything, error shows only errors)
+    ◯ debug
+    ◯ info
+    ◯ warn  
+    ◯ error
+  ✓ Level: info
 
-Select [2]: _
+  Output format for log entries
+    ◯ jsonl (structured, machine-readable)
+    ◯ text (human-readable)
+  ✓ Format: jsonl
 
-Format:
-  [1] jsonl
-  [2] text
-
-Select [1]: _
-
-✓ file stream configured
+  ✓ Added file stream
 ```
 
 **Output:**
@@ -109,97 +99,89 @@ logging:
       format: "jsonl"
 ```
 
-#### stream (HTTP/Kafka/ZMQ):
+#### http:
 ```
-Stream Output Configuration
-───────────────────────────
+HTTP Stream
 
-Protocol:
-  [1] HTTP/HTTPS (webhook)
-  [2] Kafka
-  [3] ZMQ (tcp/ipc)
+  Endpoint URL for log ingestion
+  ✓ URL: https://logs.company.com/ingest
 
-Select (1-3): _
-```
+  Output format (choose based on your logging service)
+    ◯ jsonl (generic JSON lines)
+    ◯ datadog
+    ◯ splunk_hec
+    ◯ elastic
+    ◯ grafana_loki
+    ◯ newrelic
+    ◯ opentelemetry
+  ✓ Format: datadog
 
-##### HTTP:
-```
-HTTP Stream Configuration
-─────────────────────────
+  Authentication method
+    ◯ None
+    ◯ Bearer token
+    ◯ API key header
+    ◯ Basic auth
+  ✓ Auth: Bearer token
 
-Endpoint URL: https://logs.company.com/ingest
+  Bearer token for authentication
+  ✓ Saved LOGGING_BEARER_TOKEN to secrets
 
-Format:
-  [1] jsonl (generic)
-  [2] datadog_json
-  [3] splunk_hec
-  [4] elastic_bulk
-  [5] grafana_loki
-  [6] newrelic_json
-  [7] opentelemetry
+  Filter which events to send (glob patterns, comma-separated)
+  Example: request.*, error.*, agent.*
+  ✓ Events: * (all events)
 
-Select [1]: _
-
-Authentication:
-  [1] None
-  [2] Bearer token
-  [3] API key
-  [4] Basic auth
-
-Select: 2
-
-Bearer token (will be stored in secrets): _
-
-Filter events (comma-separated, or * for all) [*]: request.*,error.*
+  ✓ Added http stream
 ```
 
 **Output:**
 ```yaml
 logging:
   streams:
-    - transport: "stream"
+    - transport: "http"
       destination: "https://logs.company.com/ingest"
-      protocol: "http"
-      format: "datadog_json"
+      format: "datadog"
       auth:
         type: "bearer"
-        token: "${{ secrets.LOG_BEARER_TOKEN }}"
-      events: ["request.*", "error.*"]
+        token: "${{ secrets.LOGGING_BEARER_TOKEN }}"
+      events: ["*"]
 ```
 
-##### Kafka:
+#### kafka:
 ```
-Kafka Stream Configuration
-──────────────────────────
+Kafka Stream
 
-Broker(s) (comma-separated): broker1:9092,broker2:9092
+  Broker addresses (comma-separated)
+  ✓ Brokers: broker1:9092,broker2:9092
 
-Topic: application-logs
+  Topic name for log messages
+  ✓ Topic: formation-logs
 
-Format:
-  [1] jsonl
-  [2] msgpack
+  Output format for messages
+    ◯ jsonl
+    ◯ msgpack
+  ✓ Format: jsonl
 
-Select [1]: _
+  Authentication method
+    ◯ None
+    ◯ SASL (username/password)
+  ✓ Auth: SASL
 
-Authentication:
-  [1] None
-  [2] SASL (username/password)
+  SASL username
+  ✓ Username: kafka-user
 
-Select: 2
+  SASL password
+  ✓ Saved KAFKA_PASSWORD to secrets
 
-Username: _
-Password (will be stored in secrets): _
+  ✓ Added kafka stream
 ```
 
 **Output:**
 ```yaml
 logging:
   streams:
-    - transport: "stream"
-      destination: "kafka://broker1:9092,broker2:9092"
-      protocol: "kafka"
-      topic: "application-logs"
+    - transport: "kafka"
+      brokers: ["broker1:9092", "broker2:9092"]
+      topic: "formation-logs"
       format: "jsonl"
       auth:
         type: "sasl"
@@ -207,32 +189,17 @@ logging:
         password: "${{ secrets.KAFKA_PASSWORD }}"
 ```
 
-##### ZMQ:
-```
-ZMQ Stream Configuration
-────────────────────────
-
-URL: tcp://localhost:5555
-  ℹ Use tcps:// for encrypted connections
-
-Format:
-  [1] jsonl
-  [2] msgpack
-
-Select [1]: _
-```
-
 #### trail:
 ```
-MUXI Trail Configuration
-────────────────────────
+MUXI Trail
 
-ℹ MUXI Trail is our hosted observability service.
+  MUXI Trail is our hosted observability service.
   Sign up at: https://trail.muxi.ai
 
-Trail token (will be stored in secrets): _
+  Trail API token
+  ✓ Saved TRAIL_TOKEN to secrets
 
-✓ Trail stream configured
+  ✓ Added trail stream
 ```
 
 **Output:**
@@ -245,59 +212,70 @@ logging:
 
 ---
 
-### Flow 2: View Current Streams
+### Flow 2: View/Edit Current Streams
+
 ```
-Current Logging Configuration
-─────────────────────────────
+Current Streams
 
-Logging: enabled
-
-Streams:
   [1] stdout (info, jsonl)
-  [2] file → /var/log/formation.log (debug, text)
-  [3] trail → MUXI Trail (configured)
+  [2] file → /var/log/formation.log (info, jsonl)
+  [3] trail (configured)
 
-Press Enter to continue...
+  Select a stream to edit, or press Enter to go back: _
 ```
+
+If a stream is selected, show its current settings with `[current]` indicators and allow modification.
 
 ---
 
 ### Flow 3: Remove Stream
+
 ```
-Select stream to remove:
-  [1] stdout (info, jsonl)
-  [2] file → /var/log/formation.log (debug, text)
-  [3] trail → MUXI Trail
+Remove Stream
 
-Select (1-3): 2
+  Select stream to remove:
+    ◯ stdout (info, jsonl)
+    ◯ file → /var/log/formation.log (info, jsonl)
+    ◯ trail (configured)
 
-Remove file stream? (y/N): y
+  ✓ Selected: file
 
-✓ Stream removed
+  Remove this stream? [y/N]: y
+
+  ✓ Stream removed
 ```
 
 ---
 
-### Flow 4: Enable/Disable Logging
-```
-Logging is currently: enabled
-
-Disable logging? (y/N): _
-```
-
 ## Secrets Created
-- `LOG_BEARER_TOKEN` (HTTP bearer auth)
-- `LOG_API_KEY` (HTTP API key auth)
-- `KAFKA_PASSWORD` (Kafka SASL)
-- `TRAIL_TOKEN` (MUXI Trail)
+
+| Secret | When Created |
+|--------|--------------|
+| `LOGGING_BEARER_TOKEN` | HTTP stream with bearer auth |
+| `LOGGING_API_KEY` | HTTP stream with API key auth |
+| `KAFKA_PASSWORD` | Kafka stream with SASL auth |
+| `TRAIL_TOKEN` | MUXI Trail stream |
+
+## Environment Variable Detection
+
+Check for existing env vars and offer to import:
+- `DATADOG_API_KEY` → for Datadog format
+- `SPLUNK_HEC_TOKEN` → for Splunk HEC format
+- `TRAIL_TOKEN` → for MUXI Trail
 
 ## Validation
-- Valid URL format for destinations
-- Required fields per transport type
-- Valid log levels
-- Valid event patterns (glob syntax)
 
-## Questions
-1. Should we support editing existing streams, or just add/remove?
-2. Should we test connectivity for HTTP endpoints?
-3. Default stream if none configured - stdout info jsonl?
+- Valid URL format for HTTP destinations
+- Valid broker format for Kafka (host:port)
+- Log level is one of: debug, info, warn, error
+- Events are valid glob patterns
+
+## Implementation Notes
+
+1. Use radio boxes (◯) for selections, not numbered lists
+2. Add dimmed hints above each prompt explaining the setting
+3. Indent content under section headers by 2 spaces
+4. Store sensitive values in secrets, reference with `${{ secrets.NAME }}`
+5. Detect env vars and offer to import (like LLM config)
+6. Show `[current]` on options that match existing configuration
+7. Default selection to current value when editing

@@ -23,155 +23,94 @@ muxi config overlord
 ### Step 1: What to Configure
 ```
 What would you like to configure?
-  [1] Persona (identity and communication style)
-  [2] LLM settings (routing model)
-  [3] Response format (markdown, streaming, widgets)
-  [4] Workflow behavior (decomposition, approval, timeouts)
-  [5] Clarification settings (question style, limits)
-  [6] Caching (routing decision cache)
-
-Select (1-6): _
+  ◯ Persona (identity and communication style)
+  ◯ Response format (markdown, streaming, widgets)
+  ◯ Workflow behavior (routing, decomposition, timeouts)
+  ◯ Clarification settings (question style, limits)
 ```
 
 ---
 
 ### Flow 1: Persona
+
 ```
 Overlord Persona
-────────────────
 
-The persona defines how the Overlord communicates with users.
+  The persona defines how the Overlord communicates with users.
 
-Current persona:
-  "You are a helpful AI assistant."
-
-How would you like to set the persona?
-  [1] Enter text directly
-  [2] Load from file
-  [3] Use a template
-
-Select (1-3): _
+  How would you like to set the persona?
+    ◯ Enter text directly
+    ◯ Load from file
+    ◯ Use a template
 ```
 
 #### Enter directly:
 ```
-Enter persona (multi-line, end with empty line):
-> You are Aria, a friendly AI assistant for TechCorp.
-> You are helpful, professional, and concise.
-> You specialize in technical support and product information.
->
-
-✓ Persona updated
+  Enter persona (opens $EDITOR for multi-line editing)
+  
+  ✓ Persona updated
 ```
 
 #### Load from file:
 ```
-File path: ./persona.md
+  Path to persona file (markdown or text)
+  ✓ Path: ./persona.md
 
-✓ Persona loaded from ./persona.md
+  ✓ Persona loaded from ./persona.md
 ```
 
 #### Use template:
 ```
-Select template:
-  [1] Professional assistant
-  [2] Technical expert
-  [3] Creative helper
-  [4] Customer support
-  [5] Research assistant
+  Select template:
+    ◯ Professional assistant
+    ◯ Technical expert
+    ◯ Creative helper
+    ◯ Customer support
+    ◯ Research assistant
+  ✓ Template: Technical expert
 
-Select: 2
+  Company or product name (used in persona)
+  ✓ Name: TechCorp
 
-Customization:
-  Company/product name: TechCorp
-  Specialization: cloud infrastructure
+  Area of specialization
+  ✓ Specialization: cloud infrastructure
 
-✓ Persona generated from template
+  ✓ Persona generated from template
 ```
 
 **Output:**
 ```yaml
 overlord:
   persona: |
-    You are Aria, a friendly AI assistant for TechCorp.
-    You are helpful, professional, and concise.
-    You specialize in technical support and product information.
+    You are a technical expert AI assistant for TechCorp.
+    You specialize in cloud infrastructure and provide
+    detailed, accurate technical guidance.
 ```
 
 ---
 
-### Flow 2: LLM Settings
+### Flow 2: Response Format
+
 ```
-Overlord LLM Configuration
-──────────────────────────
+Response Format
 
-The Overlord uses its own LLM for routing and task delegation.
+  Default output format for responses
+    ◯ markdown (rich formatting, default)
+    ◯ text (plain text only)
+    ◯ html (web rendering)
+  ✓ Format: markdown
 
-Use formation default model? (Y/n): n
+  Allow interactive elements in responses (buttons, forms)
+  Enable widgets? [Y/n]: y
+  ✓ Widgets: enabled
 
-Provider:
-  [1] OpenAI
-  [2] Anthropic
-  [3] Local (llama.cpp)
-  [4] Other
+  Stream responses as they're generated
+  Enable streaming? [Y/n]: y
+  ✓ Streaming: enabled
 
-Select: 1
-
-Model:
-  [1] gpt-4o (recommended for complex routing)
-  [2] gpt-4o-mini (faster, cheaper)
-  [3] Other
-
-Select: 2
-
-Settings:
-  Temperature [0.2]: _
-    ℹ Lower = more consistent routing
-  
-  Max tokens [2000]: _
-  Timeout (seconds) [45]: _
-  Fallback model (optional): openai/gpt-4o
-
-Max extraction tokens [500]: _
-  ℹ Tokens used when extracting content from media for routing
-```
-
-**Output:**
-```yaml
-overlord:
-  llm:
-    model: "openai/gpt-4o-mini"
-    settings:
-      temperature: 0.2
-      max_tokens: 2000
-      timeout_seconds: 45
-      fallback_model: "openai/gpt-4o"
-    max_extraction_tokens: 500
-```
-
----
-
-### Flow 3: Response Format
-```
-Response Format Configuration
-─────────────────────────────
-
-Default format:
-  [1] markdown (default)
-  [2] text (plain text)
-  [3] html
-  [4] json
-
-Select [1]: _
-
-Enable interactive widgets? (Y/n): _
-  ℹ Buttons, forms, charts in responses
-
-Enable streaming? (Y/n): _
-  ℹ Stream responses in real-time
-
-Enable progress events? (Y/n): _
-  ℹ Show progress updates during processing
+  Show status updates during long operations
+  Enable progress events? [Y/n]: y
+  ✓ Progress: enabled
 ```
 
 **Output:**
@@ -186,96 +125,113 @@ overlord:
 
 ---
 
-### Flow 4: Workflow Behavior
+### Flow 3: Workflow Behavior
+
 ```
 Workflow Configuration
-──────────────────────
 
-Auto-decomposition:
-  Enable automatic task decomposition? (Y/n): _
-  ℹ Breaks complex requests into subtasks
+  How to select agents for tasks
+    ◯ capability (match task to agent skills)
+    ◯ load_balanced (distribute work evenly)
+    ◯ round_robin (rotate through agents)
+    ◯ priority (prefer higher-priority agents)
+  ✓ Routing: capability
 
-Plan approval threshold (1-10) [7]: _
-  ℹ Complexity above this requires user approval
+  Automatically break complex requests into subtasks
+  Enable auto-decomposition? [Y/n]: y
+  ✓ Auto-decomposition: enabled
 
-Complexity calculation method:
-  [1] heuristic (fast, rule-based)
-  [2] llm (accurate, slower)
-  [3] hybrid (balanced)
+  Complexity score (1-10) above which user approval is required
+  ✓ Plan approval threshold: 7
 
-Select [3]: _
+  How to calculate task complexity
+    ◯ heuristic (fast, rule-based)
+    ◯ llm (accurate, uses LLM)
+    ◯ hybrid (balanced approach)
+  ✓ Complexity method: hybrid
 
-Routing strategy:
-  [1] capability_based (match task to agent skills)
-  [2] load_balanced (distribute evenly)
-  [3] round_robin (rotate agents)
-  [4] priority_based (prefer high-priority agents)
+  Run independent tasks simultaneously
+  Enable parallel execution? [Y/n]: y
+  ✓ Parallel execution: enabled
 
-Select [1]: _
+  Maximum tasks to run at once (1-20)
+  ✓ Max parallel tasks: 5
 
-Enable agent affinity? (Y/n): _
-  ℹ Prefer agents that succeeded on similar tasks
+  Prefer agents that succeeded on similar tasks before
+  Enable agent affinity? [Y/n]: y
+  ✓ Agent affinity: enabled
+```
 
-Parallel execution:
-  Enable parallel task execution? (Y/n): _
-  Max parallel tasks (1-20) [5]: _
+```
+Timeouts & Error Handling
 
-Error recovery strategy:
-  [1] retry_with_backoff (default)
-  [2] retry_with_alternate (try different agent)
-  [3] fail_fast (stop immediately)
-  [4] skip_and_continue (partial results)
+  Maximum time for a single task (seconds)
+  ✓ Task timeout: 300
 
-Select [1]: _
+  Maximum time for an entire workflow (seconds)
+  ✓ Workflow timeout: 3600
 
-Timeouts:
-  Task timeout (seconds) [300]: _
-  Workflow timeout (seconds) [3600]: _
-  Max workflow duration (seconds) [7200]: _
+  What to do when a task fails
+    ◯ retry_with_backoff (retry with increasing delays)
+    ◯ retry_with_alternate (try a different agent)
+    ◯ fail_fast (stop immediately)
+    ◯ skip_and_continue (return partial results)
+  ✓ Error recovery: retry_with_backoff
 ```
 
 **Output:**
 ```yaml
 overlord:
   workflow:
+    routing_strategy: "capability"
     auto_decomposition: true
     plan_approval_threshold: 7
     complexity_method: "hybrid"
-    routing_strategy: "capability_based"
-    enable_agent_affinity: true
     parallel_execution: true
     max_parallel_tasks: 5
+    enable_agent_affinity: true
     error_recovery: "retry_with_backoff"
     timeouts:
-      task_timeout: 300
-      workflow_timeout: 3600
-    max_timeout_seconds: 7200
+      task: 300
+      workflow: 3600
 ```
 
 ---
 
-### Flow 5: Clarification Settings
+### Flow 4: Clarification Settings
+
 ```
-Clarification Configuration
-───────────────────────────
+Clarification Settings
 
-ℹ The Overlord asks clarifying questions for ambiguous requests.
+  The Overlord asks clarifying questions for ambiguous requests.
 
-Question style:
-  [1] conversational (friendly, natural)
-  [2] formal (professional, structured)
-  [3] brief (minimal, to the point)
+  Communication style for clarifying questions
+    ◯ conversational (friendly, natural)
+    ◯ formal (professional, structured)
+    ◯ brief (minimal, direct)
+  ✓ Style: conversational
 
-Select [1]: _
+  Remember user preferences across sessions (privacy consideration)
+  Persist learned info? [y/N]: n
+  ✓ Persist: disabled
+```
 
-Persist learned information across sessions? (y/N): _
-  ℹ Privacy: 'no' = session-only, 'yes' = remembers preferences
+```
+Clarification Limits
 
-Max clarification rounds per mode:
-  Direct (quick disambiguation) [3]: _
-  Brainstorm (creative exploration) [10]: _
-  Planning (requirements gathering) [7]: _
-  Execution (parameter clarification) [3]: _
+  Maximum questions per conversation mode:
+
+  Direct mode (quick disambiguation)
+  ✓ Max rounds: 3
+
+  Brainstorm mode (creative exploration)
+  ✓ Max rounds: 10
+
+  Planning mode (requirements gathering)
+  ✓ Max rounds: 7
+
+  Execution mode (parameter clarification)
+  ✓ Max rounds: 3
 ```
 
 **Output:**
@@ -293,32 +249,40 @@ overlord:
 
 ---
 
-### Flow 6: Caching
+## Current Value Detection
+
+For each setting, detect current value from formation.yaml and:
+1. Show `[current]` next to the matching option
+2. Use current value as default selection
+3. Display current value in dimmed text before prompt
+
+Example:
 ```
-Routing Cache Configuration
-───────────────────────────
-
-Enable routing decision caching? (Y/n): _
-  ℹ Caches routing decisions for similar requests
-
-Cache TTL (seconds) [3600]: _
-```
-
-**Output:**
-```yaml
-overlord:
-  caching:
-    enabled: true
-    ttl: 3600
+  How to select agents for tasks
+    ◯ capability (match task to agent skills) [current]
+    ◯ load_balanced (distribute work evenly)
+    ◯ round_robin (rotate through agents)
+    ◯ priority (prefer higher-priority agents)
 ```
 
 ## Validation
-- Temperature 0.0-1.0
-- Thresholds in valid ranges
-- Timeout values positive
-- Max rounds 1-32
 
-## Questions
-1. Should persona editing open $EDITOR for multi-line?
-2. Should we show "current value" for each setting?
-3. Templates - should we include actual persona text or just structure?
+- Temperature: 0.0-1.0
+- Thresholds: 1-10
+- Timeout values: positive integers
+- Max rounds: 1-32
+- Max parallel tasks: 1-20
+
+## Implementation Notes
+
+1. Use radio boxes (◯) for selections, not numbered lists
+2. Add dimmed hints above each prompt explaining the setting
+3. Indent content under section headers by 2 spaces
+4. Show `[current]` on options that match existing configuration
+5. Default selection to current value when editing
+6. Use $EDITOR for multi-line persona editing
+7. Group related settings together (e.g., all timeouts in one section)
+
+## Note on LLM Settings
+
+The Overlord uses the formation's text model by default. If users need a different model for routing decisions, they should use `muxi config llm` to configure the text capability with appropriate settings (lower temperature recommended for routing).
