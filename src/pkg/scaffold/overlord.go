@@ -350,7 +350,6 @@ func configureOverlordClarification(rootDir string) error {
 
 	// Get current values
 	currentStyle := getCurrentOverlordValue(rootDir, "clarification", "style")
-	currentPersist := getCurrentOverlordValue(rootDir, "clarification", "persist_learned_info")
 	currentDirect := getCurrentOverlordValue(rootDir, "clarification.max_rounds", "direct")
 	currentBrainstorm := getCurrentOverlordValue(rootDir, "clarification.max_rounds", "brainstorm")
 	currentPlanning := getCurrentOverlordValue(rootDir, "clarification.max_rounds", "planning")
@@ -370,19 +369,6 @@ func configureOverlordClarification(rootDir string) error {
 		return err
 	}
 	ui.PromptSuccess("  Style", style)
-
-	// Persist learned info
-	ui.Dimmed("  Remember user preferences across sessions (privacy consideration)")
-	persistDefault := currentPersist == "true"
-	persist, err := wizard.PromptConfirm("  Persist learned info?", persistDefault)
-	if err != nil {
-		return err
-	}
-	if persist {
-		ui.PromptSuccess("  Persist", "enabled")
-	} else {
-		ui.PromptSkipped("  Persist")
-	}
 
 	// Max rounds
 	fmt.Println()
@@ -440,7 +426,7 @@ func configureOverlordClarification(rootDir string) error {
 	ui.PromptSuccess("  Execution max rounds", execution)
 
 	// Update formation.yaml
-	return updateOverlordClarificationInFormation(rootDir, style, persist, direct, brainstorm, planning, execution)
+	return updateOverlordClarificationInFormation(rootDir, style, direct, brainstorm, planning, execution)
 }
 
 // Helper functions
@@ -716,7 +702,7 @@ func updateOverlordWorkflowInFormation(rootDir, routing string, autoDecomp bool,
 	return updateOverlordSectionInFormation(formationFile, content, "workflow", workflowYAML.String())
 }
 
-func updateOverlordClarificationInFormation(rootDir, style string, persist bool, direct, brainstorm, planning, execution string) error {
+func updateOverlordClarificationInFormation(rootDir, style, direct, brainstorm, planning, execution string) error {
 	formationFile := filepath.Join(rootDir, "formation.yaml")
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
@@ -727,7 +713,6 @@ func updateOverlordClarificationInFormation(rootDir, style string, persist bool,
 	var clarificationYAML strings.Builder
 	clarificationYAML.WriteString("  clarification:\n")
 	clarificationYAML.WriteString(fmt.Sprintf("    style: \"%s\"\n", style))
-	clarificationYAML.WriteString(fmt.Sprintf("    persist_learned_info: %t\n", persist))
 	clarificationYAML.WriteString("    max_rounds:\n")
 	clarificationYAML.WriteString(fmt.Sprintf("      direct: %s\n", direct))
 	clarificationYAML.WriteString(fmt.Sprintf("      brainstorm: %s\n", brainstorm))

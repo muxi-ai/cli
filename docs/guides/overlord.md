@@ -95,7 +95,6 @@ Configure how the Overlord asks clarifying questions.
 overlord:
   clarification:
     style: "conversational"
-    persist_learned_info: false
     max_rounds:
       direct: 3
       brainstorm: 10
@@ -145,7 +144,6 @@ overlord:
   
   clarification:
     style: "conversational"
-    persist_learned_info: false
     max_rounds:
       direct: 3
       brainstorm: 10
