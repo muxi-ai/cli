@@ -337,6 +337,14 @@ func updateSecurityRedirectInFormation(rootDir string, redirectURL string, messa
 		return fmt.Errorf("failed to write formation.yaml: %w", err)
 	}
 
+	// Clean up: remove commented user_credentials section, reorganize file
+	content, err := os.ReadFile(formationPath)
+	if err == nil {
+		cleaned := removeCommentedSection(string(content), "user_credentials")
+		cleaned = cleanupAdditionalConfigSection(cleaned)
+		os.WriteFile(formationPath, []byte(cleaned), 0644)
+	}
+
 	fmt.Println()
 	ui.Success("Security configuration saved to formation.yaml")
 	return nil
@@ -421,6 +429,14 @@ func updateSecurityDynamicInFormation(rootDir string, redirectURL string) error 
 
 	if err := os.WriteFile(formationPath, output, 0644); err != nil {
 		return fmt.Errorf("failed to write formation.yaml: %w", err)
+	}
+
+	// Clean up: remove commented user_credentials section, reorganize file
+	content, err := os.ReadFile(formationPath)
+	if err == nil {
+		cleaned := removeCommentedSection(string(content), "user_credentials")
+		cleaned = cleanupAdditionalConfigSection(cleaned)
+		os.WriteFile(formationPath, []byte(cleaned), 0644)
 	}
 
 	fmt.Println()

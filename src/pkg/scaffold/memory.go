@@ -809,6 +809,14 @@ func updateMemorySectionInFormation(formationFile string, content []byte, sectio
 		return err
 	}
 
+	// Clean up: remove commented memory section, reorganize file
+	content, err := os.ReadFile(formationFile)
+	if err == nil {
+		cleaned := removeCommentedSection(string(content), "memory")
+		cleaned = cleanupAdditionalConfigSection(cleaned)
+		os.WriteFile(formationFile, []byte(cleaned), 0644)
+	}
+
 	ui.Success("Updated formation.yaml with memory configuration")
 	return nil
 }
