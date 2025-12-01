@@ -67,6 +67,31 @@ Examples:
 	},
 }
 
+var configOverlordCmd = &cobra.Command{
+	Use:   "overlord",
+	Short: "Configure Overlord behavior and settings",
+	Long: `Configure Overlord settings in formation.yaml.
+
+This command provides an interactive wizard for:
+  - Persona (identity and communication style)
+  - Response options (format, streaming, progress)
+  - Workflow behavior (routing, decomposition, timeouts)
+  - Clarification settings (question style, limits)
+
+Must be run inside a formation directory.
+
+Examples:
+  # Configure with interactive wizard
+  muxi config overlord`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := scaffold.ConfigureOverlord(); err != nil {
+			return fmt.Errorf("failed to configure overlord: %w", err)
+		}
+		return nil
+	},
+}
+
 var configA2ACmd = &cobra.Command{
 	Use:   "a2a",
 	Short: "Configure A2A (Agent-to-Agent) communication",
@@ -110,6 +135,7 @@ func init() {
 	configCmd.AddCommand(configA2ACmd)
 	configCmd.AddCommand(configLLMCmd)
 	configCmd.AddCommand(configMemoryCmd)
+	configCmd.AddCommand(configOverlordCmd)
 
 	// Add config to root
 	rootCmd.AddCommand(configCmd)
