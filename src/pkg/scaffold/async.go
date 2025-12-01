@@ -28,7 +28,7 @@ func ConfigureAsync() error {
 
 	// Show banner
 	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
-│ [⚙] Configure Async Responses                          MUXI │
+│ [⚙] Configure Async Responses                           MUXI │
 │──────────────────────────────────────────────────────────────│
 │ Configure how long-running tasks are handled. When a task    │
 │ exceeds the threshold, the response is delivered via webhook.│
@@ -37,15 +37,10 @@ func ConfigureAsync() error {
 	// Check current async config
 	currentConfig := getAsyncConfig(ctx.RootDir)
 
-	// If not configured, go directly to configure
-	if currentConfig == nil {
-		return configureAsyncSettings(ctx.RootDir, nil)
-	}
-
-	// Already configured - show options
+	// Show options menu
 	fmt.Println()
 	options := []wizard.SelectOption{
-		{Value: "configure", Label: "Update async settings"},
+		{Value: "configure", Label: "Configure async settings"},
 		{Value: "disable", Label: "Disable async responses"},
 	}
 
@@ -58,6 +53,11 @@ func ConfigureAsync() error {
 	case "configure":
 		return configureAsyncSettings(ctx.RootDir, currentConfig)
 	case "disable":
+		if currentConfig == nil {
+			fmt.Println()
+			ui.Dimmed("  Async responses are not configured")
+			return nil
+		}
 		return disableAsync(ctx.RootDir)
 	}
 
