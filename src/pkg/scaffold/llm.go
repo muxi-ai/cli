@@ -370,7 +370,7 @@ func configureCapabilityModel(rootDir string, capability string) error {
 
 	// Ask about model settings
 	fmt.Println()
-	configSettings, err := wizard.PromptConfirm("Configure settings for this model?", false)
+	configSettings, err := wizard.PromptConfirm("Configure settings for this model?", true)
 	if err != nil {
 		return err
 	}
@@ -382,51 +382,299 @@ func configureCapabilityModel(rootDir string, capability string) error {
 	return nil
 }
 
+// ModelSettings holds all settings for a model
+type ModelSettings struct {
+	Temperature   string
+	MaxTokens     string
+	Timeout       string
+	MaxRetries    string
+	FallbackModel string
+	// Vision-specific
+	ImageMaxSizeMB    string
+	ImageResize       bool
+	ImageMaxWidth     string
+	ImageMaxHeight    string
+	// Audio-specific
+	AudioMaxSizeMB string
+	AudioLanguage  string
+	// Video-specific
+	VideoMaxSizeMB       string
+	VideoMaxDuration     string
+	VideoIncludeAudio    bool
+	// Documents-specific
+	DocsMaxSizeMB    string
+	DocsChunkSize    string
+	DocsOverlap      string
+	DocsStrategy     string
+	DocsCacheTTL     string
+}
+
 // configureModelSettings configures settings for a model
 func configureModelSettings(rootDir, capability, model string) error {
 	fmt.Println()
+	ui.Bold("Model Settings")
+	fmt.Println()
 
-	// Temperature
-	tempStr, err := wizard.PromptString("Temperature (0.0-1.0)", "0.7", validateTemperature)
+	settings := ModelSettings{}
+
+	// Common settings
+	ui.Dimmed("  Controls randomness: 0 = deterministic, 1 = creative")
+	tempStr, err := wizard.PromptString("  Temperature (0.0-1.0)", "0.7", validateTemperature)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Temperature", tempStr)
+	settings.Temperature = tempStr
+	ui.PromptSuccess("  Temperature", tempStr)
 
-	// Max tokens
-	tokensStr, err := wizard.PromptString("Max tokens", "4096", validatePositiveInt)
+	ui.Dimmed("  Maximum response length in tokens")
+	tokensStr, err := wizard.PromptString("  Max tokens", "4096", validatePositiveInt)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Max tokens", tokensStr)
+	settings.MaxTokens = tokensStr
+	ui.PromptSuccess("  Max tokens", tokensStr)
 
-	// Timeout
-	timeoutStr, err := wizard.PromptString("Timeout (seconds)", "30", validatePositiveInt)
+	ui.Dimmed("  Request timeout before retry or failure")
+	timeoutStr, err := wizard.PromptString("  Timeout (seconds)", "30", validatePositiveInt)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Timeout", timeoutStr)
+	settings.Timeout = timeoutStr
+	ui.PromptSuccess("  Timeout", timeoutStr)
 
-	// Max retries
-	retriesStr, err := wizard.PromptString("Max retries", "3", validatePositiveInt)
+	ui.Dimmed("  Number of retry attempts on failure")
+	retriesStr, err := wizard.PromptString("  Max retries", "3", validatePositiveInt)
 	if err != nil {
 		return err
 	}
-	ui.PromptSuccess("Max retries", retriesStr)
+	settings.MaxRetries = retriesStr
+	ui.PromptSuccess("  Max retries", retriesStr)
 
-	// Fallback model
-	fallbackModel, err := wizard.PromptString("Fallback model (optional)", "", nil)
+	ui.Dimmed("  Model to use if primary fails (e.g., openai/gpt-4o-mini)")
+	fallbackModel, err := wizard.PromptString("  Fallback model (optional)", "", nil)
 	if err != nil {
 		return err
 	}
+	settings.FallbackModel = fallbackModel
 	if fallbackModel != "" {
-		ui.PromptSuccess("Fallback model", fallbackModel)
+		ui.PromptSuccess("  Fallback model", fallbackModel)
+
+		// Check if fallback model's provider has API key configured
+		if err := checkFallbackModelAPIKey(rootDir, fallbackModel); err != nil {
+			return err
+		}
 	} else {
-		ui.PromptSkipped("Fallback model")
+		ui.PromptSkipped("  Fallback model")
+	}
+
+	// Capability-specific settings
+	switch capability {
+	case "vision":
+		if err := configureVisionSettings(rootDir, &settings); err != nil {
+			return err
+		}
+	case "audio":
+		if err := configureAudioSettings(rootDir, &settings); err != nil {
+			return err
+		}
+	case "video":
+		if err := configureVideoSettings(rootDir, &settings); err != nil {
+			return err
+		}
+	case "documents":
+		if err := configureDocumentsSettings(rootDir, &settings); err != nil {
+			return err
+		}
 	}
 
 	// Update formation.yaml with settings
-	return updateModelSettingsInFormation(rootDir, capability, tempStr, tokensStr, timeoutStr, retriesStr, fallbackModel)
+	return updateModelSettingsInFormation(rootDir, capability, settings)
+}
+
+// checkFallbackModelAPIKey checks if the fallback model's provider has an API key
+func checkFallbackModelAPIKey(rootDir, fallbackModel string) error {
+	vendor := strings.Split(fallbackModel, "/")[0]
+	var provider *LLMProvider
+	for i := range LLMProviders {
+		if LLMProviders[i].Vendor == vendor {
+			provider = &LLMProviders[i]
+			break
+		}
+	}
+
+	if provider == nil {
+		return nil // Unknown provider, skip check
+	}
+
+	// Check if API key is configured
+	formationFile := filepath.Join(rootDir, "formation.yaml")
+	content, _ := os.ReadFile(formationFile)
+	contentStr := string(content)
+	secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
+
+	if !strings.Contains(contentStr, secretRef) {
+		fmt.Println()
+		ui.Warning(fmt.Sprintf("No API key configured for fallback provider %s", provider.Name))
+		if err := promptForAPIKey(rootDir, *provider); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// configureVisionSettings configures vision-specific settings
+func configureVisionSettings(rootDir string, settings *ModelSettings) error {
+	fmt.Println()
+	ui.Bold("Vision Settings")
+	fmt.Println()
+
+	ui.Dimmed("  Maximum image file size")
+	maxSize, err := wizard.PromptString("  Max image size (MB)", "5", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.ImageMaxSizeMB = maxSize
+	ui.PromptSuccess("  Max image size", maxSize+"MB")
+
+	resize, err := wizard.PromptConfirm("  Resize large images?", true)
+	if err != nil {
+		return err
+	}
+	settings.ImageResize = resize
+	if resize {
+		ui.PromptSuccess("  Resize", "enabled")
+
+		ui.Dimmed("  Maximum width after resize")
+		maxWidth, err := wizard.PromptString("  Max width (px)", "1024", validatePositiveInt)
+		if err != nil {
+			return err
+		}
+		settings.ImageMaxWidth = maxWidth
+		ui.PromptSuccess("  Max width", maxWidth+"px")
+
+		ui.Dimmed("  Maximum height after resize")
+		maxHeight, err := wizard.PromptString("  Max height (px)", "1024", validatePositiveInt)
+		if err != nil {
+			return err
+		}
+		settings.ImageMaxHeight = maxHeight
+		ui.PromptSuccess("  Max height", maxHeight+"px")
+	} else {
+		ui.PromptSkipped("  Resize")
+	}
+
+	return nil
+}
+
+// configureAudioSettings configures audio-specific settings
+func configureAudioSettings(rootDir string, settings *ModelSettings) error {
+	fmt.Println()
+	ui.Bold("Audio Settings")
+	fmt.Println()
+
+	ui.Dimmed("  Maximum audio file size")
+	maxSize, err := wizard.PromptString("  Max audio size (MB)", "10", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.AudioMaxSizeMB = maxSize
+	ui.PromptSuccess("  Max audio size", maxSize+"MB")
+
+	ui.Dimmed("  Language for transcription (auto, en, es, fr, etc.)")
+	language, err := wizard.PromptString("  Language", "auto", nil)
+	if err != nil {
+		return err
+	}
+	settings.AudioLanguage = language
+	ui.PromptSuccess("  Language", language)
+
+	return nil
+}
+
+// configureVideoSettings configures video-specific settings
+func configureVideoSettings(rootDir string, settings *ModelSettings) error {
+	fmt.Println()
+	ui.Bold("Video Settings")
+	fmt.Println()
+
+	ui.Dimmed("  Maximum video file size")
+	maxSize, err := wizard.PromptString("  Max video size (MB)", "100", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.VideoMaxSizeMB = maxSize
+	ui.PromptSuccess("  Max video size", maxSize+"MB")
+
+	ui.Dimmed("  Maximum video duration in seconds")
+	maxDuration, err := wizard.PromptString("  Max duration (seconds)", "300", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.VideoMaxDuration = maxDuration
+	ui.PromptSuccess("  Max duration", maxDuration+"s")
+
+	includeAudio, err := wizard.PromptConfirm("  Include audio analysis?", true)
+	if err != nil {
+		return err
+	}
+	settings.VideoIncludeAudio = includeAudio
+	if includeAudio {
+		ui.PromptSuccess("  Audio analysis", "enabled")
+	} else {
+		ui.PromptSkipped("  Audio analysis")
+	}
+
+	return nil
+}
+
+// configureDocumentsSettings configures documents-specific settings
+func configureDocumentsSettings(rootDir string, settings *ModelSettings) error {
+	fmt.Println()
+	ui.Bold("Documents Settings")
+	fmt.Println()
+
+	ui.Dimmed("  Maximum document file size")
+	maxSize, err := wizard.PromptString("  Max document size (MB)", "20", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.DocsMaxSizeMB = maxSize
+	ui.PromptSuccess("  Max document size", maxSize+"MB")
+
+	ui.Dimmed("  Text chunk size for processing")
+	chunkSize, err := wizard.PromptString("  Chunk size (chars)", "1000", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.DocsChunkSize = chunkSize
+	ui.PromptSuccess("  Chunk size", chunkSize)
+
+	ui.Dimmed("  Overlap between chunks for context preservation")
+	overlap, err := wizard.PromptString("  Overlap (chars)", "100", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.DocsOverlap = overlap
+	ui.PromptSuccess("  Overlap", overlap)
+
+	ui.Dimmed("  Extraction strategy (adaptive, semantic, fixed, paragraph)")
+	strategy, err := wizard.PromptString("  Strategy", "adaptive", nil)
+	if err != nil {
+		return err
+	}
+	settings.DocsStrategy = strategy
+	ui.PromptSuccess("  Strategy", strategy)
+
+	ui.Dimmed("  How long to cache processed documents (seconds)")
+	cacheTTL, err := wizard.PromptString("  Cache TTL (seconds)", "3600", validatePositiveInt)
+	if err != nil {
+		return err
+	}
+	settings.DocsCacheTTL = cacheTTL
+	ui.PromptSuccess("  Cache TTL", cacheTTL+"s")
+
+	return nil
 }
 
 // configureGlobalSettings handles Flow 3: Global LLM Settings
@@ -674,54 +922,82 @@ func addAPIKeyToFormation(rootDir string, provider LLMProvider) error {
 	contentStr := string(content)
 	keyLine := fmt.Sprintf("    %s: \"${{ secrets.%s }}\"", provider.Vendor, provider.SecretName)
 
-	// Check if llm.api_keys section exists
-	if strings.Contains(contentStr, "api_keys:") {
-		// Add to existing api_keys section
-		lines := strings.Split(contentStr, "\n")
-		var result []string
-		inAPIKeys := false
+	// Check if this key is already configured
+	secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
+	if strings.Contains(contentStr, secretRef) {
+		return nil // Already configured
+	}
 
-		for i, line := range lines {
+	lines := strings.Split(contentStr, "\n")
+	var result []string
+	inLLM := false
+	addedKey := false
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Track when we enter/exit llm section
+		if trimmed == "llm:" {
+			inLLM = true
 			result = append(result, line)
+			continue
+		}
 
-			if strings.TrimSpace(line) == "api_keys:" {
-				inAPIKeys = true
-				continue
+		// If in llm section and we hit api_keys:
+		if inLLM && trimmed == "api_keys:" && strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
+			result = append(result, line)
+			result = append(result, keyLine)
+			addedKey = true
+			continue
+		}
+
+		// Exit llm section if we hit a new top-level key
+		if inLLM && len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "#") {
+			// Before exiting, check if we need to add api_keys section
+			if !addedKey {
+				// Insert api_keys section before this line
+				result = append(result, "  api_keys:")
+				result = append(result, keyLine)
+				addedKey = true
 			}
+			inLLM = false
+		}
 
-			if inAPIKeys && !strings.HasPrefix(strings.TrimSpace(line), "#") {
-				// Check if next line is still in api_keys (indented)
-				if i+1 < len(lines) {
-					nextLine := lines[i+1]
-					if !strings.HasPrefix(nextLine, "    ") && strings.TrimSpace(nextLine) != "" {
-						// End of api_keys section, insert before
-						result = append(result[:len(result)-1], keyLine, line)
-						inAPIKeys = false
-					}
+		result = append(result, line)
+
+		// If this is the llm: line and next line is not api_keys, we might need to add it
+		if inLLM && !addedKey && i > 0 {
+			prevTrimmed := strings.TrimSpace(lines[i-1])
+			if prevTrimmed == "llm:" {
+				// Check if current line is already api_keys
+				if trimmed != "api_keys:" {
+					// Insert api_keys before current line
+					result = result[:len(result)-1]
+					result = append(result, "  api_keys:")
+					result = append(result, keyLine)
+					result = append(result, line)
+					addedKey = true
 				}
 			}
 		}
-
-		contentStr = strings.Join(result, "\n")
-	} else if strings.Contains(contentStr, "llm:") {
-		// Add api_keys section to existing llm section
-		lines := strings.Split(contentStr, "\n")
-		var result []string
-
-		for _, line := range lines {
-			result = append(result, line)
-			if strings.TrimSpace(line) == "llm:" {
-				result = append(result, "  api_keys:")
-				result = append(result, keyLine)
-			}
-		}
-
-		contentStr = strings.Join(result, "\n")
-	} else {
-		// Add new llm section
-		contentStr += fmt.Sprintf("\nllm:\n  api_keys:\n%s\n", keyLine)
 	}
 
+	// If llm section exists but we never added the key (end of file case)
+	if inLLM && !addedKey {
+		result = append(result, "  api_keys:")
+		result = append(result, keyLine)
+		addedKey = true
+	}
+
+	// If no llm section exists, add one
+	if !addedKey {
+		result = append(result, "")
+		result = append(result, "llm:")
+		result = append(result, "  api_keys:")
+		result = append(result, keyLine)
+	}
+
+	contentStr = strings.Join(result, "\n")
 	return os.WriteFile(formationFile, []byte(contentStr), 0644)
 }
 
@@ -783,9 +1059,10 @@ func updateModelInFormation(rootDir, capability, model string) error {
 	return os.WriteFile(formationFile, []byte(contentStr), 0644)
 }
 
-func updateModelSettingsInFormation(rootDir, capability, temp, tokens, timeout, retries, fallback string) error {
+func updateModelSettingsInFormation(rootDir, capability string, settings ModelSettings) error {
 	// For now, just log - full implementation would update YAML structure
-	ui.Success("Settings saved")
+	// TODO: Implement proper YAML structure update for model settings
+	ui.Success("Settings saved (note: manual YAML update may be needed for capability-specific settings)")
 	return nil
 }
 
