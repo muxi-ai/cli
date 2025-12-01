@@ -142,7 +142,8 @@ func init() {
 	// Login flags
 	loginCmd.Flags().String("registry", "", "Registry to authenticate with")
 
-	// Logout flags - none needed
+	// Logout flags
+	logoutCmd.Flags().String("registry", "", "Registry to logout from")
 
 	// Push flags
 	pushCmd.Flags().String("org", "", "Publish to organization")
@@ -230,26 +231,25 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	// Try browser callback first
-	token, err := tryBrowserAuth(client)
+	token, username, err := tryBrowserAuth(client)
 	if err != nil {
 		// Fallback to manual paste
 		token, err = manualAuth(client)
 		if err != nil {
 			return err
 		}
+		username = ""
 	}
 
-	// Try to validate token and get user info
-	fmt.Println()
-	fmt.Print("  Validating token... ")
-	user, err := client.ValidateToken(token)
-	username := ""
-	if err != nil {
-		// Validation endpoint may not exist - save token anyway
+	// If no username from callback, try to validate token
+	if username == "" {
+		fmt.Println()
+		fmt.Print("  Validating token... ")
+		user, err := client.ValidateToken(token)
+		if err == nil && user != nil {
+			username = user.Username
+		}
 		fmt.Println("OK")
-	} else {
-		fmt.Println("OK")
-		username = user.Username
 	}
 
 	// Save token
@@ -271,17 +271,23 @@ func runLogin(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// authResult holds token and username from auth callback
+type authResult struct {
+	Token    string
+	Username string
+}
+
 // tryBrowserAuth attempts browser-based authentication
-func tryBrowserAuth(client *registry.Client) (string, error) {
+func tryBrowserAuth(client *registry.Client) (string, string, error) {
 	// Find available port
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return "", fmt.Errorf("failed to start local server")
+		return "", "", fmt.Errorf("failed to start local server")
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
 
-	// Channel to receive token
-	tokenChan := make(chan string, 1)
+	// Channel to receive auth result
+	resultChan := make(chan authResult, 1)
 	errChan := make(chan error, 1)
 
 	// Start local server
@@ -293,7 +299,8 @@ func tryBrowserAuth(client *registry.Client) (string, error) {
 			w.Write([]byte("Authentication failed. Please try again."))
 			return
 		}
-		tokenChan <- token
+		username := r.URL.Query().Get("username")
+		resultChan <- authResult{Token: token, Username: username}
 		w.Write([]byte(`
 			<html>
 			<body style="font-family: sans-serif; text-align: center; padding: 50px;">
@@ -316,7 +323,7 @@ func tryBrowserAuth(client *registry.Client) (string, error) {
 
 	if err := openBrowser(authURL); err != nil {
 		listener.Close()
-		return "", fmt.Errorf("failed to open browser")
+		return "", "", fmt.Errorf("failed to open browser")
 	}
 
 	fmt.Println("  Waiting for authentication...")
@@ -326,15 +333,15 @@ func tryBrowserAuth(client *registry.Client) (string, error) {
 	defer cancel()
 
 	select {
-	case token := <-tokenChan:
+	case result := <-resultChan:
 		server.Shutdown(context.Background())
-		return token, nil
+		return result.Token, result.Username, nil
 	case err := <-errChan:
 		server.Shutdown(context.Background())
-		return "", err
+		return "", "", err
 	case <-ctx.Done():
 		server.Shutdown(context.Background())
-		return "", fmt.Errorf("authentication timed out")
+		return "", "", fmt.Errorf("authentication timed out")
 	}
 }
 
@@ -380,8 +387,12 @@ func openBrowser(url string) error {
 
 // runLogout handles the logout command
 func runLogout(cmd *cobra.Command, args []string) error {
+	registryFlag, _ := cmd.Flags().GetString("registry")
+
 	var registryName string
-	if len(args) > 0 {
+	if registryFlag != "" {
+		registryName = registryFlag
+	} else if len(args) > 0 {
 		registryName = args[0]
 	} else {
 		registryName = registry.GetDefaultRegistry()
@@ -901,24 +912,26 @@ func runRegistryAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Try browser callback first
-	token, err := tryBrowserAuth(client)
+	token, username, err := tryBrowserAuth(client)
 	if err != nil {
 		// Fallback to manual paste
 		token, err = manualAuth(client)
 		if err != nil {
 			return err
 		}
+		username = ""
 	}
 
-	// Try to validate and get user info
-	fmt.Println()
-	fmt.Print("  Validating token... ")
-	user, _ := client.ValidateToken(token)
-	username := ""
-	if user != nil {
-		username = user.Username
+	// If no username from callback, try to validate token
+	if username == "" {
+		fmt.Println()
+		fmt.Print("  Validating token... ")
+		user, _ := client.ValidateToken(token)
+		if user != nil {
+			username = user.Username
+		}
+		fmt.Println("OK")
 	}
-	fmt.Println("OK")
 
 	// Save token
 	if err := registry.SetToken(url, token, username); err != nil {
