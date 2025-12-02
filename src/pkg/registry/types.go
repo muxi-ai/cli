@@ -79,6 +79,30 @@ type PullInfo struct {
 	Size        int64  `json:"size"`
 }
 
+// MyFormationsResult represents response from /api/formations
+type MyFormationsResult struct {
+	Formations []MyFormation `json:"formations"`
+	Count      int           `json:"count"`
+}
+
+// MyFormation represents a user's formation
+type MyFormation struct {
+	Name        string           `json:"name"`
+	User        string           `json:"user"`
+	Description string           `json:"description"`
+	Version     string           `json:"version"`
+	GitHubRepo  string           `json:"github_repo"`
+	Stats       MyFormationStats `json:"stats"`
+	PublishedAt string           `json:"published_at"`
+	CreatedAt   string           `json:"created_at"`
+}
+
+// MyFormationStats contains formation statistics
+type MyFormationStats struct {
+	Downloads int `json:"downloads"`
+	Stars     int `json:"stars"`
+}
+
 // UserInfo represents authenticated user
 type UserInfo struct {
 	Username string `json:"username"`

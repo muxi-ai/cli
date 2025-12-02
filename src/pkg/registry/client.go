@@ -371,6 +371,36 @@ func (c *Client) Publish(zipPath string, org string) (*PublishResult, error) {
 	return &result, nil
 }
 
+// MyFormations returns the authenticated user's formations
+func (c *Client) MyFormations() (*MyFormationsResult, error) {
+	if !c.IsAuthenticated() {
+		return nil, fmt.Errorf("not authenticated - run 'muxi login' first")
+	}
+
+	req, err := http.NewRequest("GET", c.BaseURL+"/api/formations", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to registry: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch formations (%s)", resp.Status)
+	}
+
+	var result MyFormationsResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &result, nil
+}
+
 // ParseFormationRef parses a formation reference like @user/name:version
 func ParseFormationRef(ref string) (*FormationRef, error) {
 	// Remove leading @ if present

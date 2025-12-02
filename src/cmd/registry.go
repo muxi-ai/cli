@@ -136,6 +136,11 @@ var (
 		Short: "Set default registry",
 		RunE:  runRegistryDefault,
 	}
+	registryMineCmd = &cobra.Command{
+		Use:   "mine",
+		Short: "List my published formations",
+		RunE:  runMine,
+	}
 )
 
 func init() {
@@ -189,6 +194,9 @@ func init() {
 	registryShowCmd.Flags().Bool("versions", false, "Show all versions")
 	registryShowCmd.Flags().String("registry", "", "Registry to query")
 
+	// Mine flags
+	registryMineCmd.Flags().String("registry", "", "Registry to query")
+
 	// Register subcommands under registry
 	registryCmd.AddCommand(registryLoginCmd)
 	registryCmd.AddCommand(registryLogoutCmd)
@@ -200,6 +208,7 @@ func init() {
 	registryCmd.AddCommand(registryAddCmd)
 	registryCmd.AddCommand(registryRemoveCmd)
 	registryCmd.AddCommand(registryDefaultCmd)
+	registryCmd.AddCommand(registryMineCmd)
 }
 
 // runLogin handles the login command
@@ -1134,6 +1143,59 @@ func runRegistryDefault(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Default registry set to: %s", selected))
+
+	return nil
+}
+
+// runMine handles muxi registry mine
+func runMine(cmd *cobra.Command, args []string) error {
+	registryFlag, _ := cmd.Flags().GetString("registry")
+
+	client, err := registry.NewClient(registryFlag)
+	if err != nil {
+		return err
+	}
+
+	if !client.IsAuthenticated() {
+		return fmt.Errorf("not authenticated - run 'muxi login' first")
+	}
+
+	ui.InfoBanner("My Formations")
+
+	result, err := client.MyFormations()
+	if err != nil {
+		return err
+	}
+
+	if result.Count == 0 {
+		fmt.Println()
+		ui.Dimmed("  No formations published yet")
+		fmt.Println()
+		fmt.Println("  Publish your first formation: muxi push")
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Printf("  Found %d formation(s)\n", result.Count)
+	fmt.Println()
+
+	for _, f := range result.Formations {
+		// Formation name and version
+		fmt.Printf("  %s %s\n", ui.BoldText(fmt.Sprintf("@%s/%s", f.User, f.Name)), ui.DimmedText("v"+f.Version))
+
+		// Description (truncated)
+		if f.Description != "" {
+			desc := f.Description
+			if len(desc) > 60 {
+				desc = desc[:57] + "..."
+			}
+			fmt.Printf("    %s\n", ui.DimmedText(desc))
+		}
+
+		// Stats
+		fmt.Printf("    ↓ %d downloads  ★ %d stars\n", f.Stats.Downloads, f.Stats.Stars)
+		fmt.Println()
+	}
 
 	return nil
 }
