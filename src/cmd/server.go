@@ -329,6 +329,10 @@ func runServerStatus(cmd *cobra.Command, args []string) error {
 		serverName = server.GetDefaultServer()
 	}
 
+	// Check health first
+	health, healthErr := client.Health()
+
+	// Get status
 	status, err := client.GetServerStatus()
 	if err != nil {
 		return err
@@ -338,26 +342,41 @@ func runServerStatus(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Server: %s (%s)\n", serverName, client.BaseURL)
 	fmt.Println()
 
-	// Status indicator
+	// Status from health endpoint
 	statusIcon := ui.GreenText("●")
-	if status.Server.Status != "healthy" {
+	statusText := "healthy"
+	if healthErr != nil || health == nil || health.Data.Server.Status != "healthy" {
 		statusIcon = ui.RedText("●")
+		if health != nil {
+			statusText = health.Data.Server.Status
+		} else {
+			statusText = "unknown"
+		}
 	}
-	fmt.Printf("  Status:     %s %s\n", statusIcon, status.Server.Status)
+	fmt.Printf("  Status:     %s %s\n", statusIcon, statusText)
 	fmt.Printf("  Version:    %s\n", status.Server.Version)
 	fmt.Printf("  Uptime:     %s\n", formatDuration(status.Server.Uptime))
 	fmt.Println()
 	fmt.Printf("  Formations: %d total (%d running, %d stopped)\n",
 		status.Formations.Total, status.Formations.Running, status.Formations.Stopped)
-	fmt.Printf("  Port Pool:  %d-%d (%d available)\n",
-		status.Ports.Start, status.Ports.End, status.Ports.Available)
+	if status.Ports.Range != "" {
+		fmt.Printf("  Port Pool:  %s (%d available)\n", status.Ports.Range, status.Ports.Available)
+	}
 	fmt.Println()
 
 	if status.Runtime.Type != "" {
-		fmt.Printf("  Runtime:    %s (%s)\n", status.Runtime.Type, status.Runtime.Version)
+		runtimeVersion := ""
+		if len(status.Runtime.Versions) > 0 {
+			runtimeVersion = status.Runtime.Versions[0]
+		}
+		if runtimeVersion != "" {
+			fmt.Printf("  Runtime:    %s (%s)\n", status.Runtime.Type, runtimeVersion)
+		} else {
+			fmt.Printf("  Runtime:    %s\n", status.Runtime.Type)
+		}
 	}
-	if status.Server.Platform != "" {
-		fmt.Printf("  Platform:   %s\n", status.Server.Platform)
+	if status.Runtime.Platform != "" {
+		fmt.Printf("  Platform:   %s\n", status.Runtime.Platform)
 	}
 	fmt.Println()
 

@@ -32,25 +32,26 @@ type HealthResponse struct {
 // ServerStatusResponse from GET /rpc/server/status
 type ServerStatusResponse struct {
 	Server struct {
-		ID       string `json:"id"`
-		Status   string `json:"status"`
+		ServerID string `json:"server_id"`
 		Version  string `json:"version"`
 		Uptime   int64  `json:"uptime"`
-		Platform string `json:"platform"`
+		Port     int    `json:"port"`
 	} `json:"server"`
 	Formations struct {
 		Total   int `json:"total"`
 		Running int `json:"running"`
 		Stopped int `json:"stopped"`
+		Healthy int `json:"healthy"`
 	} `json:"formations"`
 	Ports struct {
-		Start     int `json:"start"`
-		End       int `json:"end"`
-		Available int `json:"available"`
+		Allocated int    `json:"allocated"`
+		Available int    `json:"available"`
+		Range     string `json:"range"`
 	} `json:"ports"`
 	Runtime struct {
-		Type    string `json:"type"`
-		Version string `json:"version"`
+		Type     string   `json:"type"`
+		Platform string   `json:"platform"`
+		Versions []string `json:"versions"`
 	} `json:"runtime"`
 }
 
