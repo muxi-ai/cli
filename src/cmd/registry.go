@@ -907,8 +907,6 @@ func formatTimeAgo(t time.Time) string {
 
 // runRegistryList handles muxi registry list
 func runRegistryList(cmd *cobra.Command, args []string) error {
-	ui.InfoBanner("Configured Registries")
-
 	config, err := registry.LoadRegistries()
 	if err != nil {
 		return fmt.Errorf("failed to load registries: %w", err)
@@ -956,8 +954,6 @@ func runRegistryList(cmd *cobra.Command, args []string) error {
 
 // runRegistryAdd handles muxi registry add
 func runRegistryAdd(cmd *cobra.Command, args []string) error {
-	ui.InfoBanner("Add Registry")
-
 	ui.Dimmed("  Enter the registry URL (e.g., registry.example.com)")
 	url, err := wizard.PromptString("Registry URL", "", nil)
 	if err != nil {
@@ -1040,8 +1036,6 @@ func runRegistryAdd(cmd *cobra.Command, args []string) error {
 
 // runRegistryRemove handles muxi registry remove
 func runRegistryRemove(cmd *cobra.Command, args []string) error {
-	ui.InfoBanner("Remove Registry")
-
 	config, err := registry.LoadRegistries()
 	if err != nil {
 		return fmt.Errorf("failed to load registries: %w", err)
@@ -1097,8 +1091,6 @@ func runRegistryRemove(cmd *cobra.Command, args []string) error {
 
 // runRegistryDefault handles muxi registry default
 func runRegistryDefault(cmd *cobra.Command, args []string) error {
-	ui.InfoBanner("Set Default Registry")
-
 	config, err := registry.LoadRegistries()
 	if err != nil {
 		return fmt.Errorf("failed to load registries: %w", err)
@@ -1159,8 +1151,6 @@ func runMine(cmd *cobra.Command, args []string) error {
 	if !client.IsAuthenticated() {
 		return fmt.Errorf("not authenticated - run 'muxi login' first")
 	}
-
-	ui.InfoBanner("My Formations")
 
 	result, err := client.MyFormations()
 	if err != nil {
