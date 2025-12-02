@@ -11,10 +11,10 @@ import (
 
 // BundleInfo contains information about a created bundle
 type BundleInfo struct {
-	Path      string
-	FileCount int
-	Size      int64
-	Warnings  []string
+	Path          string
+	FileCount     int
+	ExcludedCount int
+	Size          int64
 }
 
 // ExcludedPatterns are patterns to exclude from bundles
@@ -61,12 +61,8 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 	zipWriter := zip.NewWriter(tmpFile)
 
 	info := &BundleInfo{
-		Path:     tmpPath,
-		Warnings: []string{},
+		Path: tmpPath,
 	}
-
-	// Add info about excluded files
-	info.Warnings = append(info.Warnings, "Excluded: secrets.enc, .key, .git, .env, and other sensitive/dot files")
 
 	// Walk the directory and add files
 	err = filepath.Walk(formationDir, func(path string, fileInfo os.FileInfo, err error) error {
@@ -85,11 +81,13 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 			return nil
 		}
 
-		// Check if should be excluded
+		// Check if should be excluded (dot files, secrets, etc.)
 		if shouldExclude(relPath, fileInfo.IsDir()) {
 			if fileInfo.IsDir() {
 				return filepath.SkipDir
 			}
+			// Count excluded files (not directories)
+			info.ExcludedCount++
 			return nil
 		}
 

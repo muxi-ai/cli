@@ -509,10 +509,10 @@ func runPush(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("  ✓ %d files (%s)\n", bundle.FileCount, registry.FormatSize(bundle.Size))
 
-	// Show warnings
-	for _, warning := range bundle.Warnings {
+	// Show excluded count
+	if bundle.ExcludedCount > 0 {
 		fmt.Println()
-		ui.Warning("  " + warning)
+		fmt.Printf("  %s %d dot files excluded\n", ui.RedText("ℹ"), bundle.ExcludedCount)
 	}
 
 	if dryRun {
