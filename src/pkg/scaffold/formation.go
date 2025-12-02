@@ -18,7 +18,8 @@ import (
 
 // FormationConfig holds all configuration gathered during the wizard
 type FormationConfig struct {
-	Name             string
+	Name             string // ID (slug)
+	DisplayName      string // Human-readable name
 	Description      string
 	EnableStreaming  bool
 	EnableAsync      bool
@@ -100,11 +101,24 @@ func CreateFormation(name string, noWizard bool) error {
 		return fmt.Errorf("formation ID required (provide as argument or run without --no-wizard)")
 	}
 
+	// Set display name to title case of ID if not in wizard mode
+	if noWizard {
+		config.DisplayName = titleCase(config.Name)
+	}
+
 	// Interactive mode - gather all configuration
 	if !noWizard {
 		var err error
 
-		// Step 2: Description
+		// Step 2: Formation name (human-readable)
+		inferredName := titleCase(config.Name)
+		config.DisplayName, err = wizard.PromptString("Name", inferredName, nil)
+		if err != nil {
+			return err
+		}
+		ui.PromptSuccess("Name", config.DisplayName)
+
+		// Step 3: Description
 		config.Description, err = wizard.PromptString("Description (optional, press Enter to skip)", "", nil)
 		if err != nil {
 			return err
@@ -115,7 +129,7 @@ func CreateFormation(name string, noWizard bool) error {
 			ui.PromptSkipped("Description")
 		}
 
-		// Step 3: Streaming responses
+		// Step 4: Streaming responses
 		config.EnableStreaming, err = wizard.PromptConfirm("Enable streaming responses?", false)
 		if err != nil {
 			return err
@@ -126,7 +140,7 @@ func CreateFormation(name string, noWizard bool) error {
 			ui.PromptSkipped("Streaming")
 		}
 
-		// Step 4: Async responses
+		// Step 5: Async responses
 		config.EnableAsync, err = wizard.PromptConfirm("Enable async responses for long-running tasks?", false)
 		if err != nil {
 			return err

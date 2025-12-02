@@ -55,6 +55,7 @@ func generateFormationYAML(config *FormationConfig) string {
 	b.WriteString(fmt.Sprintf(`schema: "1.0.0"
 
 id: "%s"
+name: "%s"
 description: "%s"
 version: "1.0.0"
 
@@ -68,7 +69,7 @@ server:
 overlord:
   persona: |
     You are a helpful AI assistant.
-`, config.Name, description))
+`, config.Name, config.DisplayName, description))
 
 	// Streaming (only if enabled)
 	if config.EnableStreaming {
