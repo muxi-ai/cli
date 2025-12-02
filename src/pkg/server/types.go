@@ -11,21 +11,17 @@ type APIResponse struct {
 	Code    int             `json:"code,omitempty"`
 }
 
-// HealthResponse from GET /health
+// HealthResponse from GET /health (actual server response)
 type HealthResponse struct {
 	Success bool `json:"success"`
 	Data    struct {
-		Server struct {
-			Status     string `json:"status"`
-			Version    string `json:"version"`
-			Uptime     int64  `json:"uptime"`
-			Formations int    `json:"formations"`
-		} `json:"server"`
-		Formations []struct {
-			ID      string `json:"id"`
-			Status  string `json:"status"`
-			Healthy bool   `json:"healthy"`
-		} `json:"formations"`
+		Status     string `json:"status"` // "ok" when healthy
+		Formations int    `json:"formations"`
+		PortPool   struct {
+			Allocated int `json:"allocated"`
+			Available int `json:"available"`
+			Total     int `json:"total"`
+		} `json:"port_pool"`
 	} `json:"data"`
 }
 

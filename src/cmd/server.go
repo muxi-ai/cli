@@ -345,13 +345,12 @@ func runServerStatus(cmd *cobra.Command, args []string) error {
 	// Status from health endpoint
 	statusIcon := ui.GreenText("●")
 	statusText := "healthy"
-	if healthErr != nil || health == nil || health.Data.Server.Status != "healthy" {
+	if healthErr != nil || health == nil {
 		statusIcon = ui.RedText("●")
-		if health != nil {
-			statusText = health.Data.Server.Status
-		} else {
-			statusText = "unknown"
-		}
+		statusText = "unreachable"
+	} else if health.Data.Status != "ok" {
+		statusIcon = ui.RedText("●")
+		statusText = health.Data.Status
 	}
 	fmt.Printf("  Status:     %s %s\n", statusIcon, statusText)
 	fmt.Printf("  Version:    %s\n", status.Server.Version)
