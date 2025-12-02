@@ -335,18 +335,37 @@ func (c *Client) Publish(zipPath string, org string) (*PublishResult, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusConflict {
-		return nil, fmt.Errorf("version already exists - bump version in formation.yaml")
-	}
+	respBody, _ := io.ReadAll(resp.Body)
 
+	// Handle error responses
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("publish failed: %s - %s", resp.Status, string(respBody))
+		// Try to parse JSON error response
+		var errResp struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(respBody, &errResp) == nil && errResp.Message != "" {
+			return nil, fmt.Errorf("%s", errResp.Message)
+		}
+
+		// Friendly messages for common status codes
+		switch resp.StatusCode {
+		case http.StatusConflict:
+			return nil, fmt.Errorf("version already exists - bump version in formation.yaml")
+		case http.StatusUnauthorized:
+			return nil, fmt.Errorf("authentication failed - try 'muxi logout' then 'muxi login'")
+		case http.StatusForbidden:
+			return nil, fmt.Errorf("you don't have permission to publish this formation")
+		case http.StatusNotFound:
+			return nil, fmt.Errorf("registry endpoint not found - check your registry configuration")
+		default:
+			return nil, fmt.Errorf("publish failed (%s)", resp.Status)
+		}
 	}
 
 	var result PublishResult
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("unexpected response from registry")
 	}
 
 	return &result, nil
