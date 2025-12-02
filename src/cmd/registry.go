@@ -650,8 +650,31 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	pageSize := 10
 	totalResults := len(result.Results)
 	totalPages := (totalResults + pageSize - 1) / pageSize
-	currentPage := 0
 
+	// Single page - show without pagination
+	if totalPages == 1 {
+		fmt.Println()
+		fmt.Printf("  Found %d formations:\n", totalResults)
+		fmt.Println()
+
+		for _, f := range result.Results {
+			fmt.Printf("  @%s/%s", f.User, f.Name)
+			fmt.Printf("        ★ %d   ↓ %d\n", f.Stars, f.Downloads)
+			if f.Description != "" {
+				ui.Dimmed(fmt.Sprintf("    %s", f.Description))
+			}
+			if f.Version != "" {
+				ui.Dimmed(fmt.Sprintf("    v%s", f.Version))
+			}
+			fmt.Println()
+		}
+
+		fmt.Println("  Pull with: muxi pull @user/formation")
+		return nil
+	}
+
+	// Multiple pages - interactive pagination
+	currentPage := 0
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
