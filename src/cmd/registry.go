@@ -647,13 +647,18 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("  Found %d formations:\n", result.Total)
+	shown := len(result.Results)
+	if shown < result.Total {
+		fmt.Printf("  Showing %d of %d formations:\n", shown, result.Total)
+	} else {
+		fmt.Printf("  Found %d formations:\n", result.Total)
+	}
 	fmt.Println()
 
 	for _, f := range result.Results {
 		// Name with stars and downloads
 		fmt.Printf("  @%s/%s", f.User, f.Name)
-		fmt.Printf("        ⭐ %d   ↓ %d\n", f.Stars, f.Downloads)
+		fmt.Printf("        ★ %d   ↓ %d\n", f.Stars, f.Downloads)
 
 		// Description
 		if f.Description != "" {
@@ -698,7 +703,7 @@ func runShow(cmd *cobra.Command, args []string) error {
 	}
 
 	// Stats
-	fmt.Printf("  ⭐ %d stars   ↓ %d downloads   📦 %s\n",
+	fmt.Printf("  ★ %d stars   ↓ %d downloads   ⊞ %s\n",
 		formation.Stars, formation.Downloads, registry.FormatSize(formation.Size))
 	fmt.Println()
 
