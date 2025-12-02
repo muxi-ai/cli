@@ -1,15 +1,15 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-12-01  
-**Version:** 0.2.0-dev  
-**Status:** 🚀 Active Development - All Config Commands Complete
+**Last Updated:** 2025-12-02  
+**Version:** 0.3.0-dev  
+**Status:** 🚀 Active Development - Registry Commands Complete
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, and **all config commands** (LLM, memory, overlord, security, logging). Registry commands are next.
+MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, **all config commands** (LLM, memory, overlord, security, logging), and **full registry integration** (login, push, pull, search, show, mine).
 
 ### What Exists ✅
 
@@ -60,13 +60,18 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi config security` - Configure user credentials handling
 - ✅ `muxi config logging` - Configure logging streams
 
-**Registry Commands (Not Blocked):**
-- ⏳ `muxi login` - Authenticate with registry (browser callback + paste fallback)
-- ⏳ `muxi logout` - Remove registry credentials
-- ⏳ `muxi push` - Publish formation to registry
-- ⏳ `muxi pull @user/formation` - Download formation
-- ⏳ `muxi search "query"` - Search formations
-- ⏳ `muxi show @user/formation` - Display formation info
+**Registry Commands:**
+- ✅ `muxi login` - Authenticate with registry (browser OAuth + paste fallback)
+- ✅ `muxi logout` - Remove registry credentials
+- ✅ `muxi push` - Publish formation to registry (with spinner animation)
+- ✅ `muxi pull @user/formation` - Download formation
+- ✅ `muxi search "query"` - Search formations (with pagination)
+- ✅ `muxi show @user/formation` - Display formation info
+- ✅ `muxi registry mine` - List your published formations
+- ✅ `muxi registry list` - List configured registries
+- ✅ `muxi registry add` - Add a registry
+- ✅ `muxi registry remove` - Remove a registry
+- ✅ `muxi registry default` - Set default registry
 
 **Blocked by Runtime API:**
 - ⏳ Formation management (`deploy`, `list`, `logs`, `stop`, `restart`, `delete`)
@@ -80,69 +85,39 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 
 ## 🚧 Current Work
 
-### Latest Changes (2025-12-01)
+### Latest Changes (2025-12-02)
 
-1. ✅ **`muxi config async` Command:**
-   - Configure async response settings for long-running tasks
-   - Settings: threshold, webhook URL, retry count/delay
-   - Enable/disable async responses
-   - User guide: `docs/guides/async.md`
+1. ✅ **Registry Commands Complete:**
+   - `muxi login` - Browser OAuth + paste fallback
+   - `muxi logout` - Remove credentials (supports --registry flag)
+   - `muxi push` - Publish formation with spinner animation
+   - `muxi pull` - Download formation from registry
+   - `muxi search` - Search with pagination (10/page, n/p/q navigation)
+   - `muxi show` - Display formation details
+   - `muxi registry mine` - List user's published formations
+   - `muxi registry list/add/remove/default` - Registry management
+   - User guide: `docs/guides/registry.md`
 
-2. ✅ **`muxi validate` Command:**
-   - Validates formation.yaml structure and required fields
-   - Checks secret references exist
-   - Validates agent and MCP files
-   - Clean error/warning output with dimmed hints
+2. ✅ **New UI Components:**
+   - Spinner animation during long operations (braille characters)
+   - Cleaner error messages for registry operations
 
-3. ✅ **`muxi secrets sync` Improvements:**
-   - Colored diff output (green +, red -)
-   - Auto-prompts for newly added secrets
-   - Cleaner output format
+3. ✅ **Bundle Improvements:**
+   - Includes `secrets` template file (not secrets.enc)
+   - Shows count of excluded dot files
+   - Proper path matching for nested directories
 
-4. ✅ **`muxi config logging` Command Complete:**
-   - Four transports: stdout, file, http, kafka
-   - HTTP: Support for Datadog, Splunk, Elastic, Loki, etc.
-   - Multiple auth types: bearer, API key, basic auth, SASL
-   - Add/view/remove streams
-   - User guide created: `docs/guides/logging.md`
+4. ✅ **Formation Creation Improvements:**
+   - `muxi new formation` prompts for ID then Name
+   - ID accepts spaces (normalized to dashes)
+   - Name defaults to title-cased ID
 
-5. ✅ **YAML Formatting & UX Improvements:**
-   - Password masking for all sensitive inputs (tokens, keys, passwords)
-   - 2-space YAML indentation (standard convention)
-   - Blank lines before top-level keys for readability
-   - Blank lines before second-level keys with children
-   - Auto-remove commented sections when real config is added
-   - Developer guide: `docs/dev/config-commands.md`
+### Previous Changes (2025-12-01)
 
-6. ✅ **`muxi config security` Command Complete:**
-   - Two modes: Redirect (production) and Dynamic (development)
-   - User guide: `docs/guides/security.md`
-
-7. ✅ **`muxi config overlord` Command Complete:**
-   - Four flows: Persona, Response, Workflow, Clarification
-   - User guide: `docs/guides/overlord.md`
-
-8. ✅ **`muxi config memory` Command Complete:**
-   - Three flows: Working, Buffer, Persistent memory
-   - User guide: `docs/guides/memory.md`
-
-9. ✅ **`muxi config llm` Command Complete:**
-   - User guide: `docs/guides/llm.md`
-
-10. ✅ **User Guides (docs/guides/):**
-   - `async.md` - Async response configuration (NEW)
-   - `logging.md` - Logging configuration guide
-   - `security.md` - Security configuration guide
-   - `overlord.md` - Overlord configuration guide
-   - `memory.md` - Memory configuration guide
-   - `llm.md` - LLM configuration guide
-   - `formations.md` - Creating formations, LLM providers
-   - `agents.md` - Roles, system prompts, A2A visibility
-   - `mcps.md` - HTTP/Stdio transports, auth types
-   - `sops.md` - Workflow steps, execution modes
-   - `triggers.md` - Webhook templates, routing
-   - `a2a.md` - Inbound/outbound A2A, services
-   - `secrets.md` - Encryption, commands, security
+- ✅ `muxi config async` - Async response settings
+- ✅ `muxi validate` - Formation validation
+- ✅ `muxi config logging` - Logging streams (stdout, file, http, kafka)
+- ✅ All config commands complete (llm, memory, overlord, security, logging, async)
 
 ### Previous Changes (2025-11-30)
 - ✅ Registry commands plan
@@ -155,10 +130,11 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ Golden MUXI branding
 
 ### Current Focus
-**All config commands + validation complete!** ✅
+**All config commands + registry commands complete!** ✅
 
 **Next up:**
-- Implement registry commands (login, push, pull, search, show)
+- Runtime integration (blocked by runtime API)
+- Formation deployment commands
 
 ---
 
@@ -392,6 +368,7 @@ None - design is solid and comprehensive.
 - ✅ overlord.md - Overlord configuration (persona, workflow, clarification)
 - ✅ security.md - Security configuration (redirect, dynamic modes)
 - ✅ logging.md - Logging configuration (stdout, file, http, kafka)
+- ✅ registry.md - Registry commands (login, push, pull, search)
 
 ### Needs Creation
 - ⏳ docs/AUTHENTICATION.md - HMAC implementation (blocked)
