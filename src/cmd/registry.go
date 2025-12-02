@@ -303,7 +303,7 @@ func tryBrowserAuth(client *registry.Client) (string, string, error) {
 		resultChan <- authResult{Token: token, Username: username}
 		w.Write([]byte(`
 			<html>
-			<body style="font-family: sans-serif; text-align: center; padding: 50px;">
+			<body style="font-family: system-ui, sans-serif; text-align: center; padding: 50px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
 			<h1>✓ Authentication Successful</h1>
 			<p>You can close this window and return to the terminal.</p>
 			</body>

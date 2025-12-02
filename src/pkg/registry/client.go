@@ -302,7 +302,7 @@ func (c *Client) Publish(zipPath string, org string) (*PublishResult, error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	part, err := writer.CreateFormFile("bundle", filepath.Base(zipPath))
+	part, err := writer.CreateFormFile("file", filepath.Base(zipPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create form: %w", err)
 	}
