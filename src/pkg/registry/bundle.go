@@ -246,7 +246,7 @@ func shouldInclude(path string) bool {
 	name := filepath.Base(path)
 
 	// Root files
-	rootIncludes := []string{"formation.yaml", "README.md", "README", "LICENSE"}
+	rootIncludes := []string{"formation.yaml", "README.md", "README", "LICENSE", "secrets"}
 	for _, include := range rootIncludes {
 		if path == include || name == include {
 			return true
