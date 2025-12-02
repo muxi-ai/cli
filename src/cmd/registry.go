@@ -532,16 +532,17 @@ func runPush(cmd *cobra.Command, args []string) error {
 	fmt.Println("OK")
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Published %s v%s", result.Formation, result.Version))
+	formationRef := fmt.Sprintf("@%s/%s", result.Formation.User, result.Formation.Name)
+	ui.Success(fmt.Sprintf("Published %s v%s", formationRef, result.Formation.Version))
 	fmt.Println()
 	fmt.Println("  View at:")
-	fmt.Printf("    Registry: %s\n", result.RegistryURL)
-	if result.GitHubURL != "" {
-		fmt.Printf("    GitHub:   %s\n", result.GitHubURL)
+	fmt.Printf("    Registry: %s\n", result.Formation.RegistryURL)
+	if result.Formation.GitHubRepo != "" {
+		fmt.Printf("    GitHub:   https://github.com/%s\n", result.Formation.GitHubRepo)
 	}
 	fmt.Println()
 	fmt.Println("  Share with:")
-	fmt.Printf("    muxi pull %s\n", result.Formation)
+	fmt.Printf("    muxi pull %s\n", formationRef)
 
 	return nil
 }

@@ -241,8 +241,11 @@ func shouldExclude(path string, isDir bool) bool {
 
 // shouldInclude checks if a path should be included
 func shouldInclude(path string) bool {
-	// Root files
+	// Normalize path separators
+	path = filepath.ToSlash(path)
 	name := filepath.Base(path)
+
+	// Root files
 	rootIncludes := []string{"formation.yaml", "README.md", "README", "LICENSE"}
 	for _, include := range rootIncludes {
 		if path == include || name == include {
@@ -250,21 +253,22 @@ func shouldInclude(path string) bool {
 		}
 	}
 
-	// Directory patterns
-	dirPatterns := map[string]string{
-		"agents":   "*.yaml",
-		"mcps":     "*.yaml",
-		"a2a":      "*.yaml",
-		"sops":     "*.md",
-		"triggers": "*.yaml",
-		"knowledge": "*.md",
+	// Directory patterns - include all yaml/md files in these dirs
+	dirPatterns := map[string][]string{
+		"agents/":    {"*.yaml", "*.yml"},
+		"mcps/":      {"*.yaml", "*.yml"},
+		"a2a/":       {"*.yaml", "*.yml"},
+		"sops/":      {"*.md", "*.yaml", "*.yml"},
+		"triggers/":  {"*.yaml", "*.yml"},
+		"knowledge/": {"*.md", "*.txt", "*.yaml", "*.yml"},
 	}
 
-	dir := filepath.Dir(path)
-	for dirName, pattern := range dirPatterns {
-		if dir == dirName {
-			if matched, _ := filepath.Match(pattern, name); matched {
-				return true
+	for dirPrefix, patterns := range dirPatterns {
+		if strings.HasPrefix(path, dirPrefix) {
+			for _, pattern := range patterns {
+				if matched, _ := filepath.Match(pattern, name); matched {
+					return true
+				}
 			}
 		}
 	}

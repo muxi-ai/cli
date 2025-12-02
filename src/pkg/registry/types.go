@@ -56,10 +56,19 @@ type SearchItem struct {
 
 // PublishResult represents publish response
 type PublishResult struct {
-	Formation   string `json:"formation"`
+	Status    string              `json:"status"`
+	Message   string              `json:"message"`
+	Formation PublishFormationInfo `json:"formation"`
+}
+
+// PublishFormationInfo contains formation details in publish response
+type PublishFormationInfo struct {
+	Name        string `json:"name"`
+	User        string `json:"user"`
 	Version     string `json:"version"`
+	GitHubRepo  string `json:"github_repo"`
 	RegistryURL string `json:"registry_url"`
-	GitHubURL   string `json:"github_url"`
+	DownloadURL string `json:"download_url"`
 }
 
 // PullInfo contains download information
