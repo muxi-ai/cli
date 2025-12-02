@@ -627,7 +627,6 @@ func runPull(cmd *cobra.Command, args []string) error {
 func runSearch(cmd *cobra.Command, args []string) error {
 	query := args[0]
 	sort, _ := cmd.Flags().GetString("sort")
-	limit, _ := cmd.Flags().GetInt("limit")
 	registryFlag, _ := cmd.Flags().GetString("registry")
 
 	client, err := registry.NewClient(registryFlag)
@@ -635,46 +634,95 @@ func runSearch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	result, err := client.Search(query, sort, limit)
+	// Fetch up to 100 results for pagination
+	result, err := client.Search(query, sort, 100)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println()
-
 	if len(result.Results) == 0 {
+		fmt.Println()
 		ui.Dimmed("  No formations found")
 		return nil
 	}
 
-	shown := len(result.Results)
-	if shown < result.Total {
-		fmt.Printf("  Showing %d of %d formations:\n", shown, result.Total)
-	} else {
-		fmt.Printf("  Found %d formations:\n", result.Total)
-	}
-	fmt.Println()
+	// Paginate results
+	pageSize := 10
+	totalResults := len(result.Results)
+	totalPages := (totalResults + pageSize - 1) / pageSize
+	currentPage := 0
 
-	for _, f := range result.Results {
-		// Name with stars and downloads
-		fmt.Printf("  @%s/%s", f.User, f.Name)
-		fmt.Printf("        ★ %d   ↓ %d\n", f.Stars, f.Downloads)
+	reader := bufio.NewReader(os.Stdin)
 
-		// Description
-		if f.Description != "" {
-			ui.Dimmed(fmt.Sprintf("    %s", f.Description))
+	for {
+		// Clear screen and show current page
+		fmt.Print("\033[H\033[2J")
+
+		start := currentPage * pageSize
+		end := start + pageSize
+		if end > totalResults {
+			end = totalResults
 		}
 
-		// Version
-		if f.Version != "" {
-			ui.Dimmed(fmt.Sprintf("    v%s", f.Version))
+		// Header
+		fmt.Println()
+		if result.Total > totalResults {
+			fmt.Printf("  Search: \"%s\" - Showing %d-%d of %d+ results\n", query, start+1, end, result.Total)
+		} else {
+			fmt.Printf("  Search: \"%s\" - Showing %d-%d of %d results\n", query, start+1, end, totalResults)
 		}
 		fmt.Println()
+
+		// Display current page
+		for i := start; i < end; i++ {
+			f := result.Results[i]
+			fmt.Printf("  @%s/%s", f.User, f.Name)
+			fmt.Printf("        ★ %d   ↓ %d\n", f.Stars, f.Downloads)
+
+			if f.Description != "" {
+				ui.Dimmed(fmt.Sprintf("    %s", f.Description))
+			}
+			if f.Version != "" {
+				ui.Dimmed(fmt.Sprintf("    v%s", f.Version))
+			}
+			fmt.Println()
+		}
+
+		// Navigation
+		fmt.Println()
+		ui.Dimmed(fmt.Sprintf("  Page %d of %d", currentPage+1, totalPages))
+		fmt.Println()
+
+		// Build navigation options
+		var navOptions []string
+		if currentPage > 0 {
+			navOptions = append(navOptions, "[p]revious")
+		}
+		if currentPage < totalPages-1 {
+			navOptions = append(navOptions, "[n]ext")
+		}
+		navOptions = append(navOptions, "[q]uit")
+
+		fmt.Printf("  %s: ", strings.Join(navOptions, " | "))
+
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(strings.ToLower(input))
+
+		switch input {
+		case "n", "next":
+			if currentPage < totalPages-1 {
+				currentPage++
+			}
+		case "p", "previous", "prev":
+			if currentPage > 0 {
+				currentPage--
+			}
+		case "q", "quit", "":
+			fmt.Println()
+			fmt.Println("  Pull with: muxi pull @user/formation")
+			return nil
+		}
 	}
-
-	fmt.Println("  Pull with: muxi pull @user/formation")
-
-	return nil
 }
 
 // runShow handles the show command
