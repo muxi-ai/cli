@@ -357,11 +357,11 @@ func validateMCPs(rootDir string, result *Result) {
 			})
 		}
 
-		if _, ok := mcp["transport"]; !ok {
+		if _, ok := mcp["type"]; !ok {
 			result.Errors = append(result.Errors, Issue{
 				File:    filepath.Join("mcps", entry.Name()),
-				Field:   "transport",
-				Message: "required field 'transport' is missing",
+				Field:   "type",
+				Message: "required field 'type' is missing",
 			})
 		}
 
