@@ -156,7 +156,7 @@ func init() {
 	pullCmd.Flags().String("registry", "", "Registry to pull from")
 
 	// Search flags
-	searchCmd.Flags().String("sort", "relevance", "Sort by: relevance, downloads, stars, updated")
+	searchCmd.Flags().String("sort", "trending", "Sort by: trending, downloads, stars, recent")
 	searchCmd.Flags().Int("limit", 20, "Maximum results (1-100)")
 	searchCmd.Flags().String("registry", "", "Registry to search")
 
@@ -183,7 +183,7 @@ func init() {
 	registryPullCmd.Flags().StringP("output", "o", "", "Output directory")
 	registryPullCmd.Flags().Bool("force", false, "Overwrite existing directory")
 	registryPullCmd.Flags().String("registry", "", "Registry to pull from")
-	registrySearchCmd.Flags().String("sort", "relevance", "Sort by: relevance, downloads, stars, updated")
+	registrySearchCmd.Flags().String("sort", "trending", "Sort by: trending, downloads, stars, recent")
 	registrySearchCmd.Flags().Int("limit", 20, "Maximum results (1-100)")
 	registrySearchCmd.Flags().String("registry", "", "Registry to search")
 	registryShowCmd.Flags().Bool("versions", false, "Show all versions")
@@ -642,7 +642,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 
-	if len(result.Formations) == 0 {
+	if len(result.Results) == 0 {
 		ui.Dimmed("  No formations found")
 		return nil
 	}
@@ -650,9 +650,9 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Found %d formations:\n", result.Total)
 	fmt.Println()
 
-	for _, f := range result.Formations {
+	for _, f := range result.Results {
 		// Name with stars and downloads
-		fmt.Printf("  @%s/%s", f.Owner, f.Name)
+		fmt.Printf("  @%s/%s", f.User, f.Name)
 		fmt.Printf("        ⭐ %d   ↓ %d\n", f.Stars, f.Downloads)
 
 		// Description
@@ -660,9 +660,10 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			ui.Dimmed(fmt.Sprintf("    %s", f.Description))
 		}
 
-		// Version and update time
-		updated := formatTimeAgo(f.UpdatedAt)
-		ui.Dimmed(fmt.Sprintf("    v%s • Updated %s", f.Version, updated))
+		// Version
+		if f.Version != "" {
+			ui.Dimmed(fmt.Sprintf("    v%s", f.Version))
+		}
 		fmt.Println()
 	}
 

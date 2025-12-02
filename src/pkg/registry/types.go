@@ -38,8 +38,20 @@ type Version struct {
 
 // SearchResult represents search response
 type SearchResult struct {
-	Formations []Formation `json:"formations"`
-	Total      int         `json:"total"`
+	Results []SearchItem `json:"results"`
+	Total   int          `json:"total"`
+	Query   string       `json:"query"`
+}
+
+// SearchItem represents a formation in search results
+type SearchItem struct {
+	Name        string `json:"name"`
+	User        string `json:"user"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
+	Downloads   int    `json:"downloads"`
+	Stars       int    `json:"stars"`
+	URL         string `json:"url"`
 }
 
 // PublishResult represents publish response
