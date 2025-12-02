@@ -65,10 +65,8 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 		Warnings: []string{},
 	}
 
-	// Check for secrets.enc and warn
-	if _, err := os.Stat(filepath.Join(formationDir, "secrets.enc")); err == nil {
-		info.Warnings = append(info.Warnings, "secrets.enc found - will NOT be included in bundle")
-	}
+	// Add info about excluded files
+	info.Warnings = append(info.Warnings, "Excluded: secrets.enc, .key, .git, .env, and other sensitive/dot files")
 
 	// Walk the directory and add files
 	err = filepath.Walk(formationDir, func(path string, fileInfo os.FileInfo, err error) error {
