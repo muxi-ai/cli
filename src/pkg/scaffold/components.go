@@ -342,7 +342,7 @@ knowledge: []
 #   - id: "weather_service"
 #     description: "External weather service"
 #     active: true
-#     type: "http"
+#     transport: "http"
 #     endpoint: "http://localhost:3000"
 #     auth:
 #       type: "api_key"
@@ -2577,7 +2577,7 @@ func generateAgentMCPEntry(mcpID, description, transport, endpoint, command, arg
 	entry.WriteString("  - id: \"" + mcpID + "\"\n")
 	entry.WriteString("    description: \"" + description + "\"\n")
 	entry.WriteString("    active: true\n")
-	entry.WriteString("    type: \"" + transport + "\"\n")
+	entry.WriteString("    transport: \"" + transport + "\"\n")
 
 	if transport == "http" {
 		// HTTP transport
@@ -2658,7 +2658,7 @@ id: %s
 description: "%s"
 active: true
 
-type: %s
+transport: %s
 `, id, description, transport))
 
 	if transport == "http" {
