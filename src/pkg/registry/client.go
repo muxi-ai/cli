@@ -218,7 +218,7 @@ func (c *Client) GetPullInfo(ref string) (*PullInfo, error) {
 		return nil, err
 	}
 
-	endpoint := fmt.Sprintf("/api/formations/@%s/%s/pull", parsed.Owner, parsed.Name)
+	endpoint := fmt.Sprintf("/api/formations/@%s/%s", parsed.Owner, parsed.Name)
 	if parsed.Version != "" {
 		endpoint += "?version=" + parsed.Version
 	}
@@ -249,6 +249,11 @@ func (c *Client) GetPullInfo(ref string) (*PullInfo, error) {
 	var info PullInfo
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Validate required fields
+	if info.DownloadURL == "" {
+		return nil, fmt.Errorf("formation not available for download")
 	}
 
 	return &info, nil

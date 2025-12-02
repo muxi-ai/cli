@@ -73,10 +73,11 @@ type PublishFormationInfo struct {
 
 // PullInfo contains download information
 type PullInfo struct {
-	Formation   string `json:"formation"`
+	Name        string `json:"name"`
+	User        string `json:"user"`
 	Version     string `json:"version"`
 	DownloadURL string `json:"download_url"`
-	Size        int64  `json:"size"`
+	GitHubRepo  string `json:"github_repo"`
 }
 
 // MyFormationsResult represents response from /api/formations

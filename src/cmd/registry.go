@@ -580,7 +580,7 @@ func runPull(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("  ✓ Found v%s (%s)\n", info.Version, registry.FormatSize(info.Size))
+	fmt.Printf("  ✓ Found v%s\n", info.Version)
 
 	// Determine output directory
 	if outputDir == "" {
@@ -627,7 +627,7 @@ func runPull(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  ✓ %d files extracted\n", fileCount)
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Downloaded %s v%s", info.Formation, info.Version))
+	ui.Success(fmt.Sprintf("Downloaded @%s/%s v%s", info.User, info.Name, info.Version))
 	fmt.Println()
 	fmt.Println("  Next steps:")
 	fmt.Printf("    cd %s\n", outputDir)
