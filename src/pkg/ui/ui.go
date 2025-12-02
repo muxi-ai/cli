@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -65,6 +67,65 @@ func Skipped(message string) {
 // InProgress prints an in-progress message with ● symbol (blue)
 func InProgress(message string) {
 	blue.Printf("%s %s\n", SymbolInProgress, message)
+}
+
+// Spinner represents an animated spinner
+type Spinner struct {
+	message string
+	frames  []string
+	stop    chan struct{}
+	done    sync.WaitGroup
+}
+
+// NewSpinner creates a new spinner with a message
+func NewSpinner(message string) *Spinner {
+	return &Spinner{
+		message: message,
+		frames:  []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
+		stop:    make(chan struct{}),
+	}
+}
+
+// Start begins the spinner animation
+func (s *Spinner) Start() {
+	s.done.Add(1)
+	go func() {
+		defer s.done.Done()
+		i := 0
+		for {
+			select {
+			case <-s.stop:
+				return
+			default:
+				fmt.Printf("\r  %s %s", blue.Sprint(s.frames[i%len(s.frames)]), s.message)
+				i++
+				time.Sleep(80 * time.Millisecond)
+			}
+		}
+	}()
+}
+
+// Stop stops the spinner and clears the line
+func (s *Spinner) Stop() {
+	close(s.stop)
+	s.done.Wait()
+	fmt.Print("\r\033[K") // Clear line
+}
+
+// StopWithSuccess stops spinner and shows success message
+func (s *Spinner) StopWithSuccess(message string) {
+	close(s.stop)
+	s.done.Wait()
+	fmt.Print("\r\033[K") // Clear line
+	Success(message)
+}
+
+// StopWithError stops spinner and shows error message
+func (s *Spinner) StopWithError(message string) {
+	close(s.stop)
+	s.done.Wait()
+	fmt.Print("\r\033[K") // Clear line
+	Error(message)
 }
 
 // Dimmed prints dimmed/faint text (~80% opacity)

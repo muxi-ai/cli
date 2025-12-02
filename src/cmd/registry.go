@@ -523,14 +523,16 @@ func runPush(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 
-	// Publish
-	fmt.Print("  Publishing to registry... ")
+	// Publish with spinner
+	spinner := ui.NewSpinner("Publishing to registry...")
+	spinner.Start()
 	result, err := client.Publish(bundle.Path, org)
 	if err != nil {
-		fmt.Println()
+		spinner.Stop()
 		return fmt.Errorf("publish failed: %w", err)
 	}
-	fmt.Println("OK")
+	spinner.Stop()
+	fmt.Println("  ✓ Published to registry")
 
 	fmt.Println()
 	formationRef := fmt.Sprintf("@%s/%s", result.Formation.User, result.Formation.Name)
