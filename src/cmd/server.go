@@ -409,6 +409,20 @@ func formatDuration(seconds int64) string {
 	return fmt.Sprintf("%dm", mins)
 }
 
+// formatLatency formats a duration with appropriate units
+func formatLatency(d time.Duration) string {
+	if d < time.Microsecond {
+		return fmt.Sprintf("%dns", d.Nanoseconds())
+	}
+	if d < time.Millisecond {
+		return fmt.Sprintf("%dµs", d.Microseconds())
+	}
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	return fmt.Sprintf("%.2fs", d.Seconds())
+}
+
 // runServerPing handles muxi server ping
 func runServerPing(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
@@ -445,7 +459,7 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 				seq, successCount, lossPercent)
 			if successCount > 0 {
 				avgLatency := totalLatency / time.Duration(successCount)
-				fmt.Printf("avg latency: %s\n", avgLatency.Round(time.Millisecond))
+				fmt.Printf("avg latency: %s\n", formatLatency(avgLatency))
 			}
 			return nil
 
@@ -460,7 +474,7 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 			} else {
 				successCount++
 				totalLatency += latency
-				fmt.Printf("%d bytes from %s: seq=%d time=%s\n", bytes, serverName, seq, latency.Round(time.Millisecond))
+				fmt.Printf("%d bytes from %s: seq=%d time=%s\n", bytes, serverName, seq, formatLatency(latency))
 			}
 
 			time.Sleep(1 * time.Second)
