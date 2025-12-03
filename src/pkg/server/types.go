@@ -54,32 +54,35 @@ type ServerStatusResponse struct {
 // ListFormationsResponse from GET /rpc/formations
 type ListFormationsResponse struct {
 	Formations []FormationListItem `json:"formations"`
-	Total      int                 `json:"total"`
+	Count      int                 `json:"count"`
 }
 
 // FormationListItem is a formation in the list
 type FormationListItem struct {
-	ID      string `json:"id"`
-	Status  string `json:"status"`
-	Port    int    `json:"port"`
-	Version string `json:"version"`
-	Uptime  int64  `json:"uptime"`
-	Healthy bool   `json:"healthy"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	Port         int    `json:"port"`
+	PID          int    `json:"pid"`
+	Uptime       string `json:"uptime"` // duration string like "5h30m"
+	RestartCount int    `json:"restart_count"`
+	Healthy      bool   `json:"healthy"`
 }
 
 // FormationDetail from GET /rpc/formations/{id}
 type FormationDetail struct {
-	ID              string `json:"id"`
-	Status          string `json:"status"`
-	Port            int    `json:"port"`
-	CurrentVersion  string `json:"current_version"`
-	PreviousVersion string `json:"previous_version"`
-	Uptime          int64  `json:"uptime"`
-	PID             int    `json:"pid"`
-	Healthy         bool   `json:"healthy"`
-	RestartCount    int    `json:"restart_count"`
-	DeployedAt      string `json:"deployed_at"`
-	UpdatedAt       string `json:"updated_at"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	Status       string   `json:"status"`
+	Port         int      `json:"port"`
+	PID          int      `json:"pid"`
+	Healthy      bool     `json:"healthy"`
+	RestartCount int      `json:"restart_count"`
+	Command      string   `json:"command"`
+	Args         []string `json:"args"`
+	URL          string   `json:"url"`
+	CreatedAt    string   `json:"created_at"`
+	StartedAt    string   `json:"started_at"`
 }
 
 // DeployResponse from POST /rpc/formations

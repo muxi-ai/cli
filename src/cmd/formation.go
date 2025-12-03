@@ -65,10 +65,10 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 
 	// Header
 	fmt.Println()
-	fmt.Printf("  %-20s %-10s %-6s %-10s %s\n",
-		"ID", "STATUS", "PORT", "VERSION", "UPTIME")
-	fmt.Printf("  %-20s %-10s %-6s %-10s %s\n",
-		"──────────────────", "────────", "────", "────────", "──────")
+	fmt.Printf("  %-20s %-10s %-6s %s\n",
+		"ID", "STATUS", "PORT", "UPTIME")
+	fmt.Printf("  %-20s %-10s %-6s %s\n",
+		"──────────────────", "────────", "────", "──────")
 
 	for _, f := range resp.Formations {
 		// Status icon
@@ -86,19 +86,13 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 		}
 
 		// Uptime display
-		uptimeStr := "-"
-		if f.Uptime > 0 {
-			uptimeStr = formatDurationShort(f.Uptime)
+		uptimeStr := f.Uptime
+		if uptimeStr == "" || uptimeStr == "0s" {
+			uptimeStr = "-"
 		}
 
-		// Version display
-		versionStr := f.Version
-		if versionStr == "" {
-			versionStr = "-"
-		}
-
-		fmt.Printf("  %-20s %s %-8s %-6s %-10s %s\n",
-			f.ID, statusIcon, statusText, portStr, versionStr, uptimeStr)
+		fmt.Printf("  %-20s %s %-8s %-6s %s\n",
+			f.ID, statusIcon, statusText, portStr, uptimeStr)
 	}
 
 	fmt.Println()
@@ -128,6 +122,9 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	fmt.Printf("  Formation: %s\n", f.ID)
+	if f.Name != "" && f.Name != f.ID {
+		fmt.Printf("  Name:       %s\n", f.Name)
+	}
 	fmt.Println()
 
 	// Status
@@ -142,18 +139,9 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  Port:       %d\n", f.Port)
 	}
 
-	// Version
-	if f.CurrentVersion != "" {
-		versionLine := f.CurrentVersion
-		if f.PreviousVersion != "" {
-			versionLine += fmt.Sprintf(" (previous: %s)", f.PreviousVersion)
-		}
-		fmt.Printf("  Version:    %s\n", versionLine)
-	}
-
-	// Uptime
-	if f.Uptime > 0 {
-		fmt.Printf("  Uptime:     %s\n", formatDurationShort(f.Uptime))
+	// URL
+	if f.URL != "" {
+		fmt.Printf("  URL:        %s\n", f.URL)
 	}
 
 	fmt.Println()
@@ -161,6 +149,10 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	// Runtime info
 	if f.PID > 0 {
 		fmt.Printf("  PID:        %d\n", f.PID)
+	}
+
+	if f.Command != "" {
+		fmt.Printf("  Command:    %s\n", f.Command)
 	}
 
 	// Health
@@ -178,11 +170,11 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	// Timestamps
-	if f.DeployedAt != "" {
-		fmt.Printf("  Deployed:   %s\n", formatTimestamp(f.DeployedAt))
+	if f.CreatedAt != "" {
+		fmt.Printf("  Created:    %s\n", formatTimestamp(f.CreatedAt))
 	}
-	if f.UpdatedAt != "" {
-		fmt.Printf("  Updated:    %s\n", formatTimestamp(f.UpdatedAt))
+	if f.StartedAt != "" {
+		fmt.Printf("  Started:    %s\n", formatTimestamp(f.StartedAt))
 	}
 
 	fmt.Println()
