@@ -160,6 +160,11 @@ func GreenText(s string) string {
 	return green.Sprint(s)
 }
 
+// CyanText returns cyan colored text
+func CyanText(s string) string {
+	return cyan.Sprint(s)
+}
+
 // BoldText returns bold text
 func BoldText(s string) string {
 	return bold.Sprint(s)

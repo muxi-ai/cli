@@ -133,11 +133,18 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	// Status
-	statusIcon := ui.GreenText("●")
-	if f.Status != "running" {
-		statusIcon = ui.RedText("○")
+	var statusDisplay string
+	switch f.Status {
+	case "running":
+		statusDisplay = ui.GreenText("● running")
+	case "starting":
+		statusDisplay = ui.CyanText("● starting")
+	case "stopped":
+		statusDisplay = ui.RedText("○ stopped")
+	default:
+		statusDisplay = ui.RedText("○ " + f.Status)
 	}
-	fmt.Printf("  Status:     %s %s\n", statusIcon, f.Status)
+	fmt.Printf("  Status:     %s\n", statusDisplay)
 
 	// Uptime
 	if f.Uptime > 0 {
@@ -145,13 +152,13 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	}
 
 	// Health
-	healthIcon := ui.GreenText("✓")
-	healthText := "healthy"
-	if !f.Healthy {
-		healthIcon = ui.RedText("✗")
-		healthText = "unhealthy"
+	var healthDisplay string
+	if f.Healthy {
+		healthDisplay = ui.GreenText("✓ healthy")
+	} else {
+		healthDisplay = ui.RedText("✗ unhealthy")
 	}
-	fmt.Printf("  Health:     %s %s\n", healthIcon, healthText)
+	fmt.Printf("  Health:     %s\n", healthDisplay)
 
 	// Restarts
 	fmt.Printf("  Restarts:   %d\n", f.RestartCount)
