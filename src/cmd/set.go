@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/muxi-ai/cli/pkg/registry"
 	"github.com/muxi-ai/cli/pkg/server"
@@ -86,6 +85,14 @@ func runSetServer(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Show banner
+	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
+│ [⚙] Set Default Server                                  MUXI │
+│──────────────────────────────────────────────────────────────│
+│ Set the default server profile for this formation.           │
+│ This is saved to .muxi and overrides the global default.     │
+╰──────────────────────────────────────────────────────────────╯`)
+
 	// Load servers
 	config, err := server.LoadServers()
 	if err != nil {
@@ -124,13 +131,7 @@ func runSetServer(cmd *cobra.Command, args []string) error {
 		i++
 	}
 
-	// Get formation name for display
-	formationName := filepath.Base(mustGetwd())
-
 	fmt.Println()
-	fmt.Printf("  Formation: %s\n", formationName)
-	fmt.Println()
-
 	selected, err := wizard.PromptSelect("Select server for this formation", options, currentIndex)
 	if err != nil {
 		return err
@@ -154,6 +155,14 @@ func runSetRegistry(cmd *cobra.Command, args []string) error {
 	if err := checkFormationDir(); err != nil {
 		return err
 	}
+
+	// Show banner
+	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
+│ [⚙] Set Default Registry                                MUXI │
+│──────────────────────────────────────────────────────────────│
+│ Set the default registry for this formation.                 │
+│ This is saved to .muxi and overrides the global default.     │
+╰──────────────────────────────────────────────────────────────╯`)
 
 	// Load registries
 	config, err := registry.LoadRegistries()
@@ -193,13 +202,7 @@ func runSetRegistry(cmd *cobra.Command, args []string) error {
 		i++
 	}
 
-	// Get formation name for display
-	formationName := filepath.Base(mustGetwd())
-
 	fmt.Println()
-	fmt.Printf("  Formation: %s\n", formationName)
-	fmt.Println()
-
 	selected, err := wizard.PromptSelect("Select registry for this formation", options, currentIndex)
 	if err != nil {
 		return err
@@ -216,12 +219,4 @@ func runSetRegistry(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
-}
-
-func mustGetwd() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "."
-	}
-	return dir
 }
