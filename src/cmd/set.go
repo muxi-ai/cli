@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/registry"
 	"github.com/muxi-ai/cli/pkg/server"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -73,8 +74,14 @@ func saveDotMuxi(config *DotMuxi) error {
 
 // checkFormationDir checks if we're in a formation directory
 func checkFormationDir() error {
-	if _, err := os.Stat("formation.yaml"); os.IsNotExist(err) {
-		return fmt.Errorf("not in a formation directory (no formation.yaml found)")
+	_, err := context.MustDetectFormation()
+	if err != nil {
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"Run this command from inside a formation directory.",
+			"cd my-formation && muxi set server",
+		)
+		return fmt.Errorf("not in formation directory")
 	}
 	return nil
 }
