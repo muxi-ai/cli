@@ -196,7 +196,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 
 	// Show URL
 	fmt.Println()
-	fmt.Printf("  URL: %s/api/v1/%s\n", client.BaseURL, metadata.ID)
+	fmt.Printf("  Formation URL: %s/api/%s\n", client.BaseURL, metadata.ID)
 	fmt.Println()
 
 	return nil
