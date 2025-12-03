@@ -86,9 +86,9 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 		}
 
 		// Uptime display
-		uptimeStr := f.Uptime
-		if uptimeStr == "" || uptimeStr == "0s" {
-			uptimeStr = "-"
+		uptimeStr := "-"
+		if f.Uptime > 0 {
+			uptimeStr = formatDurationShort(f.Uptime)
 		}
 
 		fmt.Printf("  %-20s %s %-8s %-6s %s\n",
@@ -139,9 +139,9 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  Port:       %d\n", f.Port)
 	}
 
-	// URL
-	if f.URL != "" {
-		fmt.Printf("  URL:        %s\n", f.URL)
+	// Uptime
+	if f.Uptime > 0 {
+		fmt.Printf("  Uptime:     %s\n", formatDurationShort(f.Uptime))
 	}
 
 	fmt.Println()
@@ -149,10 +149,6 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	// Runtime info
 	if f.PID > 0 {
 		fmt.Printf("  PID:        %d\n", f.PID)
-	}
-
-	if f.Command != "" {
-		fmt.Printf("  Command:    %s\n", f.Command)
 	}
 
 	// Health
@@ -170,11 +166,11 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	// Timestamps
-	if f.CreatedAt != "" {
-		fmt.Printf("  Created:    %s\n", formatTimestamp(f.CreatedAt))
+	if f.DeployedAt != "" {
+		fmt.Printf("  Deployed:   %s\n", formatTimestamp(f.DeployedAt))
 	}
-	if f.StartedAt != "" {
-		fmt.Printf("  Started:    %s\n", formatTimestamp(f.StartedAt))
+	if f.UpdatedAt != "" {
+		fmt.Printf("  Updated:    %s\n", formatTimestamp(f.UpdatedAt))
 	}
 
 	fmt.Println()
