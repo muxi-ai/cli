@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -422,13 +424,46 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 		serverName = server.GetDefaultServer()
 	}
 
-	fmt.Printf("Pinging %s (%s)... ", serverName, client.BaseURL)
+	fmt.Printf("PING %s (%s)\n", serverName, client.BaseURL)
 
-	if err := client.Ping(); err != nil {
-		fmt.Println()
-		return fmt.Errorf("server unreachable: %w", err)
+	// Handle Ctrl+C
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+
+	seq := 0
+	successCount := 0
+	var totalLatency time.Duration
+
+	for {
+		select {
+		case <-sigChan:
+			// Print summary
+			fmt.Println()
+			fmt.Printf("--- %s ping statistics ---\n", serverName)
+			lossPercent := float64(seq-successCount) / float64(seq) * 100
+			fmt.Printf("%d packets transmitted, %d received, %.0f%% packet loss\n",
+				seq, successCount, lossPercent)
+			if successCount > 0 {
+				avgLatency := totalLatency / time.Duration(successCount)
+				fmt.Printf("avg latency: %s\n", avgLatency.Round(time.Millisecond))
+			}
+			return nil
+
+		default:
+			seq++
+			start := time.Now()
+			err := client.Ping()
+			latency := time.Since(start)
+
+			if err != nil {
+				fmt.Printf("seq=%d: %s\n", seq, ui.RedText("unreachable"))
+			} else {
+				successCount++
+				totalLatency += latency
+				fmt.Printf("seq=%d: %s time=%s\n", seq, ui.GreenText("pong"), latency.Round(time.Millisecond))
+			}
+
+			time.Sleep(1 * time.Second)
+		}
 	}
-
-	ui.Success("pong")
-	return nil
 }
