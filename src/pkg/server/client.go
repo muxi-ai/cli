@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -288,6 +289,79 @@ func (c *Client) GetFormationLogs(id string, lines int, stream string) (*LogsRes
 	}
 
 	return &logs, nil
+}
+
+// DeployFormation deploys a new formation
+func (c *Client) DeployFormation(id, bundlePath, version string) error {
+	// Open bundle file
+	file, err := os.Open(bundlePath)
+	if err != nil {
+		return fmt.Errorf("failed to open bundle: %w", err)
+	}
+	defer file.Close()
+
+	// Create request
+	req, err := http.NewRequest("POST", c.BaseURL+"/rpc/formations", file)
+	if err != nil {
+		return err
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/gzip")
+	req.Header.Set("X-Formation-ID", id)
+	if version != "" {
+		req.Header.Set("X-Formation-Version", version)
+	}
+
+	// Add auth
+	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "POST", "/rpc/formations")
+	req.Header.Set("Authorization", authHeader)
+
+	// Send request
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to deploy: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// UpdateFormation updates an existing formation
+func (c *Client) UpdateFormation(id, bundlePath, version string) error {
+	// Open bundle file
+	file, err := os.Open(bundlePath)
+	if err != nil {
+		return fmt.Errorf("failed to open bundle: %w", err)
+	}
+	defer file.Close()
+
+	path := "/rpc/formations/" + id
+
+	// Create request
+	req, err := http.NewRequest("PUT", c.BaseURL+path, file)
+	if err != nil {
+		return err
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/gzip")
+	if version != "" {
+		req.Header.Set("X-Formation-Version", version)
+	}
+
+	// Add auth
+	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "PUT", path)
+	req.Header.Set("Authorization", authHeader)
+
+	// Send request
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to update: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
 }
 
 // checkResponse checks for common error responses
