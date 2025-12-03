@@ -73,7 +73,7 @@ func saveDotMuxi(config *DotMuxi) error {
 }
 
 // checkFormationDir checks if we're in a formation directory
-func checkFormationDir() error {
+func checkFormationDir() bool {
 	_, err := context.MustDetectFormation()
 	if err != nil {
 		ui.ErrorBlock(
@@ -81,15 +81,15 @@ func checkFormationDir() error {
 			"Run this command from inside a formation directory.",
 			"cd my-formation && muxi set server",
 		)
-		return fmt.Errorf("not in formation directory")
+		return false
 	}
-	return nil
+	return true
 }
 
 // runSetServer handles muxi set server
 func runSetServer(cmd *cobra.Command, args []string) error {
-	if err := checkFormationDir(); err != nil {
-		return err
+	if !checkFormationDir() {
+		os.Exit(1)
 	}
 
 	// Show banner
@@ -159,8 +159,8 @@ func runSetServer(cmd *cobra.Command, args []string) error {
 
 // runSetRegistry handles muxi set registry
 func runSetRegistry(cmd *cobra.Command, args []string) error {
-	if err := checkFormationDir(); err != nil {
-		return err
+	if !checkFormationDir() {
+		os.Exit(1)
 	}
 
 	// Show banner
