@@ -1,15 +1,15 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-12-02  
+**Last Updated:** 2025-12-03  
 **Version:** 0.3.0-dev  
-**Status:** 🚀 Active Development - Registry Commands Complete
+**Status:** 🚀 Active Development - Server Commands In Progress
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, **all config commands** (LLM, memory, overlord, security, logging), and **full registry integration** (login, push, pull, search, show, mine).
+MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, **all config commands** (LLM, memory, overlord, security, logging), **full registry integration** (login, push, pull, search, show, mine), and **server commands** (profiles, status, ping, deploy, formation list/get).
 
 ### What Exists ✅
 
@@ -73,10 +73,25 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi registry remove` - Remove a registry
 - ✅ `muxi registry default` - Set default registry
 
-**Blocked by Runtime API:**
-- ⏳ Formation management (`deploy`, `list`, `logs`, `stop`, `restart`, `delete`)
-- ⏳ Server profile management
-- ⏳ HMAC request signing
+**Server Commands:**
+- ✅ `muxi server add` - Add server with HMAC credentials
+- ✅ `muxi server list` - List servers (shows online/offline)
+- ✅ `muxi server default` - Set default server
+- ✅ `muxi server remove` - Remove server
+- ✅ `muxi server status` - Show server status (version, uptime, formations)
+- ✅ `muxi server ping` - Continuous ping with latency stats
+- ✅ `muxi deploy` - Deploy formation (auto-detects create vs update)
+- ✅ `muxi formation list` - List deployed formations
+- ✅ `muxi formation get <id>` - Get formation details (with -v for internal details)
+- ✅ `muxi set server` - Set default server for formation (saves to .muxi)
+- ✅ `muxi set registry` - Set default registry for formation (saves to .muxi)
+
+**Remaining Server Commands (Phase 4):**
+- ⏳ `muxi formation stop <id>` - Stop formation
+- ⏳ `muxi formation restart <id>` - Restart formation
+- ⏳ `muxi formation rollback <id>` - Rollback to previous version
+- ⏳ `muxi formation delete <id>` - Delete formation
+- ⏳ `muxi logs <id>` - Get formation logs
 
 **Other:**
 - ⏳ `muxi validate` - Formation validation
@@ -85,7 +100,32 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 
 ## 🚧 Current Work
 
-### Latest Changes (2025-12-02)
+### Latest Changes (2025-12-03)
+
+1. ✅ **Server Commands (Phase 1-3):**
+   - `muxi server add/list/default/remove` - Server profile management
+   - `muxi server status` - Server health and stats
+   - `muxi server ping` - Continuous ping with latency (like network ping)
+   - `muxi deploy` - Deploy formation (handles both create and update)
+   - `muxi formation list` - List deployed formations
+   - `muxi formation get <id>` - Formation details (-v for internal details)
+   - HMAC authentication implemented
+   - Server profiles stored in `~/.muxi/cli/servers.yaml`
+
+2. ✅ **Formation-Level Defaults:**
+   - `muxi set server` - Set default server for formation
+   - `muxi set registry` - Set default registry for formation
+   - Saves to `.muxi` file in formation directory
+   - Shows configure banners for consistency
+
+3. ✅ **Deploy Features:**
+   - Auto-detects create vs update (checks if formation exists)
+   - Requires version in formation.yaml for updates
+   - Creates tar.gz bundle with proper headers
+   - Shows contextual spinner messages
+   - Supports `--dry-run` flag
+
+### Previous Changes (2025-12-02)
 
 1. ✅ **Registry Commands Complete:**
    - `muxi login` - Browser OAuth + paste fallback
@@ -96,21 +136,10 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
    - `muxi show` - Display formation details
    - `muxi registry mine` - List user's published formations
    - `muxi registry list/add/remove/default` - Registry management
-   - User guide: `docs/guides/registry.md`
 
-2. ✅ **New UI Components:**
-   - Spinner animation during long operations (braille characters)
-   - Cleaner error messages for registry operations
-
-3. ✅ **Bundle Improvements:**
+2. ✅ **Bundle Improvements:**
    - Includes `secrets` template file (not secrets.enc)
    - Shows count of excluded dot files
-   - Proper path matching for nested directories
-
-4. ✅ **Formation Creation Improvements:**
-   - `muxi new formation` prompts for ID then Name
-   - ID accepts spaces (normalized to dashes)
-   - Name defaults to title-cased ID
 
 ### Previous Changes (2025-12-01)
 
@@ -130,23 +159,24 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ Golden MUXI branding
 
 ### Current Focus
-**All config commands + registry commands complete!** ✅
+**Server commands (Phase 1-3) complete!** ✅
 
 **Next up:**
-- Runtime integration (blocked by runtime API)
-- Formation deployment commands
+- Phase 4: Lifecycle commands (stop, restart, rollback, delete, logs)
+- Testing deploy flow end-to-end
 
 ---
 
-## 🎯 Next Steps (When Unblocked)
+## 🎯 Next Steps
 
-### Prerequisites (Must Complete First)
-- [ ] Runtime API documented (OpenAPI spec)
-- [ ] Runtime containerized (Docker + SIF)
-- [ ] Server-runtime integration tested
-- [ ] Formation bundle format locked
+### Phase 4: Lifecycle Commands
+- [ ] `muxi formation stop <id>`
+- [ ] `muxi formation restart <id>`
+- [ ] `muxi formation rollback <id>`
+- [ ] `muxi formation delete <id>`
+- [ ] `muxi logs <id>`
 
-**Estimated wait time:** 2-3 weeks
+**Estimated time:** 2-3 hours
 
 ---
 

@@ -1,7 +1,7 @@
 # Server Commands Implementation Plan
 
-**Date:** 2025-12-02  
-**Status:** Planning  
+**Date:** 2025-12-03  
+**Status:** Phase 1-3 Complete, Phase 4 Pending  
 **Priority:** HIGH  
 **API Spec:** `../schemas/api/server-api-v1-final.yaml`
 
@@ -17,29 +17,36 @@ Implement CLI commands for interacting with MUXI Server. The server manages form
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Server Profiles + Auth)
-1. Server profile storage (`~/.muxi/cli/servers.yaml`)
-2. HMAC authentication
-3. `muxi server add` - Add server profile
-4. `muxi server list` - List profiles
-5. `muxi server set` - Set default profile
-6. `muxi server remove` - Remove profile
+### Phase 1: Foundation (Server Profiles + Auth) ✅ COMPLETE
+1. ✅ Server profile storage (`~/.muxi/cli/servers.yaml`)
+2. ✅ HMAC authentication
+3. ✅ `muxi server add` - Add server profile
+4. ✅ `muxi server list` - List profiles (shows online/offline)
+5. ✅ `muxi server default` - Set default profile
+6. ✅ `muxi server remove` - Remove profile
+7. ✅ `muxi server status` - Server health/status
+8. ✅ `muxi server ping` - Continuous ping with latency
 
-### Phase 2: Basic Operations
-7. `muxi server status` - Server health/status
-8. `muxi formation list` - List deployed formations
-9. `muxi formation get <id>` - Get formation details
+### Phase 2: Basic Operations ✅ COMPLETE
+9. ✅ `muxi formation list` - List deployed formations
+10. ✅ `muxi formation get <id>` - Get formation details (-v for internal)
 
-### Phase 3: Deployment
-10. `muxi deploy` - Deploy formation to server
-11. `muxi formation update <id>` - Update existing formation
+### Phase 3: Deployment ✅ COMPLETE
+11. ✅ `muxi deploy` - Deploy formation (auto-detects create vs update)
+    - Uses POST for new formations, PUT for updates
+    - Requires version in formation.yaml for updates
+    - Supports --dry-run flag
 
-### Phase 4: Lifecycle Management
+### Phase 4: Lifecycle Management ⏳ PENDING
 12. `muxi formation stop <id>` - Stop formation
 13. `muxi formation restart <id>` - Restart formation
 14. `muxi formation rollback <id>` - Rollback to previous version
 15. `muxi formation delete <id>` - Delete formation
 16. `muxi logs <id>` - Get formation logs
+
+### Additional Commands ✅ COMPLETE
+- ✅ `muxi set server` - Set default server for formation (saves to .muxi)
+- ✅ `muxi set registry` - Set default registry for formation (saves to .muxi)
 
 ---
 
