@@ -48,6 +48,12 @@ var serverStatusCmd = &cobra.Command{
 	RunE:  runServerStatus,
 }
 
+var serverPingCmd = &cobra.Command{
+	Use:   "ping",
+	Short: "Test server connectivity",
+	RunE:  runServerPing,
+}
+
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
@@ -56,9 +62,11 @@ func init() {
 	serverCmd.AddCommand(serverDefaultCmd)
 	serverCmd.AddCommand(serverRemoveCmd)
 	serverCmd.AddCommand(serverStatusCmd)
+	serverCmd.AddCommand(serverPingCmd)
 
 	// Flags
 	serverStatusCmd.Flags().String("profile", "", "Server profile to use")
+	serverPingCmd.Flags().String("profile", "", "Server profile to use")
 }
 
 // runServerAdd handles muxi server add
@@ -397,4 +405,30 @@ func formatDuration(seconds int64) string {
 		return fmt.Sprintf("%dh %dm", hours, mins)
 	}
 	return fmt.Sprintf("%dm", mins)
+}
+
+// runServerPing handles muxi server ping
+func runServerPing(cmd *cobra.Command, args []string) error {
+	profile, _ := cmd.Flags().GetString("profile")
+
+	client, err := server.NewClient(profile)
+	if err != nil {
+		return err
+	}
+
+	// Get server name for display
+	serverName := profile
+	if serverName == "" {
+		serverName = server.GetDefaultServer()
+	}
+
+	fmt.Printf("Pinging %s (%s)... ", serverName, client.BaseURL)
+
+	if err := client.Ping(); err != nil {
+		fmt.Println()
+		return fmt.Errorf("server unreachable: %w", err)
+	}
+
+	ui.Success("pong")
+	return nil
 }
