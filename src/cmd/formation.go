@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/muxi-ai/cli/pkg/server"
@@ -107,6 +108,14 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 
 	f, err := client.GetFormation(formationID)
 	if err != nil {
+		if err.Error() == "not found" {
+			ui.ErrorBlock(
+				"Formation not found",
+				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
+				"muxi formation list",
+			)
+			os.Exit(1)
+		}
 		return err
 	}
 
