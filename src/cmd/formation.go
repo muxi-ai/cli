@@ -65,10 +65,10 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 
 	// Header
 	fmt.Println()
-	fmt.Printf("  %-20s %-10s %-6s %s\n",
-		"ID", "STATUS", "PORT", "UPTIME")
-	fmt.Printf("  %-20s %-10s %-6s %s\n",
-		"──────────────────", "────────", "────", "──────")
+	fmt.Printf("  %-20s %-10s %s\n",
+		"ID", "STATUS", "UPTIME")
+	fmt.Printf("  %-20s %-10s %s\n",
+		"──────────────────", "────────", "──────")
 
 	for _, f := range resp.Formations {
 		// Status icon
@@ -79,20 +79,14 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 			statusText = f.Status
 		}
 
-		// Port display
-		portStr := "-"
-		if f.Port > 0 {
-			portStr = fmt.Sprintf("%d", f.Port)
-		}
-
 		// Uptime display
 		uptimeStr := "-"
 		if f.Uptime > 0 {
 			uptimeStr = formatDurationShort(f.Uptime)
 		}
 
-		fmt.Printf("  %-20s %s %-8s %-6s %s\n",
-			f.ID, statusIcon, statusText, portStr, uptimeStr)
+		fmt.Printf("  %-20s %s %-8s %s\n",
+			f.ID, statusIcon, statusText, uptimeStr)
 	}
 
 	fmt.Println()
