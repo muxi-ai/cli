@@ -30,10 +30,10 @@ var serverListCmd = &cobra.Command{
 	RunE:  runServerList,
 }
 
-var serverSetCmd = &cobra.Command{
-	Use:   "set",
+var serverDefaultCmd = &cobra.Command{
+	Use:   "default",
 	Short: "Set default server",
-	RunE:  runServerSet,
+	RunE:  runServerDefault,
 }
 
 var serverRemoveCmd = &cobra.Command{
@@ -53,7 +53,7 @@ func init() {
 
 	serverCmd.AddCommand(serverAddCmd)
 	serverCmd.AddCommand(serverListCmd)
-	serverCmd.AddCommand(serverSetCmd)
+	serverCmd.AddCommand(serverDefaultCmd)
 	serverCmd.AddCommand(serverRemoveCmd)
 	serverCmd.AddCommand(serverStatusCmd)
 
@@ -211,8 +211,8 @@ func runServerList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runServerSet handles muxi server set
-func runServerSet(cmd *cobra.Command, args []string) error {
+// runServerDefault handles muxi server default
+func runServerDefault(cmd *cobra.Command, args []string) error {
 	config, err := server.LoadServers()
 	if err != nil {
 		return err
