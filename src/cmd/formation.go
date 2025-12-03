@@ -38,6 +38,7 @@ func init() {
 	// Flags
 	formationListCmd.Flags().String("profile", "", "Server profile to use")
 	formationGetCmd.Flags().String("profile", "", "Server profile to use")
+	formationGetCmd.Flags().BoolP("verbose", "v", false, "Show internal details (port, pid)")
 }
 
 // runFormationList handles muxi formation list
@@ -96,6 +97,7 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 // runFormationGet handles muxi formation get <id>
 func runFormationGet(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
+	verbose, _ := cmd.Flags().GetBool("verbose")
 	formationID := args[0]
 
 	client, err := server.NewClient(profile)
@@ -128,21 +130,9 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("  Status:     %s %s\n", statusIcon, f.Status)
 
-	// Port
-	if f.Port > 0 {
-		fmt.Printf("  Port:       %d\n", f.Port)
-	}
-
 	// Uptime
 	if f.Uptime > 0 {
 		fmt.Printf("  Uptime:     %s\n", formatDurationShort(f.Uptime))
-	}
-
-	fmt.Println()
-
-	// Runtime info
-	if f.PID > 0 {
-		fmt.Printf("  PID:        %d\n", f.PID)
 	}
 
 	// Health
@@ -165,6 +155,18 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	}
 	if f.UpdatedAt != "" {
 		fmt.Printf("  Updated:    %s\n", formatTimestamp(f.UpdatedAt))
+	}
+
+	// Verbose: internal details
+	if verbose {
+		fmt.Println()
+		ui.Dimmed("  Internal:")
+		if f.Port > 0 {
+			fmt.Printf("  Port:       %d\n", f.Port)
+		}
+		if f.PID > 0 {
+			fmt.Printf("  PID:        %d\n", f.PID)
+		}
 	}
 
 	fmt.Println()
