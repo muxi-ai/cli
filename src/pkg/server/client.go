@@ -79,18 +79,24 @@ func (c *Client) Delete(path string) (*http.Response, error) {
 }
 
 // Ping tests connectivity to the server (unauthenticated)
-func (c *Client) Ping() error {
+// Returns the response body size in bytes
+func (c *Client) Ping() (int64, error) {
 	resp, err := c.HTTPClient.Get(c.BaseURL + "/ping")
 	if err != nil {
-		return fmt.Errorf("cannot connect to server: %w", err)
+		return 0, fmt.Errorf("cannot connect to server: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("server returned: %s", resp.Status)
+		return 0, fmt.Errorf("server returned: %s", resp.Status)
 	}
 
-	return nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(len(body)), nil
 }
 
 // Health checks server health (unauthenticated)

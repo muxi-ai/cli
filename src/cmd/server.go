@@ -133,7 +133,7 @@ func runServerAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	client := server.NewClientFromEntry(&entry)
-	if err := client.Ping(); err != nil {
+	if _, err := client.Ping(); err != nil {
 		fmt.Println()
 		return fmt.Errorf("connection failed: %w", err)
 	}
@@ -202,7 +202,7 @@ func runServerList(cmd *cobra.Command, args []string) error {
 		// Check connectivity
 		client := server.NewClientFromEntry(&entry)
 		status := ui.GreenText("● online")
-		if err := client.Ping(); err != nil {
+		if _, err := client.Ping(); err != nil {
 			status = ui.DimmedText("○ offline")
 		}
 
@@ -452,7 +452,7 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 		default:
 			seq++
 			start := time.Now()
-			err := client.Ping()
+			bytes, err := client.Ping()
 			latency := time.Since(start)
 
 			if err != nil {
@@ -460,7 +460,7 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 			} else {
 				successCount++
 				totalLatency += latency
-				fmt.Printf("seq=%d: %s time=%s\n", seq, ui.GreenText("pong"), latency.Round(time.Millisecond))
+				fmt.Printf("%d bytes from %s: seq=%d time=%s\n", bytes, serverName, seq, latency.Round(time.Millisecond))
 			}
 
 			time.Sleep(1 * time.Second)
