@@ -194,6 +194,10 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 
 // deployStreaming deploys with SSE progress streaming
 func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePath string, isUpdate bool) error {
+	// Start with "Pushing to server" spinner
+	spinner := ui.NewSpinner("Pushing to server...")
+	spinner.Start()
+
 	// Set up signal handling for cleanup on Ctrl+C
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -201,31 +205,35 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 
 	go func() {
 		<-sigChan
-		fmt.Println() // New line after ^C
+
+		// Stop spinner and show cancelled state
+		spinner.Stop()
+		fmt.Printf("\r\033[K  %s %s\n", ui.DimmedText("—"), ui.DimmedText("Cancelled"))
 
 		if isUpdate {
 			// For updates, cancel the running update (original keeps running)
-			fmt.Printf("  %s Update cancelled, cleaning up staging...\n", ui.DimmedText("→"))
+			fmt.Printf("  %s Cleaning up staging...\n", ui.DimmedText("→"))
 			if err := client.CancelUpdate(metadata.ID); err != nil {
 				fmt.Printf("  %s Cleanup failed: %v\n", ui.RedText("✗"), err)
 			} else {
-				fmt.Printf("  %s Cancelled. Original version still running.\n", ui.DimmedText("✓"))
+				fmt.Printf("  %s Original version still running\n", ui.DimmedText("✓"))
 			}
+			fmt.Println()
+			ui.Error("Update aborted")
 		} else {
 			// For new deployments, delete the partial formation
-			fmt.Printf("  %s Deploy cancelled, cleaning up...\n", ui.DimmedText("→"))
+			fmt.Printf("  %s Cleaning up...\n", ui.DimmedText("→"))
 			if err := client.DeleteFormation(metadata.ID); err != nil {
 				fmt.Printf("  %s Cleanup failed: %v\n", ui.RedText("✗"), err)
 			} else {
 				fmt.Printf("  %s Cleaned up partial deployment\n", ui.DimmedText("✓"))
 			}
+			fmt.Println()
+			ui.Error("Deployment aborted")
 		}
+		fmt.Println()
 		os.Exit(130) // Standard exit code for Ctrl+C
 	}()
-
-	// Start with "Pushing to server" spinner
-	spinner := ui.NewSpinner("Pushing to server...")
-	spinner.Start()
 
 	var lastStage string
 	var lastProgress *server.DeployProgressEvent
