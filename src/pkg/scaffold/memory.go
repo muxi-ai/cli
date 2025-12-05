@@ -656,7 +656,12 @@ func updateWorkingMemoryInFormation(rootDir, mode, maxMemory, vectorDim, fifoInt
 	var memoryYAML strings.Builder
 	memoryYAML.WriteString("  working:\n")
 	memoryYAML.WriteString(fmt.Sprintf("    mode: \"%s\"\n", mode))
-	memoryYAML.WriteString(fmt.Sprintf("    max_memory_mb: \"%s\"\n", maxMemory))
+	// max_memory_mb: "auto" (string) or 256 (integer, no quotes)
+	if maxMemory == "auto" {
+		memoryYAML.WriteString("    max_memory_mb: \"auto\"\n")
+	} else {
+		memoryYAML.WriteString(fmt.Sprintf("    max_memory_mb: %s\n", maxMemory))
+	}
 	memoryYAML.WriteString(fmt.Sprintf("    vector_dimension: %s\n", vectorDim))
 	memoryYAML.WriteString(fmt.Sprintf("    fifo_interval_min: %s\n", fifoInterval))
 

@@ -258,7 +258,8 @@ func configureHTTPStream(rootDir string) error {
 
 	// Build stream config
 	stream := map[string]interface{}{
-		"transport":   "http",
+		"transport":   "stream",
+		"protocol":    "http",
 		"destination": destination,
 		"format":      format,
 	}
@@ -792,7 +793,7 @@ func mapToYAMLNode(m map[string]interface{}) *yaml.Node {
 	node := &yaml.Node{Kind: yaml.MappingNode}
 
 	// Define order for stream fields
-	orderedKeys := []string{"transport", "destination", "level", "format", "brokers", "topic", "auth"}
+	orderedKeys := []string{"transport", "protocol", "destination", "level", "format", "brokers", "topic", "auth"}
 
 	for _, key := range orderedKeys {
 		if val, ok := m[key]; ok {
