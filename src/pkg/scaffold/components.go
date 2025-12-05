@@ -528,7 +528,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		// Transport type selection
 		transportOptions := []wizard.SelectOption{
 			{Value: "http", Label: "HTTP", Description: "Streamable HTTP server"},
-			{Value: "stdio", Label: "Stdio", Description: "Local command-line tool"},
+			{Value: "command", Label: "Command (stdio)", Description: "Local command-line tool"},
 		}
 
 		fmt.Println()
@@ -695,7 +695,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 	} else {
 		// Non-interactive defaults
 		description = fmt.Sprintf("%s MCP server", titleCase(name))
-		transport = "stdio"
+		transport = "command"
 		command = "mcp-server"
 		args = ""
 		workingDir = ""

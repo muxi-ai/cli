@@ -164,11 +164,11 @@ func TestAgentTemplate_WithA2A(t *testing.T) {
 	validateYAML(t, "AgentTemplate_WithA2A", yaml)
 }
 
-func TestMCPTemplate_Stdio(t *testing.T) {
+func TestMCPTemplate_Command(t *testing.T) {
 	yaml := mcpTemplateNew(
 		"test-mcp",
 		"A test MCP server",
-		"stdio",
+		"command",
 		"",                    // endpoint
 		"python",              // command
 		"-m mcp_server",       // args
