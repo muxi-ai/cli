@@ -302,6 +302,7 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 		} else {
 			spinner.StopWithError("Push failed")
 		}
+		playNotificationSound() // Ding on failure too
 		fmt.Println()
 		return deployErr
 	}
@@ -352,6 +353,7 @@ func deployNonStreaming(client *server.Client, metadata FormationMetadata, bundl
 
 	if deployErr != nil {
 		spinner.StopWithError("Deploy failed")
+		playNotificationSound() // Ding on failure too
 		return deployErr
 	}
 

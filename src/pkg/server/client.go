@@ -473,7 +473,9 @@ func parseSSEStream(body io.Reader, callback func(SSEEvent) error) (*DeployCompl
 					if err := json.Unmarshal([]byte(currentEvent.Data), &errEvent); err != nil {
 						return nil, fmt.Errorf("server error: %s", currentEvent.Data)
 					}
-					return nil, fmt.Errorf("%s: %s", errEvent.Error, errEvent.Message)
+					// Clean up error message - extract the useful part
+					msg := cleanDeployErrorMessage(errEvent.Message)
+					return nil, fmt.Errorf("%s", msg)
 				}
 
 				currentEvent = SSEEvent{}
@@ -495,6 +497,31 @@ func parseSSEStream(body io.Reader, callback func(SSEEvent) error) (*DeployCompl
 	}
 
 	return nil, fmt.Errorf("SSE stream ended without complete or error event")
+}
+
+// cleanDeployErrorMessage extracts the useful part of a deploy error message
+func cleanDeployErrorMessage(msg string) string {
+	// Remove common prefixes like "Formation failed health check after 5m0s: "
+	prefixes := []string{
+		"Formation failed health check after ",
+		"Formation crashed during startup: ",
+	}
+	
+	result := msg
+	for _, prefix := range prefixes {
+		if idx := strings.Index(result, prefix); idx != -1 {
+			// Find the end of this prefix (after the colon and space)
+			afterPrefix := result[idx+len(prefix):]
+			if colonIdx := strings.Index(afterPrefix, ": "); colonIdx != -1 && colonIdx < 20 {
+				// There's a duration like "5m0s: " - skip past it
+				result = afterPrefix[colonIdx+2:]
+			} else {
+				result = afterPrefix
+			}
+		}
+	}
+	
+	return strings.TrimSpace(result)
 }
 
 // checkResponse checks for common error responses
