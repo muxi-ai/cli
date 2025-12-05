@@ -302,7 +302,7 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 		} else {
 			spinner.StopWithError("Push failed")
 		}
-		playNotificationSound() // Ding on failure too
+		playNotificationSound(false)
 		fmt.Println()
 		return deployErr
 	}
@@ -328,7 +328,7 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 	fmt.Println()
 
 	// Play notification sound
-	playNotificationSound()
+	playNotificationSound(true)
 
 	return nil
 }
@@ -353,7 +353,7 @@ func deployNonStreaming(client *server.Client, metadata FormationMetadata, bundl
 
 	if deployErr != nil {
 		spinner.StopWithError("Deploy failed")
-		playNotificationSound() // Ding on failure too
+		playNotificationSound(false)
 		return deployErr
 	}
 
@@ -373,16 +373,20 @@ func deployNonStreaming(client *server.Client, metadata FormationMetadata, bundl
 	fmt.Println()
 
 	// Play notification sound
-	playNotificationSound()
+	playNotificationSound(true)
 
 	return nil
 }
 
 // playNotificationSound plays a sound to notify the user of completion
-func playNotificationSound() {
+func playNotificationSound(success bool) {
 	if runtime.GOOS == "darwin" {
-		// macOS: use system sound
-		exec.Command("afplay", "/System/Library/Sounds/Glass.aiff").Run()
+		// macOS: use different system sounds for success/failure
+		sound := "/System/Library/Sounds/Glass.aiff"
+		if !success {
+			sound = "/System/Library/Sounds/Sosumi.aiff"
+		}
+		exec.Command("afplay", sound).Run()
 	} else {
 		// Other platforms: ASCII bell
 		fmt.Print("\a")
