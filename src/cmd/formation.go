@@ -462,13 +462,13 @@ func runFormationRestart(cmd *cobra.Command, args []string) error {
 			// Start new spinner for this stage
 			lastStage = progress.Stage
 			lastProgress = &progress
-			spinner = ui.NewSpinner(formatRestartStageMessage(progress))
-			spinner.Start()
-
-			// Add visual separation before health_check (the long-running stage)
+			// Use padded spinner for health_check to give margin from terminal bottom
 			if progress.Stage == "health_check" {
-				fmt.Println()
+				spinner = ui.NewSpinnerWithPadding(formatRestartStageMessage(progress), 1)
+			} else {
+				spinner = ui.NewSpinner(formatRestartStageMessage(progress))
 			}
+			spinner.Start()
 		}
 		return nil
 	}

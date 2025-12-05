@@ -282,13 +282,13 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 			// Start new spinner for this stage
 			lastStage = progress.Stage
 			lastProgress = &progress
-			spinner = ui.NewSpinner(formatServerStageMessage(progress))
-			spinner.Start()
-
-			// Add visual separation before health_check (the long-running stage)
+			// Use padded spinner for health_check to give margin from terminal bottom
 			if progress.Stage == "health_check" {
-				fmt.Println()
+				spinner = ui.NewSpinnerWithPadding(formatServerStageMessage(progress), 1)
+			} else {
+				spinner = ui.NewSpinner(formatServerStageMessage(progress))
 			}
+			spinner.Start()
 		}
 		return nil
 	}

@@ -78,6 +78,7 @@ type Spinner struct {
 	stop    chan struct{}
 	done    sync.WaitGroup
 	mu      sync.Mutex
+	padding int // number of blank lines below spinner
 }
 
 // NewSpinner creates a new spinner with a message
@@ -86,6 +87,17 @@ func NewSpinner(message string) *Spinner {
 		message: message,
 		frames:  []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 		stop:    make(chan struct{}),
+		padding: 0,
+	}
+}
+
+// NewSpinnerWithPadding creates a spinner with blank lines below for terminal margin
+func NewSpinnerWithPadding(message string, padding int) *Spinner {
+	return &Spinner{
+		message: message,
+		frames:  []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
+		stop:    make(chan struct{}),
+		padding: padding,
 	}
 }
 
@@ -95,6 +107,7 @@ func (s *Spinner) Start() {
 	go func() {
 		defer s.done.Done()
 		i := 0
+		first := true
 		for {
 			select {
 			case <-s.stop:
@@ -102,8 +115,21 @@ func (s *Spinner) Start() {
 			default:
 				s.mu.Lock()
 				msg := s.message
+				pad := s.padding
 				s.mu.Unlock()
+
+				// Print spinner
 				fmt.Printf("\r\033[K  %s %s", blue.Sprint(s.frames[i%len(s.frames)]), msg)
+
+				// On first iteration, print padding lines below and move cursor back up
+				if first && pad > 0 {
+					for j := 0; j < pad; j++ {
+						fmt.Println() // Print blank lines
+					}
+					fmt.Printf("\033[%dA", pad) // Move cursor up
+					first = false
+				}
+
 				i++
 				time.Sleep(80 * time.Millisecond)
 			}
@@ -123,6 +149,13 @@ func (s *Spinner) Stop() {
 	close(s.stop)
 	s.done.Wait()
 	fmt.Print("\r\033[K") // Clear line
+	// Clear padding lines below
+	for i := 0; i < s.padding; i++ {
+		fmt.Print("\n\033[K")
+	}
+	if s.padding > 0 {
+		fmt.Printf("\033[%dA", s.padding) // Move back up
+	}
 }
 
 // StopWithSuccess stops spinner and shows success message
@@ -131,6 +164,12 @@ func (s *Spinner) StopWithSuccess(message string) {
 	s.done.Wait()
 	fmt.Print("\r\033[K") // Clear line
 	Step(message)
+	// Move past padding lines (they'll be overwritten by next output)
+	if s.padding > 0 {
+		for i := 0; i < s.padding; i++ {
+			fmt.Print("\033[K\n") // Clear each padding line
+		}
+	}
 }
 
 // StopWithError stops spinner and shows error message
@@ -139,6 +178,12 @@ func (s *Spinner) StopWithError(message string) {
 	s.done.Wait()
 	fmt.Print("\r\033[K") // Clear line
 	Error(message)
+	// Move past padding lines
+	if s.padding > 0 {
+		for i := 0; i < s.padding; i++ {
+			fmt.Print("\033[K\n") // Clear each padding line
+		}
+	}
 }
 
 // Dimmed prints dimmed/faint text (~80% opacity)
