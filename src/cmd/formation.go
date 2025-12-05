@@ -124,10 +124,10 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 
 	// Header
 	fmt.Println()
-	fmt.Printf("  %-20s %-10s %s\n",
-		"ID", "STATUS", "UPTIME")
-	fmt.Printf("  %-20s %-10s %s\n",
-		"──────────────────", "────────", "──────")
+	fmt.Printf("  %-20s %-10s %-10s %s\n",
+		"ID", "VERSION", "STATUS", "UPTIME")
+	fmt.Printf("  %-20s %-10s %-10s %s\n",
+		"──────────────────", "────────", "────────", "──────")
 
 	for _, f := range resp.Formations {
 		// Status icon
@@ -144,8 +144,14 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 			uptimeStr = formatDurationShort(f.Uptime)
 		}
 
-		fmt.Printf("  %-20s %s %-8s %s\n",
-			f.ID, statusIcon, statusText, uptimeStr)
+		// Version display
+		version := f.Version
+		if version == "" {
+			version = "-"
+		}
+
+		fmt.Printf("  %-20s %-10s %s %-8s %s\n",
+			f.ID, version, statusIcon, statusText, uptimeStr)
 	}
 
 	fmt.Println()
@@ -185,7 +191,10 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Printf("  Formation: %s\n", f.ID)
 	if f.Name != "" && f.Name != f.ID {
-		fmt.Printf("  Name:       %s\n", f.Name)
+		fmt.Printf("  Name:      %s\n", f.Name)
+	}
+	if f.Version != "" {
+		fmt.Printf("  Version:   %s\n", f.Version)
 	}
 	fmt.Println()
 

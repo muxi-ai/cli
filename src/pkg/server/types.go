@@ -61,6 +61,7 @@ type ListFormationsResponse struct {
 type FormationListItem struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
+	Version      string `json:"version"`
 	Status       string `json:"status"`
 	Port         int    `json:"port"`
 	PID          int    `json:"pid"`
@@ -73,6 +74,7 @@ type FormationListItem struct {
 type FormationDetail struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
+	Version      string `json:"version"`
 	Status       string `json:"status"`
 	Port         int    `json:"port"`
 	PID          int    `json:"pid"`
