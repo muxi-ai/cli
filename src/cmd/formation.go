@@ -145,9 +145,9 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 		}
 
 		// Version display
-		version := f.Version
-		if version == "" {
-			version = "-"
+		version := "-"
+		if f.Version != nil && f.Version.Semantic != "" {
+			version = f.Version.Semantic
 		}
 
 		fmt.Printf("  %-20s %-10s %s %-8s %s\n",
@@ -193,8 +193,8 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	if f.Name != "" && f.Name != f.ID {
 		fmt.Printf("  Name:      %s\n", f.Name)
 	}
-	if f.Version != "" {
-		fmt.Printf("  Version:   %s\n", f.Version)
+	if f.Version != nil && f.Version.Semantic != "" {
+		fmt.Printf("  Version:   %s\n", f.Version.Semantic)
 	}
 	fmt.Println()
 
