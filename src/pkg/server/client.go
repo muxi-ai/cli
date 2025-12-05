@@ -267,6 +267,17 @@ func (c *Client) DeleteFormation(id string) error {
 	return checkResponse(resp)
 }
 
+// CancelUpdate cancels a running formation update
+func (c *Client) CancelUpdate(id string) error {
+	resp, err := c.Post("/rpc/formations/"+id+"/cancel-update", nil, "")
+	if err != nil {
+		return fmt.Errorf("cannot connect to server: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
 // GetFormationLogs gets formation logs
 func (c *Client) GetFormationLogs(id string, lines int, stream string) (*LogsResponse, error) {
 	path := fmt.Sprintf("/rpc/formations/%s/logs?lines=%d&stream=%s", id, lines, stream)
