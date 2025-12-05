@@ -320,40 +320,34 @@ func agentTemplate(id, name, systemMessage, role string, specialties []string, e
 
 	return fmt.Sprintf(`schema: "1.0.0"
 
-id: %s
-name: %s
+id: "%s"
+name: "%s"
 description: "%s"
 active: true
 
-role: %s
+role: "%s"
 %s
 system_message: |
   %s
 
-# Add knowledge sources by editing below:
+# Domain knowledge (optional)
 # knowledge:
-#   - source: knowledge/weather-data.md
-#     description: "Historical weather patterns and climate trends"
-#     enabled: true
-knowledge: []
+#   enabled: true
+#   sources:
+#     - path: "knowledge/faq.md"
+#       description: "Frequently asked questions"
 
-# Add MCP servers by editing below (agent-specific MCP servers):
+# Agent-specific MCP servers (optional)
 # mcp_servers:
-#   - id: "weather_service"
+#   - id: "weather-service"
 #     description: "External weather service"
-#     active: true
 #     type: "http"
-#     endpoint: "http://localhost:3000"
-#     auth:
-#       type: "api_key"
-#       header: "X-API-Key"
-#       key: "${{ secrets.WEATHER_API_KEY }}"
-mcp_servers: []
+#     endpoint: "https://api.example.com/mcp"
 
-# Agent-to-Agent communication configuration
+# Agent-to-Agent communication
 a2a:
-  internal: true   # Participates in formation A2A
-  external: %t  # Participates in external A2A
+  internal: true
+  external: %t
 `, id, name, description, role, specialtiesYAML, systemMsg, externalA2A)
 }
 
