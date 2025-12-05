@@ -110,9 +110,11 @@ type RollbackResponse struct {
 
 // LogsResponse from GET /rpc/formations/{id}/logs
 type LogsResponse struct {
-	FormationID string   `json:"formation_id"`
-	Lines       []string `json:"lines"`
-	Stream      string   `json:"stream"`
+	FormationID string `json:"formation_id"`
+	Logs        struct {
+		Stdout []string `json:"stdout"`
+		Stderr []string `json:"stderr"`
+	} `json:"logs"`
 }
 
 // SSE Event Types for Deploy/Update streaming

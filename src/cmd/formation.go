@@ -631,6 +631,11 @@ func runFormationLogs(cmd *cobra.Command, args []string) error {
 	stream, _ := cmd.Flags().GetString("stream")
 	formationID := args[0]
 
+	// Default stream to "all" if not specified
+	if stream == "" {
+		stream = "all"
+	}
+
 	client, err := server.NewClient(profile)
 	if err != nil {
 		return err
@@ -655,7 +660,16 @@ func runFormationLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(resp.Lines) == 0 {
+	// Combine logs based on stream filter
+	var allLogs []string
+	if stream == "all" || stream == "stdout" {
+		allLogs = append(allLogs, resp.Logs.Stdout...)
+	}
+	if stream == "all" || stream == "stderr" {
+		allLogs = append(allLogs, resp.Logs.Stderr...)
+	}
+
+	if len(allLogs) == 0 {
 		fmt.Println()
 		ui.Dimmed("  No logs available")
 		fmt.Println()
@@ -663,7 +677,7 @@ func runFormationLogs(cmd *cobra.Command, args []string) error {
 	}
 
 	// Print logs
-	for _, line := range resp.Lines {
+	for _, line := range allLogs {
 		fmt.Println(line)
 	}
 
