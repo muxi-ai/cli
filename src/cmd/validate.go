@@ -120,8 +120,8 @@ func displayValidationResults(formationID string, result *validate.Result) {
 	if result.IsValid() {
 		ui.Success(fmt.Sprintf("Formation '%s' is valid (with warnings)", formationID))
 	} else {
-		fmt.Printf("  Run %s to fix configuration issues\n", ui.BoldText("muxi config <section>"))
-		fmt.Printf("  Run %s to set missing secrets\n", ui.BoldText("muxi secrets set <KEY>"))
+		fmt.Printf("  Run %s to fix configuration issues\n", ui.Command("muxi config <section>"))
+		fmt.Printf("  Run %s to set missing secrets\n", ui.Command("muxi secrets set <KEY>"))
 	}
 	fmt.Println()
 }

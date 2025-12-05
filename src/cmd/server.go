@@ -189,7 +189,7 @@ func runServerList(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No servers configured")
 		fmt.Println()
-		fmt.Println("  Add a server: muxi server add")
+		fmt.Printf("  Add a server: %s\n", ui.Command("muxi server add"))
 		fmt.Println()
 		return nil
 	}
@@ -232,7 +232,7 @@ func runServerDefault(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No servers configured")
 		fmt.Println()
-		fmt.Println("  Add a server: muxi server add")
+		fmt.Printf("  Add a server: %s\n", ui.Command("muxi server add"))
 		fmt.Println()
 		return nil
 	}

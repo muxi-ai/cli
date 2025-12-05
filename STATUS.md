@@ -1,7 +1,7 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-12-03  
-**Version:** 0.3.0-dev  
+**Last Updated:** 2025-12-03
+**Version:** 0.3.0-dev
 **Status:** 🚀 Active Development - Server Commands In Progress
 
 ---
@@ -80,6 +80,8 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi server remove` - Remove server
 - ✅ `muxi server status` - Show server status (version, uptime, formations)
 - ✅ `muxi server ping` - Continuous ping with latency stats
+
+**Server Commands (needs testing):**
 - ✅ `muxi deploy` - Deploy formation (auto-detects create vs update)
 - ✅ `muxi formation list` - List deployed formations
 - ✅ `muxi formation get <id>` - Get formation details (with -v for internal details)
@@ -181,7 +183,7 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 ---
 
 ### Phase 1: Core CLI Implementation
-**Timeline:** 1-2 weeks (after unblock)  
+**Timeline:** 1-2 weeks (after unblock)
 **Priority:** HIGH
 
 **Tasks:**
@@ -227,7 +229,7 @@ pkg/
 ---
 
 ### Phase 2: Formation Deployment
-**Timeline:** 1 week (after Phase 1)  
+**Timeline:** 1 week (after Phase 1)
 **Priority:** HIGH
 
 **Tasks:**
@@ -254,7 +256,7 @@ pkg/
 ---
 
 ### Phase 3: Management Commands
-**Timeline:** 1 week (after Phase 2)  
+**Timeline:** 1 week (after Phase 2)
 **Priority:** MEDIUM
 
 **Tasks:**
@@ -279,7 +281,7 @@ pkg/
 ---
 
 ### Phase 4: Developer Tools
-**Timeline:** 1-2 weeks (after Phase 3)  
+**Timeline:** 1-2 weeks (after Phase 3)
 **Priority:** LOW
 
 **Tasks:**
@@ -304,7 +306,7 @@ pkg/
 ---
 
 ### Phase 5: Registry Integration (Future)
-**Timeline:** 2-3 weeks  
+**Timeline:** 2-3 weeks
 **Priority:** LOW (after registry redesign)
 
 **Tasks:**
@@ -548,7 +550,7 @@ Developers should be able to:
 
 ---
 
-**Last Updated:** 2025-11-24  
+**Last Updated:** 2025-11-24
 **Maintained by:** MUXI CLI Team
 
 **See also:**

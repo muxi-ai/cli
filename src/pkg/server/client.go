@@ -1,11 +1,13 @@
 package server
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -291,19 +293,31 @@ func (c *Client) GetFormationLogs(id string, lines int, stream string) (*LogsRes
 	return &logs, nil
 }
 
-// DeployFormation deploys a new formation
+// DeployFormation deploys a new formation (non-streaming)
 func (c *Client) DeployFormation(id, bundlePath, version string) error {
+	_, err := c.deployFormationInternal(id, bundlePath, version, false, nil)
+	return err
+}
+
+// DeployFormationStreaming deploys a new formation with SSE progress
+// The callback is called for each SSE event received
+func (c *Client) DeployFormationStreaming(id, bundlePath, version string, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	return c.deployFormationInternal(id, bundlePath, version, true, callback)
+}
+
+// deployFormationInternal handles both streaming and non-streaming deploy
+func (c *Client) deployFormationInternal(id, bundlePath, version string, streaming bool, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
 	// Open bundle file
 	file, err := os.Open(bundlePath)
 	if err != nil {
-		return fmt.Errorf("failed to open bundle: %w", err)
+		return nil, fmt.Errorf("failed to open bundle: %w", err)
 	}
 	defer file.Close()
 
 	// Create request
 	req, err := http.NewRequest("POST", c.BaseURL+"/rpc/formations", file)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Set headers
@@ -312,27 +326,55 @@ func (c *Client) DeployFormation(id, bundlePath, version string) error {
 	if version != "" {
 		req.Header.Set("X-Formation-Version", version)
 	}
+	if streaming {
+		req.Header.Set("Accept", "text/event-stream")
+	}
 
 	// Add auth
 	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "POST", "/rpc/formations")
 	req.Header.Set("Authorization", authHeader)
 
+	// Use longer timeout for streaming (deployment can take minutes)
+	client := &http.Client{Timeout: 10 * time.Minute}
+
 	// Send request
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to deploy: %w", err)
+		return nil, fmt.Errorf("failed to deploy: %w", err)
 	}
 	defer resp.Body.Close()
 
-	return checkResponse(resp)
+	// Check for error responses
+	if resp.StatusCode >= 400 {
+		return nil, checkResponse(resp)
+	}
+
+	// Non-streaming: just check response
+	if !streaming {
+		return nil, checkResponse(resp)
+	}
+
+	// Streaming: parse SSE events
+	return parseSSEStream(resp.Body, callback)
 }
 
-// UpdateFormation updates an existing formation
+// UpdateFormation updates an existing formation (non-streaming)
 func (c *Client) UpdateFormation(id, bundlePath, version string) error {
+	_, err := c.updateFormationInternal(id, bundlePath, version, false, nil)
+	return err
+}
+
+// UpdateFormationStreaming updates a formation with SSE progress
+func (c *Client) UpdateFormationStreaming(id, bundlePath, version string, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	return c.updateFormationInternal(id, bundlePath, version, true, callback)
+}
+
+// updateFormationInternal handles both streaming and non-streaming update
+func (c *Client) updateFormationInternal(id, bundlePath, version string, streaming bool, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
 	// Open bundle file
 	file, err := os.Open(bundlePath)
 	if err != nil {
-		return fmt.Errorf("failed to open bundle: %w", err)
+		return nil, fmt.Errorf("failed to open bundle: %w", err)
 	}
 	defer file.Close()
 
@@ -341,7 +383,7 @@ func (c *Client) UpdateFormation(id, bundlePath, version string) error {
 	// Create request
 	req, err := http.NewRequest("PUT", c.BaseURL+path, file)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Set headers
@@ -349,19 +391,99 @@ func (c *Client) UpdateFormation(id, bundlePath, version string) error {
 	if version != "" {
 		req.Header.Set("X-Formation-Version", version)
 	}
+	if streaming {
+		req.Header.Set("Accept", "text/event-stream")
+	}
 
 	// Add auth
 	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "PUT", path)
 	req.Header.Set("Authorization", authHeader)
 
+	// Use longer timeout for streaming
+	client := &http.Client{Timeout: 10 * time.Minute}
+
 	// Send request
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to update: %w", err)
+		return nil, fmt.Errorf("failed to update: %w", err)
 	}
 	defer resp.Body.Close()
 
-	return checkResponse(resp)
+	// Check for error responses
+	if resp.StatusCode >= 400 {
+		return nil, checkResponse(resp)
+	}
+
+	// Non-streaming: just check response
+	if !streaming {
+		return nil, checkResponse(resp)
+	}
+
+	// Streaming: parse SSE events
+	return parseSSEStream(resp.Body, callback)
+}
+
+// parseSSEStream parses Server-Sent Events from a response body
+func parseSSEStream(body io.Reader, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	reader := bufio.NewReader(body)
+	var currentEvent SSEEvent
+
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, fmt.Errorf("error reading SSE stream: %w", err)
+		}
+
+		line = strings.TrimSpace(line)
+
+		// Empty line = end of event
+		if line == "" {
+			if currentEvent.Event != "" && currentEvent.Data != "" {
+				// Handle the event
+				if callback != nil {
+					if err := callback(currentEvent); err != nil {
+						return nil, err
+					}
+				}
+
+				// Check for terminal events
+				switch currentEvent.Event {
+				case "complete":
+					var complete DeployCompleteEvent
+					if err := json.Unmarshal([]byte(currentEvent.Data), &complete); err != nil {
+						return nil, fmt.Errorf("failed to parse complete event: %w", err)
+					}
+					return &complete, nil
+				case "error":
+					var errEvent DeployErrorEvent
+					if err := json.Unmarshal([]byte(currentEvent.Data), &errEvent); err != nil {
+						return nil, fmt.Errorf("server error: %s", currentEvent.Data)
+					}
+					return nil, fmt.Errorf("%s: %s", errEvent.Error, errEvent.Message)
+				}
+
+				currentEvent = SSEEvent{}
+			}
+			continue
+		}
+
+		// Parse event type
+		if strings.HasPrefix(line, "event:") {
+			currentEvent.Event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+			continue
+		}
+
+		// Parse data
+		if strings.HasPrefix(line, "data:") {
+			currentEvent.Data = strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			continue
+		}
+	}
+
+	return nil, fmt.Errorf("SSE stream ended without complete or error event")
 }
 
 // checkResponse checks for common error responses

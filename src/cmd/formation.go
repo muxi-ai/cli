@@ -30,16 +30,34 @@ var formationGetCmd = &cobra.Command{
 	RunE:  runFormationGet,
 }
 
+var formationDeleteCmd = &cobra.Command{
+	Use:   "delete <id>",
+	Short: "Delete a formation",
+	Long: `Delete a formation from the server.
+
+This will:
+- Stop the formation process/container
+- Release the allocated port
+- Remove from registry
+- Clean up formation directory`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFormationDelete,
+}
+
 func init() {
 	rootCmd.AddCommand(formationCmd)
 
 	formationCmd.AddCommand(formationListCmd)
 	formationCmd.AddCommand(formationGetCmd)
+	formationCmd.AddCommand(formationDeleteCmd)
 
 	// Flags
 	formationListCmd.Flags().String("profile", "", "Server profile to use")
 	formationGetCmd.Flags().String("profile", "", "Server profile to use")
 	formationGetCmd.Flags().BoolP("verbose", "v", false, "Show internal details (port, pid)")
+	formationDeleteCmd.Flags().String("profile", "", "Server profile to use")
+	formationDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	formationDeleteCmd.Flags().Bool("atomic", false, "Skip confirmation prompt (alias for --force)")
 }
 
 // runFormationList handles muxi formation list
@@ -60,7 +78,7 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No formations deployed")
 		fmt.Println()
-		fmt.Println("  Deploy a formation: muxi deploy")
+		fmt.Printf("  Deploy a formation: %s\n", ui.Command("muxi deploy"))
 		fmt.Println()
 		return nil
 	}
@@ -112,7 +130,7 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				"muxi formation list",
+				ui.Command("muxi formation list"),
 			)
 			os.Exit(1)
 		}
@@ -151,9 +169,11 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  Uptime:     %s\n", formatDurationShort(f.Uptime))
 	}
 
-	// Health
+	// Health (show — when status is not "running")
 	var healthDisplay string
-	if f.Healthy {
+	if f.Status != "running" {
+		healthDisplay = ui.DimmedText("—")
+	} else if f.Healthy {
 		healthDisplay = ui.GreenText("✓ healthy")
 	} else {
 		healthDisplay = ui.RedText("✗ unhealthy")
@@ -185,6 +205,71 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	fmt.Println()
+
+	return nil
+}
+
+// runFormationDelete handles muxi formation delete <id>
+func runFormationDelete(cmd *cobra.Command, args []string) error {
+	profile, _ := cmd.Flags().GetString("profile")
+	force, _ := cmd.Flags().GetBool("force")
+	atomic, _ := cmd.Flags().GetBool("atomic")
+	skipConfirm := force || atomic
+	formationID := args[0]
+
+	client, err := server.NewClient(profile)
+	if err != nil {
+		return err
+	}
+
+	// Check if formation exists first
+	_, err = client.GetFormation(formationID)
+	if err != nil {
+		if err.Error() == "not found" {
+			ui.ErrorBlock(
+				"Formation not found",
+				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
+				ui.Command("muxi formation list"),
+			)
+			os.Exit(1)
+		}
+		return err
+	}
+
+	// Confirm deletion unless --force or --atomic
+	if !skipConfirm {
+		fmt.Println()
+		fmt.Printf("  Delete formation '%s'?\n", formationID)
+		fmt.Println()
+		fmt.Printf("  %s\n", ui.RedText("⚠ This action cannot be undone!"))
+		fmt.Print("  Enter formation ID to confirm: ")
+
+		var confirm string
+		fmt.Scanln(&confirm)
+
+		if confirm != formationID {
+			fmt.Println()
+			ui.Dimmed("  Deletion cancelled")
+			fmt.Println()
+			return nil
+		}
+	}
+
+	// Delete formation
+	spinner := ui.NewSpinner("Deleting formation...")
+	spinner.Start()
+
+	err = client.DeleteFormation(formationID)
+	if err != nil {
+		spinner.StopWithError("Delete failed")
+		return err
+	}
+
+	spinner.StopWithSuccess("Deleted formation")
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Deleted %s", formationID))
 	fmt.Println()
 
 	return nil

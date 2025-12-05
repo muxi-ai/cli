@@ -110,7 +110,7 @@ func runSetServer(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No servers configured")
 		fmt.Println()
-		fmt.Println("  Add a server first: muxi server add")
+		fmt.Printf("  Add a server first: %s\n", ui.Command("muxi server add"))
 		fmt.Println()
 		return nil
 	}
@@ -181,7 +181,7 @@ func runSetRegistry(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No registries configured")
 		fmt.Println()
-		fmt.Println("  Add a registry first: muxi registry add")
+		fmt.Printf("  Add a registry first: %s\n", ui.Command("muxi registry add"))
 		fmt.Println()
 		return nil
 	}

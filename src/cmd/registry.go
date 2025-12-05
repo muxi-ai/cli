@@ -231,7 +231,7 @@ func runLogin(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed(fmt.Sprintf("  Already logged in to %s as %s", registryName, username))
 		fmt.Println()
-		fmt.Println("  To log out, run: muxi logout")
+		fmt.Printf("  To log out, run: %s\n", ui.Command("muxi logout"))
 		return nil
 	}
 
@@ -554,7 +554,7 @@ func runPush(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 	fmt.Println("  Share with:")
-	fmt.Printf("    muxi pull %s\n", formationRef)
+	fmt.Printf("    %s\n", ui.Command(fmt.Sprintf("muxi pull %s", formationRef)))
 
 	return nil
 }
@@ -631,7 +631,7 @@ func runPull(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Println("  Next steps:")
 	fmt.Printf("    cd %s\n", outputDir)
-	fmt.Println("    muxi secrets setup    # Configure required secrets")
+	fmt.Printf("    %s    # Configure required secrets\n", ui.Command("muxi secrets setup"))
 
 	return nil
 }
@@ -682,7 +682,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			fmt.Println()
 		}
 
-		fmt.Println("  Pull with: muxi pull @user/formation")
+		fmt.Printf("  Pull with: %s\n", ui.Command("muxi pull @user/formation"))
 		return nil
 	}
 
@@ -755,7 +755,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 			}
 		case "q", "quit", "":
 			fmt.Println()
-			fmt.Println("  Pull with: muxi pull @user/formation")
+			fmt.Printf("  Pull with: %s\n", ui.Command("muxi pull @user/formation"))
 			return nil
 		}
 	}
@@ -841,7 +841,7 @@ func runShow(cmd *cobra.Command, args []string) error {
 	}
 
 	// Pull command
-	fmt.Printf("  Pull with: muxi pull @%s/%s\n", formation.Owner, formation.Name)
+	fmt.Printf("  Pull with: %s\n", ui.Command(fmt.Sprintf("muxi pull @%s/%s", formation.Owner, formation.Name)))
 
 	return nil
 }
@@ -916,8 +916,8 @@ func runRegistryList(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No registries configured")
 		fmt.Println()
-		fmt.Println("  Add a registry with: muxi registry add")
-		fmt.Println("  Or login to default:  muxi login")
+		fmt.Printf("  Add a registry with: %s\n", ui.Command("muxi registry add"))
+		fmt.Printf("  Or login to default:  %s\n", ui.Command("muxi login"))
 		return nil
 	}
 
@@ -1100,7 +1100,7 @@ func runRegistryDefault(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No registries configured")
 		fmt.Println()
-		fmt.Println("  Add a registry first: muxi registry add")
+		fmt.Printf("  Add a registry first: %s\n", ui.Command("muxi registry add"))
 		return nil
 	}
 
@@ -1161,7 +1161,7 @@ func runMine(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No formations published yet")
 		fmt.Println()
-		fmt.Println("  Publish your first formation: muxi push")
+		fmt.Printf("  Publish your first formation: %s\n", ui.Command("muxi push"))
 		return nil
 	}
 

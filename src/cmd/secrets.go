@@ -64,7 +64,7 @@ Examples:
 			ui.Dimmed("No secrets stored")
 			fmt.Println()
 			ui.Dimmed("Add secrets with:")
-			ui.Dimmed("  muxi secrets set SECRET_NAME")
+			fmt.Printf("  %s\n", ui.Command("muxi secrets set SECRET_NAME"))
 			return nil
 		}
 
@@ -278,7 +278,7 @@ func runSecretsSetup(cmd *cobra.Command, args []string) error {
 		ui.Dimmed("No secrets in template file")
 		fmt.Println()
 		ui.Dimmed("Add secrets to the 'secrets' file or use:")
-		ui.Dimmed("  muxi secrets sync")
+		fmt.Printf("  %s\n", ui.Command("muxi secrets sync"))
 		return nil
 	}
 

@@ -105,3 +105,43 @@ type LogsResponse struct {
 	Lines       []string `json:"lines"`
 	Stream      string   `json:"stream"`
 }
+
+// SSE Event Types for Deploy/Update streaming
+
+// DeployProgressEvent is a progress update during deployment
+type DeployProgressEvent struct {
+	Stage       string `json:"stage"`        // extracting, validating, resolving_runtime, downloading_sif, pulling_runner, spawning, health_check
+	Message     string `json:"message"`      // Human-readable message
+	Progress    int    `json:"progress"`     // 0-100 for downloading_sif
+	URL         string `json:"url"`          // Download URL for downloading_sif
+	Version     string `json:"version"`      // Resolved version for resolving_runtime
+	Attempt     int    `json:"attempt"`      // Current attempt for health_check
+	MaxAttempts int    `json:"max_attempts"` // Max attempts for health_check
+	StagingPort int    `json:"staging_port"` // For spawning_staging (update)
+}
+
+// DeployCompleteEvent is sent when deployment succeeds
+type DeployCompleteEvent struct {
+	FormationID     string `json:"formation_id"`
+	Port            int    `json:"port"`
+	Status          string `json:"status"`
+	URL             string `json:"url"`
+	HealthURL       string `json:"health_url"`
+	PID             int    `json:"pid"`
+	PreviousVersion string `json:"previous_version,omitempty"` // For updates
+	NewVersion      string `json:"new_version,omitempty"`      // For updates
+}
+
+// DeployErrorEvent is sent when deployment fails
+type DeployErrorEvent struct {
+	Error          string `json:"error"`
+	Message        string `json:"message"`
+	Stage          string `json:"stage"`
+	RollbackStatus string `json:"rollback_status,omitempty"` // For updates: not_needed, success, failed
+}
+
+// SSEEvent represents a parsed Server-Sent Event
+type SSEEvent struct {
+	Event string // "progress", "complete", "error"
+	Data  string // JSON payload
+}

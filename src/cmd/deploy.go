@@ -3,6 +3,7 @@ package cmd
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/server"
 	"github.com/muxi-ai/cli/pkg/ui"
+	"github.com/muxi-ai/cli/pkg/validate"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -23,7 +25,10 @@ var deployCmd = &cobra.Command{
 	Long: `Deploy a formation to a MUXI server.
 
 If the formation already exists on the server, it will be updated.
-If it's a new formation, it will be created.`,
+If it's a new formation, it will be created.
+
+By default, deployment progress is streamed from the server.
+Use --no-stream for a simpler non-streaming mode.`,
 	RunE: runDeploy,
 }
 
@@ -32,13 +37,14 @@ func init() {
 
 	deployCmd.Flags().String("profile", "", "Server profile to use")
 	deployCmd.Flags().Bool("dry-run", false, "Validate and create bundle without deploying")
+	deployCmd.Flags().Bool("no-stream", false, "Disable streaming progress (simpler output)")
 }
 
 // ExcludedPatterns are patterns to exclude from deploy bundles
 var deployExcludedPatterns = []string{
 	".git",
 	".muxi",
-	"secrets.enc",
+	"secrets",  // Exclude secrets template, but NOT secrets.enc
 	".key",
 	".env",
 	".env.*",
@@ -62,6 +68,7 @@ type FormationMetadata struct {
 func runDeploy(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	noStream, _ := cmd.Flags().GetBool("no-stream")
 
 	// Must be in formation directory
 	ctx, err := context.MustDetectFormation()
@@ -95,6 +102,21 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	// Validate formation before deploying
+	validationResult, err := validate.Formation(ctx.RootDir)
+	if err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	if !validationResult.IsValid() {
+		fmt.Println()
+		ui.Error(fmt.Sprintf("Formation '%s' has %d error(s)", metadata.ID, len(validationResult.Errors)))
+		fmt.Println()
+		fmt.Printf("  Run %s to see all issues\n", ui.CyanText("muxi validate"))
+		fmt.Println()
+		os.Exit(1)
+	}
+
 	// Get server client
 	client, err := server.NewClient(profile)
 	if err != nil {
@@ -110,25 +132,28 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	existingFormation, _ := client.GetFormation(metadata.ID)
 	isUpdate := existingFormation != nil
 
-	// For updates, version is required
-	if isUpdate && metadata.Version == "" {
-		ui.ErrorBlock(
-			"Version required for update",
-			fmt.Sprintf("Formation '%s' already exists on server.\nAdd a 'version' field to formation.yaml before updating.", metadata.ID),
-			"version: \"1.1.0\"",
-		)
-		os.Exit(1)
+	// For updates, version is required and must be different
+	if isUpdate {
+		if metadata.Version == "" {
+			ui.ErrorBlock(
+				"Version required for update",
+				fmt.Sprintf("Formation '%s' already exists on server.\nAdd a 'version' field to formation.yaml before updating.", metadata.ID),
+				"version: \"1.1.0\"",
+			)
+			os.Exit(1)
+		}
+		// TODO: Check if version is different from server version when server returns it
 	}
 
 	// Display deploy info
 	fmt.Println()
 	if isUpdate {
-		fmt.Printf("  Updating: %s on %s\n", metadata.ID, serverName)
+		fmt.Printf("  Updating: %s on %s\n", ui.BoldText(metadata.ID), serverName)
 		if metadata.Version != "" {
 			fmt.Printf("  Version:  %s\n", metadata.Version)
 		}
 	} else {
-		fmt.Printf("  Deploying: %s to %s\n", metadata.ID, serverName)
+		fmt.Printf("  Deploying: %s to %s\n", ui.BoldText(metadata.ID), serverName)
 		if metadata.Version != "" {
 			fmt.Printf("  Version:   %s\n", metadata.Version)
 		}
@@ -136,12 +161,12 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	// Create bundle
-	spinner := ui.NewSpinner("Creating bundle")
+	spinner := ui.NewSpinner("Creating bundle...")
 	spinner.Start()
 
 	bundlePath, fileCount, err := createTarGzBundle(ctx.RootDir, metadata.ID)
 	if err != nil {
-		spinner.Stop()
+		spinner.StopWithError("Failed to create bundle")
 		return fmt.Errorf("failed to create bundle: %w", err)
 	}
 	defer os.Remove(bundlePath)
@@ -150,8 +175,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	bundleInfo, _ := os.Stat(bundlePath)
 	bundleSize := bundleInfo.Size()
 
-	spinner.Stop()
-	fmt.Printf("  %s Created bundle (%d files, %s)\n", ui.GreenText("✓"), fileCount, formatBytes(bundleSize))
+	spinner.StopWithSuccess(fmt.Sprintf("Created bundle (%d files, %s)", fileCount, formatBytes(bundleSize)))
 
 	if dryRun {
 		fmt.Println()
@@ -160,14 +184,106 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Upload and deploy
+	// Deploy with streaming or non-streaming
+	if noStream {
+		return deployNonStreaming(client, metadata, bundlePath, isUpdate)
+	}
+	return deployStreaming(client, metadata, bundlePath, isUpdate)
+}
+
+// deployStreaming deploys with SSE progress streaming
+func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePath string, isUpdate bool) error {
+	// Start with "Pushing to server" spinner
+	spinner := ui.NewSpinner("Pushing to server...")
+	spinner.Start()
+
+	var lastStage string
+	var lastProgress *server.DeployProgressEvent
+	var complete *server.DeployCompleteEvent
+	var deployErr error
+
+	// SSE callback - called for each progress event
+	callback := func(event server.SSEEvent) error {
+		if event.Event == "progress" {
+			var progress server.DeployProgressEvent
+			if err := json.Unmarshal([]byte(event.Data), &progress); err != nil {
+				return nil // Skip malformed events
+			}
+
+			// Same stage with updated progress - just update the message
+			if lastStage == progress.Stage {
+				spinner.UpdateMessage(formatServerStageMessage(progress))
+				lastProgress = &progress
+				return nil
+			}
+
+			// First server event: finish "Pushing" and show it succeeded
+			if lastStage == "" {
+				spinner.StopWithSuccess("Pushed to server")
+			} else {
+				// Complete previous stage
+				spinner.StopWithSuccess(formatStageComplete(lastStage, lastProgress))
+			}
+
+			// Start new spinner for this stage
+			lastStage = progress.Stage
+			lastProgress = &progress
+			spinner = ui.NewSpinner(formatServerStageMessage(progress))
+			spinner.Start()
+		}
+		return nil
+	}
+
+	// Execute deploy
+	if isUpdate {
+		complete, deployErr = client.UpdateFormationStreaming(metadata.ID, bundlePath, metadata.Version, callback)
+	} else {
+		complete, deployErr = client.DeployFormationStreaming(metadata.ID, bundlePath, metadata.Version, callback)
+	}
+
+	// Handle final state
+	if deployErr != nil {
+		if lastStage != "" {
+			spinner.StopWithError(ui.DimmedText("[SERVER]") + " Failed")
+		} else {
+			spinner.StopWithError("Push failed")
+		}
+		fmt.Println()
+		return deployErr
+	}
+
+	// Complete final stage
+	if lastStage != "" {
+		spinner.StopWithSuccess(formatStageComplete(lastStage, lastProgress))
+	} else {
+		spinner.StopWithSuccess("Pushed to server")
+	}
+
+	// Success message
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Formation `%s` running!", metadata.ID))
+
+	// Show URL
+	fmt.Println()
+	if complete != nil && complete.URL != "" {
+		fmt.Printf("  Formation URL: %s\n", complete.URL)
+	} else {
+		fmt.Printf("  Formation URL: %s/api/%s\n", client.BaseURL, metadata.ID)
+	}
+	fmt.Println()
+
+	return nil
+}
+
+// deployNonStreaming deploys without streaming (simpler output)
+func deployNonStreaming(client *server.Client, metadata FormationMetadata, bundlePath string, isUpdate bool) error {
 	var spinnerMsg string
 	if isUpdate {
-		spinnerMsg = "Deploying new version"
+		spinnerMsg = "Deploying new version..."
 	} else {
-		spinnerMsg = "Deploying formation"
+		spinnerMsg = "Deploying formation..."
 	}
-	spinner = ui.NewSpinner(spinnerMsg)
+	spinner := ui.NewSpinner(spinnerMsg)
 	spinner.Start()
 
 	var deployErr error
@@ -177,14 +293,12 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		deployErr = client.DeployFormation(metadata.ID, bundlePath, metadata.Version)
 	}
 
-	spinner.Stop()
-
 	if deployErr != nil {
-		fmt.Printf("  %s Deploy failed\n", ui.RedText("✗"))
+		spinner.StopWithError("Deploy failed")
 		return deployErr
 	}
 
-	fmt.Printf("  %s Deployed\n", ui.GreenText("✓"))
+	spinner.StopWithSuccess("Deployed")
 
 	// Success message
 	fmt.Println()
@@ -196,10 +310,83 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 
 	// Show URL
 	fmt.Println()
-	fmt.Printf("  Formation Base URL: %s/api/%s\n", client.BaseURL, metadata.ID)
+	fmt.Printf("  URL: %s/api/%s\n", client.BaseURL, metadata.ID)
 	fmt.Println()
 
 	return nil
+}
+
+// formatServerStageMessage formats a progress event into a spinner message with [SERVER] prefix
+func formatServerStageMessage(p server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch p.Stage {
+	case "extracting":
+		return prefix + "Extracting formation bundle..."
+	case "validating":
+		return prefix + "Validating formation files..."
+	case "resolving_runtime":
+		return prefix + "Resolving runtime version..."
+	case "downloading_sif":
+		if p.Progress > 0 {
+			return prefix + fmt.Sprintf("Downloading runtime image... %d%%", p.Progress)
+		}
+		return prefix + "Downloading runtime image..."
+	case "pulling_runner":
+		return prefix + "Pulling runtime runner..."
+	case "spawning":
+		return prefix + "Starting formation..."
+	case "spawning_staging":
+		return prefix + "Starting staging version..."
+	case "health_check":
+		if p.Attempt > 0 && p.MaxAttempts > 0 {
+			remaining := p.MaxAttempts - p.Attempt
+			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
+		}
+		return prefix + "Waiting for formation to start..."
+	case "swapping":
+		return prefix + "Switching to new version..."
+	case "stopping_old":
+		return prefix + "Stopping old version..."
+	default:
+		if p.Message != "" {
+			return prefix + p.Message
+		}
+		return prefix + p.Stage + "..."
+	}
+}
+
+// formatStageComplete formats a completed stage message with [SERVER] prefix
+func formatStageComplete(stage string, p *server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch stage {
+	case "extracting":
+		return prefix + "Extracted formation bundle"
+	case "validating":
+		return prefix + "Validated formation files"
+	case "resolving_runtime":
+		if p != nil && p.Version != "" {
+			return prefix + "Resolved runtime version " + p.Version
+		}
+		return prefix + "Resolved runtime version"
+	case "downloading_sif":
+		return prefix + "Downloaded runtime image"
+	case "pulling_runner":
+		return prefix + "Pulled runtime runner"
+	case "spawning":
+		return prefix + "Started formation"
+	case "spawning_staging":
+		return prefix + "Started staging version"
+	case "health_check":
+		return prefix + "Formation started"
+	case "swapping":
+		return prefix + "Switched to new version"
+	case "stopping_old":
+		return prefix + "Stopped old version"
+	default:
+		return prefix + stage + " complete"
+	}
 }
 
 // createTarGzBundle creates a tar.gz bundle of the formation directory

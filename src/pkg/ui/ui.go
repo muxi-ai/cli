@@ -40,12 +40,14 @@ func Success(message string) {
 // Step prints a progress step with ✓ symbol (only icon colored, message normal)
 // Use this for progress updates where you want less emphasis
 func Step(message string) {
+	fmt.Print("  ")
 	green.Printf("%s ", SymbolSuccess)
 	fmt.Println(message)
 }
 
 // Error prints an error message with ✗ symbol (red, bold)
 func Error(message string) {
+	fmt.Print("  ")
 	red.Printf("%s %s\n", SymbolError, message)
 }
 
@@ -75,6 +77,7 @@ type Spinner struct {
 	frames  []string
 	stop    chan struct{}
 	done    sync.WaitGroup
+	mu      sync.Mutex
 }
 
 // NewSpinner creates a new spinner with a message
@@ -97,12 +100,22 @@ func (s *Spinner) Start() {
 			case <-s.stop:
 				return
 			default:
-				fmt.Printf("\r  %s %s", blue.Sprint(s.frames[i%len(s.frames)]), s.message)
+				s.mu.Lock()
+				msg := s.message
+				s.mu.Unlock()
+				fmt.Printf("\r\033[K  %s %s", blue.Sprint(s.frames[i%len(s.frames)]), msg)
 				i++
 				time.Sleep(80 * time.Millisecond)
 			}
 		}
 	}()
+}
+
+// UpdateMessage updates the spinner message while running
+func (s *Spinner) UpdateMessage(message string) {
+	s.mu.Lock()
+	s.message = message
+	s.mu.Unlock()
 }
 
 // Stop stops the spinner and clears the line
@@ -117,7 +130,7 @@ func (s *Spinner) StopWithSuccess(message string) {
 	close(s.stop)
 	s.done.Wait()
 	fmt.Print("\r\033[K") // Clear line
-	Success(message)
+	Step(message)
 }
 
 // StopWithError stops spinner and shows error message
@@ -168,6 +181,11 @@ func CyanText(s string) string {
 // BoldText returns bold text
 func BoldText(s string) string {
 	return bold.Sprint(s)
+}
+
+// Command returns a command formatted for display (cyan/blue)
+func Command(s string) string {
+	return cyan.Sprint(s)
 }
 
 // DimmedText returns dimmed text
