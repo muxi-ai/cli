@@ -5,13 +5,21 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 )
 
 // GenerateHMACSignature generates an HMAC-SHA256 signature for authentication
 func GenerateHMACSignature(secretKey, method, path string) (string, int64) {
 	timestamp := time.Now().Unix()
-	message := fmt.Sprintf("%d;%s;%s", timestamp, method, path)
+
+	// Strip query params from path for signature (use only path portion)
+	signPath := path
+	if idx := strings.Index(path, "?"); idx != -1 {
+		signPath = path[:idx]
+	}
+
+	message := fmt.Sprintf("%d;%s;%s", timestamp, method, signPath)
 
 	mac := hmac.New(sha256.New, []byte(secretKey))
 	mac.Write([]byte(message))
