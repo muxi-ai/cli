@@ -220,15 +220,57 @@ func (c *Client) StopFormation(id string) error {
 	return checkResponse(resp)
 }
 
-// RestartFormation restarts a formation
+// RestartFormation restarts a formation (non-streaming)
 func (c *Client) RestartFormation(id string) error {
-	resp, err := c.Post("/rpc/formations/"+id+"/restart", nil, "")
+	_, err := c.restartFormationInternal(id, false, nil)
+	return err
+}
+
+// RestartFormationStreaming restarts a formation with SSE progress
+func (c *Client) RestartFormationStreaming(id string, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	return c.restartFormationInternal(id, true, callback)
+}
+
+// restartFormationInternal handles both streaming and non-streaming restart
+func (c *Client) restartFormationInternal(id string, streaming bool, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	path := "/rpc/formations/" + id + "/restart"
+
+	// Create request
+	req, err := http.NewRequest("POST", c.BaseURL+path, nil)
 	if err != nil {
-		return fmt.Errorf("cannot connect to server: %w", err)
+		return nil, err
+	}
+
+	if streaming {
+		req.Header.Set("Accept", "text/event-stream")
+	}
+
+	// Add auth
+	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "POST", path)
+	req.Header.Set("Authorization", authHeader)
+
+	// Use longer timeout for streaming
+	client := &http.Client{Timeout: 10 * time.Minute}
+
+	// Send request
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restart: %w", err)
 	}
 	defer resp.Body.Close()
 
-	return checkResponse(resp)
+	// Check for error responses
+	if resp.StatusCode >= 400 {
+		return nil, checkResponse(resp)
+	}
+
+	// Non-streaming: just check response
+	if !streaming {
+		return nil, checkResponse(resp)
+	}
+
+	// Streaming: parse SSE events
+	return parseSSEStream(resp.Body, callback)
 }
 
 // RollbackFormation rolls back a formation to previous version

@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"time"
 
 	"github.com/muxi-ai/cli/pkg/server"
@@ -423,22 +426,146 @@ func runFormationRestart(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	spinner := ui.NewSpinner("Restarting formation...")
+	fmt.Println()
+	fmt.Printf("  Restarting: %s\n", ui.BoldText(formationID))
+	fmt.Println()
+
+	spinner := ui.NewSpinner("Sending restart request...")
 	spinner.Start()
 
-	err = client.RestartFormation(formationID)
-	if err != nil {
-		spinner.StopWithError("Restart failed")
-		return err
+	var lastStage string
+	var lastProgress *server.DeployProgressEvent
+
+	// SSE callback - called for each progress event
+	callback := func(event server.SSEEvent) error {
+		if event.Event == "progress" {
+			var progress server.DeployProgressEvent
+			if err := json.Unmarshal([]byte(event.Data), &progress); err != nil {
+				return nil // Skip malformed events
+			}
+
+			// Same stage with updated progress - just update the message
+			if lastStage == progress.Stage {
+				spinner.UpdateMessage(formatRestartStageMessage(progress))
+				lastProgress = &progress
+				return nil
+			}
+
+			// First server event: finish "Sending restart request" and show it succeeded
+			if lastStage == "" {
+				spinner.StopWithSuccess("Restart initiated")
+			} else {
+				// Complete previous stage
+				spinner.StopWithSuccess(formatRestartStageComplete(lastStage, lastProgress))
+			}
+
+			// Start new spinner for this stage
+			lastStage = progress.Stage
+			lastProgress = &progress
+			spinner = ui.NewSpinner(formatRestartStageMessage(progress))
+			spinner.Start()
+		}
+		return nil
 	}
 
-	spinner.StopWithSuccess("Restarted formation")
+	// Execute restart with streaming
+	_, restartErr := client.RestartFormationStreaming(formationID, callback)
+
+	// Handle final state
+	if restartErr != nil {
+		if lastStage != "" {
+			spinner.StopWithError(ui.DimmedText("[SERVER]") + " Failed")
+		} else {
+			spinner.StopWithError("Restart failed")
+		}
+		playRestartNotificationSound(false)
+		fmt.Println()
+		return restartErr
+	}
+
+	// Complete final stage
+	if lastStage != "" {
+		spinner.StopWithSuccess(formatRestartStageComplete(lastStage, lastProgress))
+	} else {
+		spinner.StopWithSuccess("Restart complete")
+	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Restarted %s", formationID))
+	ui.Success(fmt.Sprintf("Formation `%s` restarted!", formationID))
 	fmt.Println()
+
+	playRestartNotificationSound(true)
 
 	return nil
+}
+
+// formatRestartStageMessage formats a progress event into a spinner message with [SERVER] prefix
+func formatRestartStageMessage(p server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch p.Stage {
+	case "stopping":
+		return prefix + "Stopping current process..."
+	case "resolving_runtime":
+		return prefix + "Resolving runtime version..."
+	case "downloading_sif":
+		if p.Progress > 0 {
+			return prefix + fmt.Sprintf("Downloading runtime (%d%%)...", p.Progress)
+		}
+		return prefix + "Downloading runtime..."
+	case "pulling_runner":
+		return prefix + "Pulling runtime runner..."
+	case "spawning":
+		return prefix + "Starting formation..."
+	case "health_check":
+		if p.Attempt > 0 && p.MaxAttempts > 0 {
+			return prefix + fmt.Sprintf("Health check (%d/%d)...", p.Attempt, p.MaxAttempts)
+		}
+		return prefix + "Waiting for health check..."
+	default:
+		if p.Message != "" {
+			return prefix + p.Message
+		}
+		return prefix + p.Stage
+	}
+}
+
+// formatRestartStageComplete formats the completion message for a restart stage
+func formatRestartStageComplete(stage string, p *server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch stage {
+	case "stopping":
+		return prefix + "Stopped current process"
+	case "resolving_runtime":
+		if p != nil && p.Version != "" {
+			return prefix + fmt.Sprintf("Resolved runtime %s", p.Version)
+		}
+		return prefix + "Resolved runtime"
+	case "downloading_sif":
+		return prefix + "Downloaded runtime"
+	case "pulling_runner":
+		return prefix + "Pulled runtime runner"
+	case "spawning":
+		return prefix + "Started formation"
+	case "health_check":
+		return prefix + "Health check passed"
+	default:
+		return prefix + stage + " complete"
+	}
+}
+
+// playRestartNotificationSound plays a sound to notify the user of restart completion
+func playRestartNotificationSound(success bool) {
+	if runtime.GOOS == "darwin" {
+		sound := "/System/Library/Sounds/Glass.aiff"
+		if !success {
+			sound = "/System/Library/Sounds/Sosumi.aiff"
+		}
+		exec.Command("afplay", sound).Run()
+	} else {
+		fmt.Print("\a")
+	}
 }
 
 // runFormationRollback handles muxi formation rollback <id>
