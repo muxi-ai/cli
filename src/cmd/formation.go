@@ -44,12 +44,45 @@ This will:
 	RunE: runFormationDelete,
 }
 
+var formationStopCmd = &cobra.Command{
+	Use:   "stop <id>",
+	Short: "Stop a running formation",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runFormationStop,
+}
+
+var formationRestartCmd = &cobra.Command{
+	Use:   "restart <id>",
+	Short: "Restart a formation",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runFormationRestart,
+}
+
+var formationRollbackCmd = &cobra.Command{
+	Use:   "rollback <id>",
+	Short: "Rollback to previous version",
+	Long:  `Rollback a formation to its previous deployed version.`,
+	Args:  cobra.ExactArgs(1),
+	RunE:  runFormationRollback,
+}
+
+var formationLogsCmd = &cobra.Command{
+	Use:   "logs <id>",
+	Short: "View formation logs",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runFormationLogs,
+}
+
 func init() {
 	rootCmd.AddCommand(formationCmd)
 
 	formationCmd.AddCommand(formationListCmd)
 	formationCmd.AddCommand(formationGetCmd)
 	formationCmd.AddCommand(formationDeleteCmd)
+	formationCmd.AddCommand(formationStopCmd)
+	formationCmd.AddCommand(formationRestartCmd)
+	formationCmd.AddCommand(formationRollbackCmd)
+	formationCmd.AddCommand(formationLogsCmd)
 
 	// Flags
 	formationListCmd.Flags().String("profile", "", "Server profile to use")
@@ -58,6 +91,12 @@ func init() {
 	formationDeleteCmd.Flags().String("profile", "", "Server profile to use")
 	formationDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 	formationDeleteCmd.Flags().Bool("atomic", false, "Skip confirmation prompt (alias for --force)")
+	formationStopCmd.Flags().String("profile", "", "Server profile to use")
+	formationRestartCmd.Flags().String("profile", "", "Server profile to use")
+	formationRollbackCmd.Flags().String("profile", "", "Server profile to use")
+	formationLogsCmd.Flags().String("profile", "", "Server profile to use")
+	formationLogsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
+	formationLogsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
 }
 
 // runFormationList handles muxi formation list
@@ -299,4 +338,188 @@ func formatTimestamp(ts string) string {
 		return ts
 	}
 	return t.Format("2006-01-02 15:04:05")
+}
+
+// runFormationStop handles muxi formation stop <id>
+func runFormationStop(cmd *cobra.Command, args []string) error {
+	profile, _ := cmd.Flags().GetString("profile")
+	formationID := args[0]
+
+	client, err := server.NewClient(profile)
+	if err != nil {
+		return err
+	}
+
+	// Check if formation exists
+	f, err := client.GetFormation(formationID)
+	if err != nil {
+		if err.Error() == "not found" {
+			ui.ErrorBlock(
+				"Formation not found",
+				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
+				ui.Command("muxi formation list"),
+			)
+			os.Exit(1)
+		}
+		return err
+	}
+
+	// Check if already stopped
+	if f.Status == "stopped" {
+		fmt.Println()
+		ui.Warning(fmt.Sprintf("Formation '%s' is already stopped", formationID))
+		fmt.Println()
+		return nil
+	}
+
+	spinner := ui.NewSpinner("Stopping formation...")
+	spinner.Start()
+
+	err = client.StopFormation(formationID)
+	if err != nil {
+		spinner.StopWithError("Stop failed")
+		return err
+	}
+
+	spinner.StopWithSuccess("Stopped formation")
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Stopped %s", formationID))
+	fmt.Println()
+
+	return nil
+}
+
+// runFormationRestart handles muxi formation restart <id>
+func runFormationRestart(cmd *cobra.Command, args []string) error {
+	profile, _ := cmd.Flags().GetString("profile")
+	formationID := args[0]
+
+	client, err := server.NewClient(profile)
+	if err != nil {
+		return err
+	}
+
+	// Check if formation exists
+	_, err = client.GetFormation(formationID)
+	if err != nil {
+		if err.Error() == "not found" {
+			ui.ErrorBlock(
+				"Formation not found",
+				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
+				ui.Command("muxi formation list"),
+			)
+			os.Exit(1)
+		}
+		return err
+	}
+
+	spinner := ui.NewSpinner("Restarting formation...")
+	spinner.Start()
+
+	err = client.RestartFormation(formationID)
+	if err != nil {
+		spinner.StopWithError("Restart failed")
+		return err
+	}
+
+	spinner.StopWithSuccess("Restarted formation")
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Restarted %s", formationID))
+	fmt.Println()
+
+	return nil
+}
+
+// runFormationRollback handles muxi formation rollback <id>
+func runFormationRollback(cmd *cobra.Command, args []string) error {
+	profile, _ := cmd.Flags().GetString("profile")
+	formationID := args[0]
+
+	client, err := server.NewClient(profile)
+	if err != nil {
+		return err
+	}
+
+	// Check if formation exists
+	_, err = client.GetFormation(formationID)
+	if err != nil {
+		if err.Error() == "not found" {
+			ui.ErrorBlock(
+				"Formation not found",
+				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
+				ui.Command("muxi formation list"),
+			)
+			os.Exit(1)
+		}
+		return err
+	}
+
+	spinner := ui.NewSpinner("Rolling back formation...")
+	spinner.Start()
+
+	resp, err := client.RollbackFormation(formationID)
+	if err != nil {
+		spinner.StopWithError("Rollback failed")
+		return err
+	}
+
+	spinner.StopWithSuccess("Rolled back formation")
+
+	fmt.Println()
+	if resp != nil && resp.PreviousVersion != "" {
+		ui.Success(fmt.Sprintf("Rolled back %s to version %s", formationID, resp.PreviousVersion))
+	} else {
+		ui.Success(fmt.Sprintf("Rolled back %s", formationID))
+	}
+	fmt.Println()
+
+	return nil
+}
+
+// runFormationLogs handles muxi formation logs <id>
+func runFormationLogs(cmd *cobra.Command, args []string) error {
+	profile, _ := cmd.Flags().GetString("profile")
+	lines, _ := cmd.Flags().GetInt("lines")
+	stream, _ := cmd.Flags().GetString("stream")
+	formationID := args[0]
+
+	client, err := server.NewClient(profile)
+	if err != nil {
+		return err
+	}
+
+	// Check if formation exists
+	_, err = client.GetFormation(formationID)
+	if err != nil {
+		if err.Error() == "not found" {
+			ui.ErrorBlock(
+				"Formation not found",
+				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
+				ui.Command("muxi formation list"),
+			)
+			os.Exit(1)
+		}
+		return err
+	}
+
+	resp, err := client.GetFormationLogs(formationID, lines, stream)
+	if err != nil {
+		return err
+	}
+
+	if len(resp.Lines) == 0 {
+		fmt.Println()
+		ui.Dimmed("  No logs available")
+		fmt.Println()
+		return nil
+	}
+
+	// Print logs
+	for _, line := range resp.Lines {
+		fmt.Println(line)
+	}
+
+	return nil
 }
