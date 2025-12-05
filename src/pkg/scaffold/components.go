@@ -2873,26 +2873,28 @@ func triggerTemplate(id string) string {
 	return b.String()
 }
 
-func a2aTemplate(name, description, a2aType, baseURL string) string {
+func a2aTemplate(id, description, a2aType, baseURL string) string {
+	name := titleCase(id)
 	if description == "" {
-		description = fmt.Sprintf("%s integration", titleCase(name))
+		description = fmt.Sprintf("%s integration", name)
 	}
+	secretPrefix := strings.ToUpper(strings.ReplaceAll(id, "-", "_"))
+
+	// Note: a2aType is currently unused - kept for backward compatibility
+	_ = a2aType
 
 	return fmt.Sprintf(`schema: "1.0.0"
 
-id: %s
+id: "%s"
+name: "%s"
 description: "%s"
-type: %s
-
-connection:
-  base_url: "%s"
-  auth:
-    type: bearer
-    token: "${{ secrets.%s_TOKEN }}"
-
-endpoints: []
+url: "%s"
 active: true
-`, name, description, a2aType, baseURL, strings.ToUpper(strings.ReplaceAll(name, "-", "_")))
+
+auth:
+  type: "bearer"
+  token: "${{ secrets.%s_TOKEN }}"
+`, id, name, description, baseURL, secretPrefix)
 }
 
 // extractA2ARegistries extracts registry URLs from the formation and returns as comma-separated string

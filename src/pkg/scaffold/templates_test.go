@@ -263,13 +263,35 @@ llm:
 }
 
 func TestA2ATemplate(t *testing.T) {
-	yaml := a2aTemplate(
+	output := a2aTemplate(
 		"external-api",
 		"External API service",
-		"llm",
+		"llm", // unused but kept for compatibility
 		"https://api.example.com",
 	)
-	validateYAML(t, "A2ATemplate", yaml)
+	validateYAML(t, "A2ATemplate", output)
+
+	// Verify schema compliance
+	var a2a map[string]interface{}
+	if err := yaml.Unmarshal([]byte(output), &a2a); err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	// Check required fields exist
+	requiredFields := []string{"schema", "id", "name", "description", "url", "active", "auth"}
+	for _, field := range requiredFields {
+		if _, ok := a2a[field]; !ok {
+			t.Errorf("Missing required field: %s", field)
+		}
+	}
+
+	// Check fields that should NOT exist
+	invalidFields := []string{"type", "connection", "endpoints"}
+	for _, field := range invalidFields {
+		if _, ok := a2a[field]; ok {
+			t.Errorf("Invalid field present: %s (not in schema)", field)
+		}
+	}
 }
 
 func TestA2AServiceTemplate(t *testing.T) {
