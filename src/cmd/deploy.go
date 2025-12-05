@@ -44,8 +44,7 @@ func init() {
 var deployExcludedPatterns = []string{
 	".git",
 	".muxi",
-	"secrets",  // Exclude secrets template, but NOT secrets.enc
-	".key",
+	"secrets", // Exclude secrets template, but NOT secrets.enc or .key
 	".env",
 	".env.*",
 	"node_modules",
