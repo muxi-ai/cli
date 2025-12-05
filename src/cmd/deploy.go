@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/server"
@@ -192,6 +194,35 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 
 // deployStreaming deploys with SSE progress streaming
 func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePath string, isUpdate bool) error {
+	// Set up signal handling for cleanup on Ctrl+C
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(sigChan)
+
+	// Track if we've started deploying (for cleanup purposes)
+	deployStarted := false
+
+	// Handle Ctrl+C in background
+	go func() {
+		<-sigChan
+		fmt.Println() // New line after ^C
+		
+		if !isUpdate && deployStarted {
+			// For new deployments, clean up by deleting the partial formation
+			fmt.Printf("  %s Deploy cancelled, cleaning up...\n", ui.DimmedText("→"))
+			if err := client.DeleteFormation(metadata.ID); err != nil {
+				fmt.Printf("  %s Cleanup failed: %v\n", ui.RedText("✗"), err)
+			} else {
+				fmt.Printf("  %s Cleaned up partial deployment\n", ui.DimmedText("✓"))
+			}
+		} else if isUpdate {
+			// For updates, the old version is still running (blue-green)
+			fmt.Printf("  %s Update cancelled. Previous version still running.\n", ui.DimmedText("→"))
+		}
+		
+		os.Exit(130) // Standard exit code for Ctrl+C
+	}()
+
 	// Start with "Pushing to server" spinner
 	spinner := ui.NewSpinner("Pushing to server...")
 	spinner.Start()
@@ -203,6 +234,8 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 
 	// SSE callback - called for each progress event
 	callback := func(event server.SSEEvent) error {
+		// Mark that we've started receiving server events
+		deployStarted = true
 		if event.Event == "progress" {
 			var progress server.DeployProgressEvent
 			if err := json.Unmarshal([]byte(event.Data), &progress); err != nil {
