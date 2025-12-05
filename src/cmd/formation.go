@@ -465,9 +465,9 @@ func runFormationRestart(cmd *cobra.Command, args []string) error {
 			spinner = ui.NewSpinner(formatRestartStageMessage(progress))
 			spinner.Start()
 
-			// Add padding below health_check spinner so it's not at screen bottom
+			// Add visual separation before health_check (the long-running stage)
 			if progress.Stage == "health_check" {
-				fmt.Print("\n\n")
+				fmt.Println()
 			}
 		}
 		return nil
