@@ -113,10 +113,10 @@ func init() {
 }
 
 // requireFormationContext returns the formation context or exits with error
-func requireFormationContext() (*context.FormationContext, error) {
+func requireFormationContext(command string) (*context.FormationContext, error) {
 	ctx, err := context.DetectFormation()
 	if err != nil {
-		return nil, fmt.Errorf("not in a formation directory\n\nRun this command from inside a formation directory, or use:\n  muxi formation <command> <id>")
+		return nil, fmt.Errorf("not in a formation directory\n\nRun this command from inside a formation directory, or use:\n  %s <formation-id>", ui.CyanText("muxi formation "+command))
 	}
 	if ctx.ID == "" {
 		return nil, fmt.Errorf("formation.yaml is missing 'id' field")
@@ -137,7 +137,7 @@ func confirmAction(action, formationID string) bool {
 }
 
 func runShortcutGet(cmd *cobra.Command, args []string) error {
-	ctx, err := requireFormationContext()
+	ctx, err := requireFormationContext("get")
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func runShortcutGet(cmd *cobra.Command, args []string) error {
 }
 
 func runShortcutStop(cmd *cobra.Command, args []string) error {
-	ctx, err := requireFormationContext()
+	ctx, err := requireFormationContext("stop")
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func runShortcutStop(cmd *cobra.Command, args []string) error {
 }
 
 func runShortcutRestart(cmd *cobra.Command, args []string) error {
-	ctx, err := requireFormationContext()
+	ctx, err := requireFormationContext("restart")
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func runShortcutRestart(cmd *cobra.Command, args []string) error {
 }
 
 func runShortcutDelete(cmd *cobra.Command, args []string) error {
-	ctx, err := requireFormationContext()
+	ctx, err := requireFormationContext("delete")
 	if err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func runShortcutDelete(cmd *cobra.Command, args []string) error {
 }
 
 func runShortcutRollback(cmd *cobra.Command, args []string) error {
-	ctx, err := requireFormationContext()
+	ctx, err := requireFormationContext("rollback")
 	if err != nil {
 		return err
 	}
@@ -348,7 +348,7 @@ func runShortcutRollback(cmd *cobra.Command, args []string) error {
 }
 
 func runShortcutLogs(cmd *cobra.Command, args []string) error {
-	ctx, err := requireFormationContext()
+	ctx, err := requireFormationContext("logs")
 	if err != nil {
 		return err
 	}
