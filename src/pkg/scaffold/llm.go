@@ -1178,8 +1178,10 @@ func updateModelSettingsInFormation(rootDir, capability string, settings ModelSe
 					return nil
 				}
 			}
-			// Add settings after model line
-			result = append(result, settingsYAML.String())
+			// Add settings after model line - append each line individually
+			for _, settingLine := range strings.Split(strings.TrimSuffix(settingsYAML.String(), "\n"), "\n") {
+				result = append(result, settingLine)
+			}
 		}
 	}
 
