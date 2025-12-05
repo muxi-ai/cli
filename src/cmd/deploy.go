@@ -210,23 +210,24 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 		spinner.Stop()
 		fmt.Printf("\r\033[K  %s %s\n", ui.DimmedText("—"), ui.DimmedText("Cancelled"))
 
+		cleanupSpinner := ui.NewSpinner("Cleaning up...")
+		cleanupSpinner.Start()
+
 		if isUpdate {
 			// For updates, cancel the running update (original keeps running)
-			fmt.Printf("  %s Cleaning up staging...\n", ui.DimmedText("→"))
 			if err := client.CancelUpdate(metadata.ID); err != nil {
-				fmt.Printf("  %s Cleanup failed: %v\n", ui.RedText("✗"), err)
+				cleanupSpinner.StopWithError(fmt.Sprintf("Cleanup failed: %v", err))
 			} else {
-				fmt.Printf("  %s Original version still running\n", ui.DimmedText("✓"))
+				cleanupSpinner.StopWithSuccess("Original version still running")
 			}
 			fmt.Println()
 			ui.Error("Update aborted")
 		} else {
 			// For new deployments, delete the partial formation
-			fmt.Printf("  %s Cleaning up...\n", ui.DimmedText("→"))
 			if err := client.DeleteFormation(metadata.ID); err != nil {
-				fmt.Printf("  %s Cleanup failed: %v\n", ui.RedText("✗"), err)
+				cleanupSpinner.StopWithError(fmt.Sprintf("Cleanup failed: %v", err))
 			} else {
-				fmt.Printf("  %s Cleaned up partial deployment\n", ui.DimmedText("✓"))
+				cleanupSpinner.StopWithSuccess("Cleaned up partial deployment")
 			}
 			fmt.Println()
 			ui.Error("Deployment aborted")
