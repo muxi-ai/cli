@@ -506,27 +506,30 @@ func formatRestartStageMessage(p server.DeployProgressEvent) string {
 	switch p.Stage {
 	case "stopping":
 		return prefix + "Stopping current process..."
+	case "validating":
+		return prefix + "Validating formation files..."
 	case "resolving_runtime":
 		return prefix + "Resolving runtime version..."
 	case "downloading_sif":
 		if p.Progress > 0 {
-			return prefix + fmt.Sprintf("Downloading runtime (%d%%)...", p.Progress)
+			return prefix + fmt.Sprintf("Downloading runtime image... %d%%", p.Progress)
 		}
-		return prefix + "Downloading runtime..."
+		return prefix + "Downloading runtime image..."
 	case "pulling_runner":
 		return prefix + "Pulling runtime runner..."
 	case "spawning":
 		return prefix + "Starting formation..."
 	case "health_check":
 		if p.Attempt > 0 && p.MaxAttempts > 0 {
-			return prefix + fmt.Sprintf("Health check (%d/%d)...", p.Attempt, p.MaxAttempts)
+			remaining := p.MaxAttempts - p.Attempt
+			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
 		}
-		return prefix + "Waiting for health check..."
+		return prefix + "Waiting for formation to start..."
 	default:
 		if p.Message != "" {
 			return prefix + p.Message
 		}
-		return prefix + p.Stage
+		return prefix + p.Stage + "..."
 	}
 }
 
@@ -537,19 +540,21 @@ func formatRestartStageComplete(stage string, p *server.DeployProgressEvent) str
 	switch stage {
 	case "stopping":
 		return prefix + "Stopped current process"
+	case "validating":
+		return prefix + "Validated formation files"
 	case "resolving_runtime":
 		if p != nil && p.Version != "" {
-			return prefix + fmt.Sprintf("Resolved runtime %s", p.Version)
+			return prefix + "Resolved runtime " + p.Version
 		}
-		return prefix + "Resolved runtime"
+		return prefix + "Resolved runtime version"
 	case "downloading_sif":
-		return prefix + "Downloaded runtime"
+		return prefix + "Downloaded runtime image"
 	case "pulling_runner":
 		return prefix + "Pulled runtime runner"
 	case "spawning":
 		return prefix + "Started formation"
 	case "health_check":
-		return prefix + "Health check passed"
+		return prefix + "Formation started"
 	default:
 		return prefix + stage + " complete"
 	}
