@@ -219,7 +219,7 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 			err := client.CancelUpdate(metadata.ID)
 			if err != nil && strings.Contains(err.Error(), "not found") {
 				// Server hasn't registered yet, wait and retry
-				time.Sleep(2 * time.Second)
+				time.Sleep(5 * time.Second)
 				err = client.CancelUpdate(metadata.ID)
 			}
 			if err != nil && !strings.Contains(err.Error(), "not found") {
@@ -234,7 +234,7 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 			err := client.DeleteFormation(metadata.ID)
 			if err != nil && strings.Contains(err.Error(), "not found") {
 				// Server hasn't registered yet, wait and retry
-				time.Sleep(2 * time.Second)
+				time.Sleep(5 * time.Second)
 				err = client.DeleteFormation(metadata.ID)
 			}
 			if err != nil && !strings.Contains(err.Error(), "not found") {
