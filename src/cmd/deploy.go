@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -324,6 +326,9 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 	}
 	fmt.Println()
 
+	// Play notification sound
+	playNotificationSound()
+
 	return nil
 }
 
@@ -365,7 +370,21 @@ func deployNonStreaming(client *server.Client, metadata FormationMetadata, bundl
 	fmt.Printf("  URL: %s/api/%s\n", client.BaseURL, metadata.ID)
 	fmt.Println()
 
+	// Play notification sound
+	playNotificationSound()
+
 	return nil
+}
+
+// playNotificationSound plays a sound to notify the user of completion
+func playNotificationSound() {
+	if runtime.GOOS == "darwin" {
+		// macOS: use system sound
+		exec.Command("afplay", "/System/Library/Sounds/Glass.aiff").Run()
+	} else {
+		// Other platforms: ASCII bell
+		fmt.Print("\a")
+	}
 }
 
 // formatServerStageMessage formats a progress event into a spinner message with [SERVER] prefix
