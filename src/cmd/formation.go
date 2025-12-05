@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -97,8 +99,11 @@ func init() {
 	formationDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 	formationDeleteCmd.Flags().Bool("atomic", false, "Skip confirmation prompt (alias for --force)")
 	formationStopCmd.Flags().String("profile", "", "Server profile to use")
+	formationStopCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 	formationRestartCmd.Flags().String("profile", "", "Server profile to use")
+	formationRestartCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 	formationRollbackCmd.Flags().String("profile", "", "Server profile to use")
+	formationRollbackCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 	formationLogsCmd.Flags().String("profile", "", "Server profile to use")
 	formationLogsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
 	formationLogsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
@@ -358,6 +363,7 @@ func formatTimestamp(ts string) string {
 // runFormationStop handles muxi formation stop <id>
 func runFormationStop(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
+	force, _ := cmd.Flags().GetBool("force")
 	formationID := args[0]
 
 	client, err := server.NewClient(profile)
@@ -387,6 +393,12 @@ func runFormationStop(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// Confirm unless --force
+	if !force && !confirmFormationAction("Stop", formationID) {
+		fmt.Println("  Cancelled.")
+		return nil
+	}
+
 	spinner := ui.NewSpinner("Stopping formation...")
 	spinner.Start()
 
@@ -408,8 +420,20 @@ func runFormationStop(cmd *cobra.Command, args []string) error {
 // runFormationRestart handles muxi formation restart <id>
 func runFormationRestart(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
+	force, _ := cmd.Flags().GetBool("force")
 	formationID := args[0]
 
+	// Confirm unless --force
+	if !force && !confirmFormationAction("Restart", formationID) {
+		fmt.Println("  Cancelled.")
+		return nil
+	}
+
+	return runFormationRestartWithID(formationID, profile)
+}
+
+// runFormationRestartWithID restarts a formation by ID (used by shortcut too)
+func runFormationRestartWithID(formationID, profile string) error {
 	client, err := server.NewClient(profile)
 	if err != nil {
 		return err
@@ -584,7 +608,14 @@ func playRestartNotificationSound(success bool) {
 // runFormationRollback handles muxi formation rollback <id>
 func runFormationRollback(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
+	force, _ := cmd.Flags().GetBool("force")
 	formationID := args[0]
+
+	// Confirm unless --force
+	if !force && !confirmFormationAction("Rollback", formationID) {
+		fmt.Println("  Cancelled.")
+		return nil
+	}
 
 	client, err := server.NewClient(profile)
 	if err != nil {
@@ -721,4 +752,93 @@ func streamFormationLogs(client *server.Client, formationID, stream string) erro
 	case err := <-errChan:
 		return err
 	}
+}
+
+// confirmFormationAction prompts for confirmation, returns true if confirmed
+func confirmFormationAction(action, formationID string) bool {
+	fmt.Printf("\n  %s formation '%s'? [y/N]: ", action, formationID)
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+	response = strings.TrimSpace(strings.ToLower(response))
+	return response == "y" || response == "yes"
+}
+
+// displayFormationDetails displays formation details (used by get command and shortcut)
+func displayFormationDetails(f *server.FormationDetail, verbose bool, profile string) error {
+	serverName := profile
+	if serverName == "" {
+		serverName = server.GetDefaultServer()
+	}
+
+	fmt.Println()
+	fmt.Printf("  Formation: %s\n", f.ID)
+	if f.Name != "" && f.Name != f.ID {
+		fmt.Printf("  Name:      %s\n", f.Name)
+	}
+	if f.Version != nil && f.Version.Semantic != "" {
+		fmt.Printf("  Version:   %s\n", f.Version.Semantic)
+	}
+	fmt.Println()
+
+	// Status
+	var statusDisplay string
+	switch f.Status {
+	case "running":
+		statusDisplay = ui.GreenText("● running")
+	case "starting":
+		statusDisplay = ui.CyanText("● starting")
+	case "stopped":
+		statusDisplay = ui.RedText("○ stopped")
+	default:
+		statusDisplay = ui.RedText("○ " + f.Status)
+	}
+	fmt.Printf("  Status:     %s\n", statusDisplay)
+
+	// Uptime
+	if f.Uptime > 0 {
+		fmt.Printf("  Uptime:     %s\n", formatDurationShort(f.Uptime))
+	}
+
+	// Health
+	var healthDisplay string
+	if f.Status != "running" {
+		healthDisplay = ui.DimmedText("—")
+	} else if f.Healthy {
+		healthDisplay = ui.GreenText("✓ healthy")
+	} else {
+		healthDisplay = ui.RedText("✗ unhealthy")
+	}
+	fmt.Printf("  Health:     %s\n", healthDisplay)
+
+	// Restarts
+	fmt.Printf("  Restarts:   %d\n", f.RestartCount)
+
+	fmt.Println()
+
+	// Timestamps
+	if f.DeployedAt != "" {
+		fmt.Printf("  Deployed:   %s\n", formatTimestamp(f.DeployedAt))
+	}
+	if f.UpdatedAt != "" {
+		fmt.Printf("  Updated:    %s\n", formatTimestamp(f.UpdatedAt))
+	}
+
+	// Verbose: internal details
+	if verbose {
+		fmt.Println()
+		ui.Dimmed("  Internal:")
+		if f.Port > 0 {
+			fmt.Printf("  Port:       %d\n", f.Port)
+		}
+		if f.PID > 0 {
+			fmt.Printf("  PID:        %d\n", f.PID)
+		}
+	}
+
+	fmt.Println()
+
+	return nil
 }

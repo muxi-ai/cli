@@ -4,12 +4,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 // FormationContext represents a detected formation directory
 type FormationContext struct {
 	RootDir string // Absolute path to formation root
-	ID      string // Formation ID (from formation.yaml or directory name)
+	ID      string // Formation ID (from formation.yaml)
+	Name    string // Formation name (from formation.yaml)
+	Version string // Formation version (from formation.yaml)
+}
+
+// formationYAML represents the fields we read from formation.yaml
+type formationYAML struct {
+	ID      string `yaml:"id"`
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
 }
 
 // DetectFormation walks up the directory tree to find a formation.yaml file
@@ -33,11 +44,27 @@ func DetectFormation() (*FormationContext, error) {
 		// Check if formation.yaml exists in current directory
 		formationFile := filepath.Join(searchDir, "formation.yaml")
 		if _, err := os.Stat(formationFile); err == nil {
-			// Found it!
+			// Found it! Read the formation.yaml to get ID
 			ctx := &FormationContext{
 				RootDir: searchDir,
-				ID:      filepath.Base(searchDir), // Use directory name as ID
 			}
+
+			// Read and parse formation.yaml
+			data, err := os.ReadFile(formationFile)
+			if err == nil {
+				var f formationYAML
+				if yaml.Unmarshal(data, &f) == nil {
+					ctx.ID = f.ID
+					ctx.Name = f.Name
+					ctx.Version = f.Version
+				}
+			}
+
+			// Fallback to directory name if no ID in YAML
+			if ctx.ID == "" {
+				ctx.ID = filepath.Base(searchDir)
+			}
+
 			return ctx, nil
 		}
 
