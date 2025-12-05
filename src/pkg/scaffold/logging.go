@@ -209,12 +209,12 @@ func configureHTTPStream(rootDir string) error {
 	ui.Dimmed("  Format (choose based on your logging service)")
 	formatOptions := []wizard.SelectOption{
 		{Value: "jsonl", Label: "jsonl (generic JSON lines)"},
-		{Value: "datadog", Label: "Datadog"},
-		{Value: "splunk", Label: "Splunk (HEC)"},
-		{Value: "elastic", Label: "Elastic"},
-		{Value: "loki", Label: "Grafana (Loki)"},
-		{Value: "newrelic", Label: "New Relic"},
-		{Value: "otlp", Label: "OpenTelemetry"},
+		{Value: "datadog_json", Label: "Datadog"},
+		{Value: "splunk_hec", Label: "Splunk (HEC)"},
+		{Value: "elastic_bulk", Label: "Elastic"},
+		{Value: "grafana_loki", Label: "Grafana (Loki)"},
+		{Value: "newrelic_json", Label: "New Relic"},
+		{Value: "opentelemetry", Label: "OpenTelemetry"},
 	}
 	format, err := wizard.PromptSelect("  Format", formatOptions, 0)
 	if err != nil {
@@ -259,7 +259,7 @@ func configureHTTPStream(rootDir string) error {
 	// Build stream config
 	stream := map[string]interface{}{
 		"transport":   "stream",
-		"protocol":    "http",
+		"protocol":    "webhook",
 		"destination": destination,
 		"format":      format,
 	}
@@ -558,10 +558,10 @@ func checkLoggingEnvVars(format string) {
 	var envVar, secretName string
 
 	switch format {
-	case "datadog":
+	case "datadog_json":
 		envVar = "DATADOG_API_KEY"
 		secretName = "LOGGING_BEARER_TOKEN"
-	case "splunk":
+	case "splunk_hec":
 		envVar = "SPLUNK_HEC_TOKEN"
 		secretName = "LOGGING_BEARER_TOKEN"
 	default:
@@ -606,10 +606,11 @@ func formatStreamLabel(stream map[string]interface{}) string {
 		format, _ := stream["format"].(string)
 		return fmt.Sprintf("file → %s (%s, %s)", dest, level, format)
 
-	case "http":
+	case "stream":
+		protocol, _ := stream["protocol"].(string)
 		dest, _ := stream["destination"].(string)
 		format, _ := stream["format"].(string)
-		return fmt.Sprintf("http → %s (%s)", dest, format)
+		return fmt.Sprintf("%s → %s (%s)", protocol, dest, format)
 
 	case "kafka":
 		topic, _ := stream["topic"].(string)
