@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/server"
@@ -192,6 +194,25 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 
 // deployStreaming deploys with SSE progress streaming
 func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePath string, isUpdate bool) error {
+	// Set up signal handling for cleanup on Ctrl+C (only for new deployments)
+	if !isUpdate {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		defer signal.Stop(sigChan)
+
+		go func() {
+			<-sigChan
+			fmt.Println() // New line after ^C
+			fmt.Printf("  %s Deploy cancelled, cleaning up...\n", ui.DimmedText("→"))
+			if err := client.DeleteFormation(metadata.ID); err != nil {
+				fmt.Printf("  %s Cleanup failed: %v\n", ui.RedText("✗"), err)
+			} else {
+				fmt.Printf("  %s Cleaned up partial deployment\n", ui.DimmedText("✓"))
+			}
+			os.Exit(130) // Standard exit code for Ctrl+C
+		}()
+	}
+
 	// Start with "Pushing to server" spinner
 	spinner := ui.NewSpinner("Pushing to server...")
 	spinner.Start()
