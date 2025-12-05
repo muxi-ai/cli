@@ -117,6 +117,12 @@ type LogsResponse struct {
 	} `json:"logs"`
 }
 
+// LogEvent from SSE stream when follow=true
+type LogEvent struct {
+	FormationID string `json:"formation_id"`
+	Line        string `json:"line"`
+}
+
 // SSE Event Types for Deploy/Update streaming
 
 // DeployProgressEvent is a progress update during deployment

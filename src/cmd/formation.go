@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/muxi-ai/cli/pkg/server"
@@ -100,6 +102,7 @@ func init() {
 	formationLogsCmd.Flags().String("profile", "", "Server profile to use")
 	formationLogsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
 	formationLogsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
+	formationLogsCmd.Flags().BoolP("follow", "f", false, "Stream new logs (like tail -f)")
 }
 
 // runFormationList handles muxi formation list
@@ -629,6 +632,7 @@ func runFormationLogs(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	lines, _ := cmd.Flags().GetInt("lines")
 	stream, _ := cmd.Flags().GetString("stream")
+	follow, _ := cmd.Flags().GetBool("follow")
 	formationID := args[0]
 
 	// Default stream to "all" if not specified
@@ -655,6 +659,12 @@ func runFormationLogs(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Follow mode - stream logs via SSE
+	if follow {
+		return streamFormationLogs(client, formationID, stream)
+	}
+
+	// Non-follow mode - get recent logs
 	resp, err := client.GetFormationLogs(formationID, lines, stream)
 	if err != nil {
 		return err
@@ -682,4 +692,33 @@ func runFormationLogs(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// streamFormationLogs streams logs via SSE (follow mode)
+func streamFormationLogs(client *server.Client, formationID, stream string) error {
+	fmt.Printf("Streaming logs for %s (Ctrl+C to stop)...\n\n", formationID)
+
+	// Handle Ctrl+C gracefully
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	errChan := make(chan error, 1)
+
+	go func() {
+		err := client.StreamFormationLogs(formationID, stream, func(event server.LogEvent) error {
+			if event.Line != "" {
+				fmt.Println(event.Line)
+			}
+			return nil
+		})
+		errChan <- err
+	}()
+
+	select {
+	case <-sigChan:
+		fmt.Println("\n\nStopped streaming.")
+		return nil
+	case err := <-errChan:
+		return err
+	}
 }

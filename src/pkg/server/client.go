@@ -346,6 +346,71 @@ func (c *Client) GetFormationLogs(id string, lines int, stream string) (*LogsRes
 	return &logs, nil
 }
 
+// StreamFormationLogs streams logs via SSE (follow mode)
+func (c *Client) StreamFormationLogs(id, stream string, callback func(LogEvent) error) error {
+	path := fmt.Sprintf("/rpc/formations/%s/logs?stream=%s&follow=true", id, stream)
+
+	// Create request with SSE accept header
+	req, err := http.NewRequest("GET", c.BaseURL+path, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Accept", "text/event-stream")
+
+	// Add auth (use path without query params for signature)
+	authPath := fmt.Sprintf("/rpc/formations/%s/logs", id)
+	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "GET", authPath)
+	req.Header.Set("Authorization", authHeader)
+
+	// No timeout for streaming
+	client := &http.Client{Timeout: 0}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return checkResponse(resp)
+	}
+
+	// Parse SSE stream
+	reader := bufio.NewReader(resp.Body)
+	var eventType string
+
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+
+		line = strings.TrimSpace(line)
+
+		if strings.HasPrefix(line, "event:") {
+			eventType = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+		} else if strings.HasPrefix(line, "data:") {
+			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+
+			if eventType == "log" {
+				var logEvent LogEvent
+				if err := json.Unmarshal([]byte(data), &logEvent); err != nil {
+					continue // Skip malformed events
+				}
+				if err := callback(logEvent); err != nil {
+					return err
+				}
+			}
+			// Reset for next event
+			eventType = ""
+		}
+	}
+}
+
 // DeployFormation deploys a new formation (non-streaming)
 func (c *Client) DeployFormation(id, bundlePath, version string) error {
 	_, err := c.deployFormationInternal(id, bundlePath, version, false, nil)
