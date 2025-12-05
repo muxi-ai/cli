@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/server"
@@ -215,7 +216,13 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 
 		if isUpdate {
 			// For updates, cancel the running update (original keeps running)
-			if err := client.CancelUpdate(metadata.ID); err != nil {
+			err := client.CancelUpdate(metadata.ID)
+			if err != nil && strings.Contains(err.Error(), "not found") {
+				// Server hasn't registered yet, wait and retry
+				time.Sleep(2 * time.Second)
+				err = client.CancelUpdate(metadata.ID)
+			}
+			if err != nil && !strings.Contains(err.Error(), "not found") {
 				cleanupSpinner.StopWithError(fmt.Sprintf("Cleanup failed: %v", err))
 			} else {
 				cleanupSpinner.StopWithSuccess("Original version still running")
@@ -224,7 +231,13 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 			ui.Error("Update aborted")
 		} else {
 			// For new deployments, delete the partial formation
-			if err := client.DeleteFormation(metadata.ID); err != nil {
+			err := client.DeleteFormation(metadata.ID)
+			if err != nil && strings.Contains(err.Error(), "not found") {
+				// Server hasn't registered yet, wait and retry
+				time.Sleep(2 * time.Second)
+				err = client.DeleteFormation(metadata.ID)
+			}
+			if err != nil && !strings.Contains(err.Error(), "not found") {
 				cleanupSpinner.StopWithError(fmt.Sprintf("Cleanup failed: %v", err))
 			} else {
 				cleanupSpinner.StopWithSuccess("Cleaned up partial deployment")
