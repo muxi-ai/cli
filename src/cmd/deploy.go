@@ -204,12 +204,12 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 		fmt.Println() // New line after ^C
 
 		if isUpdate {
-			// For updates, cancel the running update
-			fmt.Printf("  %s Update cancelled, rolling back...\n", ui.DimmedText("→"))
+			// For updates, cancel the running update (original keeps running)
+			fmt.Printf("  %s Update cancelled, cleaning up staging...\n", ui.DimmedText("→"))
 			if err := client.CancelUpdate(metadata.ID); err != nil {
-				fmt.Printf("  %s Rollback failed: %v\n", ui.RedText("✗"), err)
+				fmt.Printf("  %s Cleanup failed: %v\n", ui.RedText("✗"), err)
 			} else {
-				fmt.Printf("  %s Rolled back to previous version\n", ui.DimmedText("✓"))
+				fmt.Printf("  %s Cancelled. Original version still running.\n", ui.DimmedText("✓"))
 			}
 		} else {
 			// For new deployments, delete the partial formation
