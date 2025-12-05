@@ -56,6 +56,20 @@ func Formation(rootDir string) (*Result, error) {
 		return result, nil
 	}
 
+	// Step 1: Parse into yaml.Node for structural validation
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
+		result.Errors = append(result.Errors, Issue{
+			File:    "formation.yaml",
+			Message: fmt.Sprintf("invalid YAML syntax: %v", err),
+		})
+		return result, nil
+	}
+
+	// Step 2: Check for structural issues (empty mappings that should have children)
+	validateYAMLStructure(&root, "formation.yaml", "", result)
+
+	// Step 3: Parse into map for semantic validation
 	var formation map[string]interface{}
 	if err := yaml.Unmarshal(data, &formation); err != nil {
 		result.Errors = append(result.Errors, Issue{
@@ -375,4 +389,86 @@ func validateMCPs(rootDir string, result *Result) {
 func isValidID(id string) bool {
 	pattern := regexp.MustCompile(`^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$`)
 	return pattern.MatchString(id)
+}
+
+// validateYAMLStructure walks the YAML node tree and checks for structural issues
+func validateYAMLStructure(node *yaml.Node, file, path string, result *Result) {
+	if node == nil {
+		return
+	}
+
+	switch node.Kind {
+	case yaml.DocumentNode:
+		for _, child := range node.Content {
+			validateYAMLStructure(child, file, path, result)
+		}
+
+	case yaml.MappingNode:
+		// MappingNode.Content is pairs: [key, value, key, value, ...]
+		for i := 0; i < len(node.Content); i += 2 {
+			keyNode := node.Content[i]
+			valueNode := node.Content[i+1]
+
+			keyName := keyNode.Value
+			childPath := keyName
+			if path != "" {
+				childPath = path + "." + keyName
+			}
+
+			// Check for empty mapping value that should have children
+			// This catches: "settings:" followed by sibling keys instead of children
+			if valueNode.Tag == "!!null" && valueNode.Value == "" {
+				// Check if this is a key that typically expects a mapping value
+				if isExpectedMapping(keyName) {
+					result.Errors = append(result.Errors, Issue{
+						File:    file,
+						Field:   childPath,
+						Message: fmt.Sprintf("'%s:' at line %d has no value - expected indented content below it", keyName, keyNode.Line),
+					})
+				}
+			}
+
+			// Recurse into value
+			validateYAMLStructure(valueNode, file, childPath, result)
+		}
+
+	case yaml.SequenceNode:
+		for i, child := range node.Content {
+			childPath := fmt.Sprintf("%s[%d]", path, i)
+			validateYAMLStructure(child, file, childPath, result)
+		}
+	}
+}
+
+// isExpectedMapping returns true if a key typically expects a mapping/dict value
+func isExpectedMapping(key string) bool {
+	expectedMappings := map[string]bool{
+		"settings":      true,
+		"auth":          true,
+		"api_keys":      true,
+		"server":        true,
+		"llm":           true,
+		"memory":        true,
+		"logging":       true,
+		"overlord":      true,
+		"a2a":           true,
+		"mcp":           true,
+		"working":       true,
+		"buffer":        true,
+		"persistent":    true,
+		"remote":        true,
+		"caching":       true,
+		"image":         true,
+		"preprocessing": true,
+		"extraction":    true,
+		"workflow":      true,
+		"clarification": true,
+		"response":      true,
+		"timeouts":      true,
+		"retry":         true,
+		"encryption":    true,
+		"inbound":       true,
+		"outbound":      true,
+	}
+	return expectedMappings[key]
 }
