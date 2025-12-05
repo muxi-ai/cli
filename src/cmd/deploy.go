@@ -287,7 +287,7 @@ func deployStreaming(client *server.Client, metadata FormationMetadata, bundlePa
 
 			// Add padding below health_check spinner so it's not at screen bottom
 			if progress.Stage == "health_check" {
-				fmt.Println()
+				fmt.Print("\n\n")
 			}
 		}
 		return nil
