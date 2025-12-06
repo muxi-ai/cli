@@ -1,8 +1,8 @@
 # MUXI CLI Development Guide
 
 **Project:** MUXI CLI  
-**Status:** Active Development - Scaffolding & Secrets Complete  
-**Last Updated:** 2025-11-30
+**Status:** ✅ Complete - All Commands Implemented  
+**Last Updated:** 2025-12-06
 
 ---
 
@@ -21,27 +21,22 @@ This repository is part of the larger MUXI ecosystem.
 ### Current Status
 - ✅ **Scaffolding:** All `muxi new` and `muxi config` commands complete
 - ✅ **Secrets:** Full encryption/sync system working
+- ✅ **Registry:** Full registry integration (login, push, pull, search, show)
+- ✅ **Server:** Complete server/formation lifecycle commands
+- ✅ **SSE Streaming:** Real-time progress for deploy, update, start, restart, rollback
 - ✅ **Docs:** User guides for all features
-- 🔜 **Config commands:** LLM, memory, overlord, logging (planned)
-- 🔜 **Registry commands:** login, push, pull, search, show (planned)
-- ⏸️ **Server commands:** Blocked on runtime API
 
 ### What's Working
 1. ✅ All scaffolding wizards (formation, agent, mcp, sop, trigger, a2a-service)
-2. ✅ A2A configuration (`muxi config a2a`)
-3. ✅ Edit command (`muxi edit <type>`)
-4. ✅ Secrets management (list, set, delete, setup, sync)
-5. ✅ Fernet encryption (Python-compatible)
-6. ✅ TUI/UX system (colors, banners, validation loops)
-
-### What's Planned (Not Blocked)
-1. ⏳ Config commands (llm, memory, overlord, logging)
-2. ⏳ Registry commands (login, push, pull, search, show)
-
-### What's Blocked
-1. ⏸️ Formation management (deploy, list, logs, stop, restart, delete)
-2. ⏸️ Server profile management
-3. ⏸️ HMAC request signing
+2. ✅ All config commands (a2a, llm, memory, overlord, security, logging, async)
+3. ✅ Secrets management (list, set, delete, setup, sync)
+4. ✅ Registry commands (login, logout, push, pull, search, show, mine)
+5. ✅ Server management (add, list, default, remove, status, ping)
+6. ✅ Formation lifecycle (deploy, list, get, stop, start, restart, rollback, delete, logs)
+7. ✅ SSE streaming with progress stages
+8. ✅ Ctrl+C cancellation with cleanup
+9. ✅ Notification sounds on completion
+10. ✅ Version validation before update
 
 ---
 
@@ -340,82 +335,136 @@ GET /ping                → {"message": "pong"}
 
 ---
 
-## CLI Command Structure (Planned)
+## CLI Command Reference (Implemented)
 
-### Profile Management
+### Deploy Command
 ```bash
-# Add server
-muxi server add <profile-name> --url <url>
-muxi server add production --url https://muxi.company.com:7890
+# Deploy from formation directory (auto-detects create vs update)
+muxi deploy [--profile <name>] [--dry-run] [--no-stream]
 
-# Set default
-muxi server use <profile-name>
-muxi server use production
-
-# List servers
-muxi server list
-
-# Remove server
-muxi server remove <profile-name>
-
-# Show current
-muxi server current
-```
-
-### Formation Management
-```bash
-# Deploy formation
-muxi formation deploy <bundle.tar.gz>
-muxi formation deploy my-formation.tar.gz
-
-# List formations
-muxi formation list
-muxi formation list --profile production
-
-# Get details
-muxi formation get <id>
-muxi formation get my-formation
-
-# Update formation
-muxi formation update <id> <bundle.tar.gz>
-muxi formation update my-formation my-formation-v2.tar.gz
-
-# Stop/Start/Restart
-muxi formation stop <id>
-muxi formation start <id>  # If stopped
-muxi formation restart <id>
-
-# Rollback
-muxi formation rollback <id>
-
-# Delete
-muxi formation delete <id>
-
-# Logs
-muxi formation logs <id>
-muxi formation logs <id> --follow
-muxi formation logs <id> --lines 1000
+# Flags:
+#   --profile string   Server profile to use
+#   --dry-run         Validate and create bundle without deploying
+#   --no-stream       Disable SSE streaming progress
 ```
 
 ### Server Management
 ```bash
-# Server status
-muxi server status
-muxi server status --profile production
+# Add server profile
+muxi server add <name> --url <url> --key-id <id> --secret-key <key>
 
-# Server logs
-muxi server logs
-muxi server logs --lines 100
+# List all servers (shows online/offline status)
+muxi server list
+
+# Set default server
+muxi server default <name>
+
+# Remove server profile
+muxi server remove <name>
+
+# Show server status
+muxi server status [--profile <name>]
+
+# Continuous ping with latency stats
+muxi server ping [--profile <name>]
+```
+
+### Formation Lifecycle Commands
+```bash
+# List all formations
+muxi formation list [--profile <name>]
+
+# Get formation details
+muxi formation get <id> [-v|--verbose] [--profile <name>]
+
+# Stop a running formation
+muxi formation stop <id> [-f|--force] [--profile <name>]
+
+# Start a stopped formation (SSE streaming)
+muxi formation start <id> [--profile <name>]
+
+# Restart a formation (SSE streaming)
+muxi formation restart <id> [-f|--force] [--profile <name>]
+
+# Rollback to previous version (SSE streaming)
+muxi formation rollback <id> [-f|--force] [--profile <name>]
+
+# Delete a formation
+muxi formation delete <id> [-f|--force] [--profile <name>]
+
+# View formation logs
+muxi formation logs <id> [-n|--lines <num>] [-f|--follow] [--stream stdout|stderr] [--profile <name>]
+```
+
+### Shortcut Commands (from formation directory)
+```bash
+muxi get [-v]              # Get current formation details
+muxi stop [-f]             # Stop current formation
+muxi start                 # Start current formation
+muxi restart [-f]          # Restart current formation
+muxi rollback [-f]         # Rollback current formation
+muxi delete [-f]           # Delete current formation
+muxi logs [-n 100] [-f]    # View logs (-f to follow)
+```
+
+### Scaffolding Commands
+```bash
+muxi new formation         # Create new formation with wizard
+muxi new agent             # Add agent to formation
+muxi new mcp               # Add MCP server
+muxi new sop               # Add Standard Operating Procedure
+muxi new trigger           # Add webhook trigger
+muxi new a2a-service       # Add A2A service
+```
+
+### Configuration Commands
+```bash
+muxi config a2a            # Configure A2A communication
+muxi config llm            # Configure LLM provider
+muxi config memory         # Configure memory settings
+muxi config overlord       # Configure overlord persona
+muxi config security       # Configure security/credentials
+muxi config logging        # Configure logging streams
+muxi config async          # Configure async responses
+muxi validate              # Validate formation
+muxi edit <type>           # Open file in $EDITOR
+```
+
+### Secrets Commands
+```bash
+muxi secrets list [--with-values]   # List all secrets
+muxi secrets set <name> [value]     # Set/update secret
+muxi secrets delete <name>          # Delete secret
+muxi secrets setup                  # Populate from template
+muxi secrets sync [-i] [--dry-run]  # Sync with formation
+```
+
+### Registry Commands
+```bash
+muxi login [--registry <url>]       # Authenticate with registry
+muxi logout [--registry <url>]      # Remove credentials
+muxi push                           # Publish formation
+muxi pull @user/formation           # Download formation
+muxi search "query"                 # Search formations
+muxi show @user/formation           # Show formation details
+muxi registry mine                  # List your formations
+muxi registry list                  # List configured registries
+muxi registry add <name> <url>      # Add registry
+muxi registry remove <name>         # Remove registry
+muxi registry default <name>        # Set default registry
+```
+
+### Formation-Level Settings
+```bash
+muxi set server            # Set default server for formation
+muxi set registry          # Set default registry for formation
 ```
 
 ### Utility Commands
 ```bash
-# Version
-muxi version
-
-# Help
-muxi help
-muxi formation help
+muxi version               # Show CLI version
+muxi help                  # Show help
+muxi <command> --help      # Show command help
 ```
 
 ---

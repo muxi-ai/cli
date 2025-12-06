@@ -1,17 +1,54 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-12-03
-**Version:** 0.3.0-dev
-**Status:** 🚀 Active Development - Server Commands In Progress
+**Last Updated:** 2025-12-06
+**Version:** 0.4.0-dev
+**Status:** ✅ Server Commands Complete - All Formation Lifecycle Commands Working
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI has **complete scaffolding system** with interactive wizards, **full secrets management**, **all config commands** (LLM, memory, overlord, security, logging), **full registry integration** (login, push, pull, search, show, mine), and **server commands** (profiles, status, ping, deploy, formation list/get).
+MUXI CLI is **fully functional** with complete scaffolding system, secrets management, all config commands, full registry integration, and **complete server/formation lifecycle commands** with SSE streaming progress.
 
 ### What Exists ✅
+
+**Formation Lifecycle Commands (All Complete!):**
+- ✅ `muxi deploy` - Deploy formation with SSE streaming progress
+- ✅ `muxi formation list` - List all deployed formations
+- ✅ `muxi formation get <id>` - Get formation details (-v for verbose)
+- ✅ `muxi formation stop <id>` - Stop a running formation
+- ✅ `muxi formation start <id>` - Start a stopped formation (SSE streaming)
+- ✅ `muxi formation restart <id>` - Restart formation (SSE streaming)
+- ✅ `muxi formation rollback <id>` - Rollback to previous version (SSE streaming)
+- ✅ `muxi formation delete <id>` - Delete formation from server
+- ✅ `muxi formation logs <id>` - View formation logs
+
+**Shortcut Commands (from formation directory):**
+- ✅ `muxi get` - Get current formation details
+- ✅ `muxi stop` - Stop current formation
+- ✅ `muxi start` - Start current formation
+- ✅ `muxi restart` - Restart current formation
+- ✅ `muxi rollback` - Rollback current formation
+- ✅ `muxi delete` - Delete current formation
+- ✅ `muxi logs` - View current formation logs
+
+**SSE Streaming Features:**
+- ✅ Real-time progress updates from server
+- ✅ Stage-by-stage progress (extracting, validating, spawning, health_check, etc.)
+- ✅ Download progress percentage for runtime images
+- ✅ Health check countdown display
+- ✅ Ctrl+C cancellation with cleanup
+- ✅ Notification sounds on completion (success/failure)
+- ✅ Version validation before update (must be higher than server)
+
+**Server Management:**
+- ✅ `muxi server add` - Add server with HMAC credentials
+- ✅ `muxi server list` - List servers (shows online/offline)
+- ✅ `muxi server default` - Set default server
+- ✅ `muxi server remove` - Remove server
+- ✅ `muxi server status` - Show server status
+- ✅ `muxi server ping` - Continuous ping with latency stats
 
 **Scaffolding Commands:**
 - ✅ `muxi new formation` - Full wizard with 21 LLM providers
@@ -20,6 +57,8 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi new sop` - Wizard with title, description, mode
 - ✅ `muxi new trigger` - Wizard with webhook template
 - ✅ `muxi new a2a-service` - Full wizard with auth options
+
+**Configuration Commands:**
 - ✅ `muxi config a2a` - Inbound/outbound wizard
 - ✅ `muxi config llm` - Full LLM configuration wizard
 - ✅ `muxi config memory` - Full memory configuration wizard
@@ -37,527 +76,221 @@ MUXI CLI has **complete scaffolding system** with interactive wizards, **full se
 - ✅ `muxi secrets setup` - Populate secrets.enc from template
 - ✅ `muxi secrets sync [-i] [--dry-run]` - Sync with formation files
 - ✅ Fernet encryption (Python runtime compatible)
-- ✅ Auto-normalization (`my-key` → `MY_KEY`)
-- ✅ Integration in all wizards
-
-**TUI/UX System:**
-- ✅ Colors, symbols, prompts, banners
-- ✅ Golden MUXI branding
-- ✅ Input history (↑/↓ arrows)
-- ✅ Smart validation loops
-
-**Documentation:**
-- ✅ User guides: formations, agents, mcps, sops, triggers, a2a, secrets
-- ✅ Design docs: DESIGN.md, UX-PATTERNS.md, BANNERS.md
-- ✅ Plan docs: config commands, registry commands
-
-### What's Planned
-
-**Configuration Commands (All Complete!):**
-- ✅ `muxi config llm` - Configure LLM provider
-- ✅ `muxi config memory` - Configure memory settings
-- ✅ `muxi config overlord` - Configure overlord persona/behavior
-- ✅ `muxi config security` - Configure user credentials handling
-- ✅ `muxi config logging` - Configure logging streams
 
 **Registry Commands:**
-- ✅ `muxi login` - Authenticate with registry (browser OAuth + paste fallback)
+- ✅ `muxi login` - Authenticate with registry
 - ✅ `muxi logout` - Remove registry credentials
-- ✅ `muxi push` - Publish formation to registry (with spinner animation)
+- ✅ `muxi push` - Publish formation to registry
 - ✅ `muxi pull @user/formation` - Download formation
-- ✅ `muxi search "query"` - Search formations (with pagination)
+- ✅ `muxi search "query"` - Search formations
 - ✅ `muxi show @user/formation` - Display formation info
 - ✅ `muxi registry mine` - List your published formations
-- ✅ `muxi registry list` - List configured registries
-- ✅ `muxi registry add` - Add a registry
-- ✅ `muxi registry remove` - Remove a registry
-- ✅ `muxi registry default` - Set default registry
 
-**Server Commands:**
-- ✅ `muxi server add` - Add server with HMAC credentials
-- ✅ `muxi server list` - List servers (shows online/offline)
-- ✅ `muxi server default` - Set default server
-- ✅ `muxi server remove` - Remove server
-- ✅ `muxi server status` - Show server status (version, uptime, formations)
-- ✅ `muxi server ping` - Continuous ping with latency stats
-
-**Server Commands (needs testing):**
-- ✅ `muxi deploy` - Deploy formation (auto-detects create vs update)
-- ✅ `muxi formation list` - List deployed formations
-- ✅ `muxi formation get <id>` - Get formation details (with -v for internal details)
-- ✅ `muxi set server` - Set default server for formation (saves to .muxi)
-- ✅ `muxi set registry` - Set default registry for formation (saves to .muxi)
-
-**Remaining Server Commands (Phase 4):**
-- ⏳ `muxi formation stop <id>` - Stop formation
-- ⏳ `muxi formation restart <id>` - Restart formation
-- ⏳ `muxi formation rollback <id>` - Rollback to previous version
-- ⏳ `muxi formation delete <id>` - Delete formation
-- ⏳ `muxi logs <id>` - Get formation logs
-
-**Other:**
-- ⏳ `muxi validate` - Formation validation
+**Formation-Level Settings:**
+- ✅ `muxi set server` - Set default server for formation
+- ✅ `muxi set registry` - Set default registry for formation
 
 ---
 
-## 🚧 Current Work
+## 📋 Command Reference
 
-### Latest Changes (2025-12-03)
+### Deploy Command
 
-1. ✅ **Server Commands (Phase 1-3):**
-   - `muxi server add/list/default/remove` - Server profile management
-   - `muxi server status` - Server health and stats
-   - `muxi server ping` - Continuous ping with latency (like network ping)
-   - `muxi deploy` - Deploy formation (handles both create and update)
-   - `muxi formation list` - List deployed formations
-   - `muxi formation get <id>` - Formation details (-v for internal details)
-   - HMAC authentication implemented
-   - Server profiles stored in `~/.muxi/cli/servers.yaml`
+```bash
+muxi deploy [flags]
 
-2. ✅ **Formation-Level Defaults:**
-   - `muxi set server` - Set default server for formation
-   - `muxi set registry` - Set default registry for formation
-   - Saves to `.muxi` file in formation directory
-   - Shows configure banners for consistency
-
-3. ✅ **Deploy Features:**
-   - Auto-detects create vs update (checks if formation exists)
-   - Requires version in formation.yaml for updates
-   - Creates tar.gz bundle with proper headers
-   - Shows contextual spinner messages
-   - Supports `--dry-run` flag
-
-### Previous Changes (2025-12-02)
-
-1. ✅ **Registry Commands Complete:**
-   - `muxi login` - Browser OAuth + paste fallback
-   - `muxi logout` - Remove credentials (supports --registry flag)
-   - `muxi push` - Publish formation with spinner animation
-   - `muxi pull` - Download formation from registry
-   - `muxi search` - Search with pagination (10/page, n/p/q navigation)
-   - `muxi show` - Display formation details
-   - `muxi registry mine` - List user's published formations
-   - `muxi registry list/add/remove/default` - Registry management
-
-2. ✅ **Bundle Improvements:**
-   - Includes `secrets` template file (not secrets.enc)
-   - Shows count of excluded dot files
-
-### Previous Changes (2025-12-01)
-
-- ✅ `muxi config async` - Async response settings
-- ✅ `muxi validate` - Formation validation
-- ✅ `muxi config logging` - Logging streams (stdout, file, http, kafka)
-- ✅ All config commands complete (llm, memory, overlord, security, logging, async)
-
-### Previous Changes (2025-11-30)
-- ✅ Registry commands plan
-- ✅ Registry auth verified (browser callback + paste fallback)
-
-### Previous Changes (2025-11-28)
-- ✅ Secrets encryption system (Fernet-compatible)
-- ✅ Secrets integration in all wizards
-- ✅ Formation wizard with 21 LLM providers
-- ✅ Golden MUXI branding
-
-### Current Focus
-**Server commands (Phase 1-3) complete!** ✅
-
-**Next up:**
-- Phase 4: Lifecycle commands (stop, restart, rollback, delete, logs)
-- Testing deploy flow end-to-end
-
----
-
-## 🎯 Next Steps
-
-### Phase 4: Lifecycle Commands
-- [ ] `muxi formation stop <id>`
-- [ ] `muxi formation restart <id>`
-- [ ] `muxi formation rollback <id>`
-- [ ] `muxi formation delete <id>`
-- [ ] `muxi logs <id>`
-
-**Estimated time:** 2-3 hours
-
----
-
-### Phase 1: Core CLI Implementation
-**Timeline:** 1-2 weeks (after unblock)
-**Priority:** HIGH
-
-**Tasks:**
-- [ ] Set up Go project structure
-- [ ] Implement profile management
-  - [ ] `muxi server add <name> --url <url>`
-  - [ ] `muxi server list`
-  - [ ] `muxi server set <name>`
-  - [ ] `muxi server remove <name>`
-- [ ] Implement HMAC authentication
-  - [ ] Read credentials from `~/.muxi-server/credentials.yaml`
-  - [ ] Sign requests (AWS-style HMAC)
-  - [ ] Handle authentication errors
-- [ ] Basic formation commands (no deploy yet)
-  - [ ] `muxi formation list`
-  - [ ] `muxi formation get <id>`
-  - [ ] `muxi formation delete <id>`
-
-**Deliverables:**
-- Working CLI binary
-- Profile management functional
-- HMAC auth working
-- Basic server communication
-
-**Files to create:**
+Flags:
+  --profile string   Server profile to use
+  --dry-run         Validate and create bundle without deploying
+  --no-stream       Disable streaming progress (simpler output)
 ```
-cmd/
-├── root.go              # Root command
-├── server.go            # Server profile commands
-└── formation.go         # Formation commands
 
-pkg/
-├── client/
-│   ├── client.go        # HTTP client with HMAC
-│   ├── auth.go          # HMAC signing
-│   └── profiles.go      # Profile management
-├── config/
-│   └── config.go        # Config loading/saving
-└── api/
-    └── formations.go    # Formation API client
+**Features:**
+- Auto-detects new deploy vs update
+- SSE streaming with stage progress
+- Version validation (update requires higher version)
+- Ctrl+C cancellation with server cleanup
+- Notification sound on completion
+
+### Formation Commands
+
+```bash
+# List all formations
+muxi formation list [--profile string]
+
+# Get formation details
+muxi formation get <id> [flags]
+  -v, --verbose      Show internal details (port, pid)
+  --profile string   Server profile to use
+
+# Stop a formation
+muxi formation stop <id> [flags]
+  -f, --force        Skip confirmation prompt
+  --profile string   Server profile to use
+
+# Start a stopped formation
+muxi formation start <id> [--profile string]
+
+# Restart a formation
+muxi formation restart <id> [flags]
+  -f, --force        Skip confirmation prompt
+  --profile string   Server profile to use
+
+# Rollback to previous version
+muxi formation rollback <id> [flags]
+  -f, --force        Skip confirmation prompt
+  --profile string   Server profile to use
+
+# Delete a formation
+muxi formation delete <id> [flags]
+  -f, --force        Skip confirmation prompt
+  --profile string   Server profile to use
+
+# View logs
+muxi formation logs <id> [flags]
+  -n, --lines int    Number of lines to show (default 100)
+  -f, --follow       Stream new logs (like tail -f)
+  --stream string    Filter by stream (stdout, stderr)
+  --profile string   Server profile to use
+```
+
+### Shortcut Commands
+
+Run from inside a formation directory:
+
+```bash
+muxi get [-v]              # Get current formation details
+muxi stop [-f]             # Stop current formation
+muxi start                 # Start current formation
+muxi restart [-f]          # Restart current formation
+muxi rollback [-f]         # Rollback current formation
+muxi delete [-f]           # Delete current formation
+muxi logs [-n 100] [-f]    # View logs (-f to follow)
+```
+
+### Server Commands
+
+```bash
+muxi server add <name> --url <url> --key-id <id> --secret-key <key>
+muxi server list
+muxi server default <name>
+muxi server remove <name>
+muxi server status [--profile string]
+muxi server ping [--profile string]
 ```
 
 ---
 
-### Phase 2: Formation Deployment
-**Timeline:** 1 week (after Phase 1)
-**Priority:** HIGH
+## 🔄 SSE Streaming Progress Stages
 
-**Tasks:**
-- [ ] Implement formation bundling
-  - [ ] Read formation directory
-  - [ ] Create tar.gz archive
-  - [ ] Include formation.yaml
-  - [ ] Calculate SHA256 hash
-- [ ] Implement deploy command
-  - [ ] `muxi formation deploy <path>`
-  - [ ] Upload bundle to server
-  - [ ] Poll for deployment status
-  - [ ] Show progress/errors
-- [ ] Implement update command
-  - [ ] `muxi formation update <id> <path>`
-  - [ ] Zero-downtime update
-  - [ ] Rollback on failure
+### Deploy (POST)
+1. `extracting` - Extracting bundle
+2. `validating` - Validating formation.yaml
+3. `resolving_runtime` - Resolving runtime version
+4. `downloading_sif` - Downloading SIF file (with %)
+5. `pulling_runner` - Pulling runtime-runner Docker image
+6. `spawning` - Starting formation process
+7. `health_check` - Waiting for health check (countdown)
 
-**Deliverables:**
-- Formation bundling working
-- Deploy command functional
-- Update command functional
+### Update (PUT)
+1. `extracting` - Extracting bundle to staging
+2. `validating` - Validating formation.yaml
+3. `resolving_runtime` - Resolving runtime version
+4. `downloading_sif` - Downloading SIF file
+5. `pulling_runner` - Pulling runtime-runner
+6. `spawning_staging` - Starting staging version
+7. `health_check` - Waiting for staging health check
+8. `swapping` - Atomic switch (staging → current)
+9. `stopping_old` - Stopping old version
 
----
+### Start
+1. `validating` - Loading formation configuration
+2. `resolving_runtime` - Resolving runtime version
+3. `downloading_sif` - Downloading SIF file
+4. `pulling_runner` - Pulling runtime-runner
+5. `spawning` - Starting process
+6. `health_check` - Waiting for health check
 
-### Phase 3: Management Commands
-**Timeline:** 1 week (after Phase 2)
-**Priority:** MEDIUM
+### Restart
+1. `stopping` - Stopping current process
+2. `resolving_runtime` - Resolving runtime version
+3. `downloading_sif` - Downloading SIF file
+4. `pulling_runner` - Pulling runtime-runner
+5. `spawning` - Starting new process
+6. `health_check` - Waiting for health check
 
-**Tasks:**
-- [ ] Implement management commands
-  - [ ] `muxi formation stop <id>`
-  - [ ] `muxi formation restart <id>`
-  - [ ] `muxi formation rollback <id>`
-- [ ] Implement log streaming
-  - [ ] `muxi formation logs <id>`
-  - [ ] `muxi formation logs <id> --follow`
-  - [ ] Handle disconnections
-- [ ] Implement status command
-  - [ ] `muxi server status`
-  - [ ] Show formations count
-  - [ ] Show server health
-
-**Deliverables:**
-- All management commands working
-- Log streaming functional
-- Status dashboard
+### Rollback
+1. `validating` - Validating rollback request
+2. `stopping` - Stopping current formation
+3. `swapping` - Swapping to previous version
+4. `resolving_runtime` - Resolving runtime version
+5. `downloading_sif` - Downloading SIF file
+6. `pulling_runner` - Pulling runtime-runner
+7. `spawning` - Starting formation
+8. `health_check` - Waiting for health check
 
 ---
 
-### Phase 4: Developer Tools
-**Timeline:** 1-2 weeks (after Phase 3)
-**Priority:** LOW
+## ✅ Testing Status
 
-**Tasks:**
-- [ ] Implement scaffolding
-  - [ ] `muxi formation new <name>`
-  - [ ] Interactive prompts
-  - [ ] Template generation
-  - [ ] README generation
-- [ ] Implement validation
-  - [ ] `muxi formation validate <path>`
-  - [ ] Check against schemas
-  - [ ] Validate dependencies
-- [ ] Implement testing
-  - [ ] `muxi formation test <path>`
-  - [ ] Local testing before deploy
-
-**Deliverables:**
-- Formation scaffolding working
-- YAML validation working
-- Local testing support
+| Command | Status |
+|---------|--------|
+| Deploy (POST) | ✅ Tested |
+| Update (PUT) | ✅ Tested |
+| Ctrl+C on deploy | ✅ Tested |
+| Ctrl+C on update | ✅ Tested |
+| `formation list` | ✅ Tested |
+| `formation get` | ✅ Tested |
+| `formation delete` | ✅ Tested |
+| `formation stop` | ✅ Tested |
+| `formation start` | ✅ Tested |
+| `formation restart` | ✅ Tested |
+| `formation rollback` | ✅ Tested |
+| `formation logs` | ✅ Tested |
 
 ---
 
-### Phase 5: Registry Integration (Future)
-**Timeline:** 2-3 weeks
-**Priority:** LOW (after registry redesign)
+## 📝 Recent Changes
 
-**Tasks:**
-- [ ] Implement registry commands
-  - [ ] `muxi registry search <query>`
-  - [ ] `muxi registry pull <formation>`
-  - [ ] `muxi registry push <formation>`
-  - [ ] `muxi registry login`
-- [ ] Implement version management
-  - [ ] `muxi registry pull <formation>:<version>`
-  - [ ] `muxi registry versions <formation>`
+### 2025-12-06
+- ✅ Added `formation start` command with SSE streaming
+- ✅ Added `muxi start` shortcut command
+- ✅ Added SSE streaming to `formation rollback`
+- ✅ Added version validation before update (must be higher)
+- ✅ All formation lifecycle commands complete and tested
 
-**Blocked by:** Registry redesign
+### 2025-12-05
+- ✅ Added `formation restart` with SSE streaming
+- ✅ Added notification sounds (Glass.aiff/Sosumi.aiff on macOS)
+- ✅ Added Ctrl+C cancellation with server cleanup
+- ✅ Improved error messages with contextual hints
 
----
+### 2025-12-04
+- ✅ Added SSE streaming to deploy/update
+- ✅ Added progress stages with spinners
+- ✅ Added health check countdown display
 
-## 🔒 Current Blockers
-
-### Hard Blockers (Cannot Proceed)
-1. **Runtime API not finalized** - No stable contract to build against
-2. **Runtime not containerized** - Don't know bundle format
-3. **Server-runtime integration not tested** - Don't know if it works
-
-### Soft Blockers (Nice to Have)
-1. Formation bundle format documentation
-2. Server API changes (if any)
-3. Schemas finalized
+### 2025-12-03
+- ✅ Server commands complete (add, list, default, remove, status, ping)
+- ✅ Formation list/get/delete commands
+- ✅ HMAC authentication implemented
 
 ---
 
-## 📊 Implementation Progress
+## 🎯 What's Next
 
-### Completed
-- ✅ Design documents (comprehensive)
-- ✅ Command structure defined
-- ✅ Implementation plan written
-- ✅ Repository created
+### Future Enhancements
+- [ ] `muxi formation scale <id> --replicas N` - Horizontal scaling
+- [ ] `muxi formation exec <id> -- command` - Execute in formation
+- [ ] `muxi formation env <id>` - View/set environment variables
+- [ ] `muxi formation metrics <id>` - View metrics/stats
+- [ ] Tab completion for bash/zsh/fish
 
-### Not Started
-- ❌ Go project setup
-- ❌ Profile management
-- ❌ HMAC authentication
-- ❌ Formation commands
-- ❌ Log streaming
-- ❌ Scaffolding tools
-- ❌ Registry integration
-
-**Progress:** 0% (blocked, but ready to start when unblocked)
+### Registry Improvements
+- [ ] `muxi registry versions @user/formation` - List versions
+- [ ] `muxi pull @user/formation:version` - Pull specific version
 
 ---
 
-## 🐛 Known Issues
-
-### Design Issues
-None - design is solid and comprehensive.
-
-### Future Concerns
-- Performance of log streaming
-- Bundle size optimization
-- Error handling edge cases
-- Offline mode support
-
----
-
-## 📝 Documentation Status
-
-### Complete
-- ✅ README.md - Project overview
-- ✅ DESIGN.md - CLI architecture and config structure
-- ✅ docs/CLI-COMMAND-DESIGN.md - Command structure
-- ✅ docs/IMPLEMENTATION-PLAN.md - Implementation roadmap
-- ✅ docs/REGISTRY.md - Registry integration design
-- ✅ docs/UX-PATTERNS.md - TUI/UX conventions
-- ✅ docs/BANNERS.md - Banner design system
-- ✅ docs/plan-registry.md - Registry commands implementation plan
-- ✅ docs/plan-config-llm.md - LLM config implementation plan
-- ✅ docs/plan-config-memory.md - Memory config implementation plan
-- ✅ docs/plan-config-overlord.md - Overlord config implementation plan
-- ✅ docs/plan-config-logging.md - Logging config implementation plan
-
-### User Guides (docs/guides/)
-- ✅ formations.md - Creating and managing formations
-- ✅ agents.md - Agent configuration and roles
-- ✅ mcps.md - MCP servers and tool integration
-- ✅ sops.md - Standard Operating Procedures
-- ✅ triggers.md - Webhook triggers and routing
-- ✅ a2a.md - Agent-to-Agent communication
-- ✅ secrets.md - Secrets management and encryption
-- ✅ llm.md - LLM configuration and model settings
-- ✅ memory.md - Memory configuration (working, buffer, persistent)
-- ✅ overlord.md - Overlord configuration (persona, workflow, clarification)
-- ✅ security.md - Security configuration (redirect, dynamic modes)
-- ✅ logging.md - Logging configuration (stdout, file, http, kafka)
-- ✅ registry.md - Registry commands (login, push, pull, search)
-
-### Needs Creation
-- ⏳ docs/AUTHENTICATION.md - HMAC implementation (blocked)
-- ⏳ docs/PROFILES.md - Profile management (blocked)
-- ⏳ docs/TESTING.md - Testing strategy
-
----
-
-## 🔗 Dependencies
-
-### Upstream (Blocks This)
-- **runtime/** - Needs stable API contract (BLOCKING for deploy commands)
-- **server/** - API is ready, runtime integration complete
-- **schemas/** - For YAML validation
-
-### Downstream (This Blocks)
-- None - CLI is a leaf node (doesn't block anything)
-
-### Related
-- **registry/** - For `muxi pull/push` commands (ready to implement!)
-- **install/** - Will install CLI binary (future)
-- **homebrew-tap/** - Will add `muxi-cli.rb` formula (future)
-
----
-
-## 🎓 For New Contributors
-
-### Getting Ready
-
-**When unblocked, start here:**
-1. Read [docs/CLI-COMMAND-DESIGN.md](docs/CLI-COMMAND-DESIGN.md)
-2. Read [docs/IMPLEMENTATION-PLAN.md](docs/IMPLEMENTATION-PLAN.md)
-3. Review server AGENTS.md for Go conventions
-4. Check runtime API documentation (when available)
-
-**Technology:**
-- Go (matches server)
-- Cobra (CLI framework)
-- Viper (configuration)
-- zerolog (logging)
-
-**Project structure:**
-```
-muxi-cli/
-├── cmd/              # CLI commands
-├── pkg/              # Reusable packages
-├── internal/         # Internal packages
-├── test/             # Tests
-└── docs/             # Documentation
-```
-
----
-
-## 📞 Getting Help
-
-### Issues & Questions
-- **GitHub Issues:** https://github.com/muxi-ai/cli/issues
-- **Discussions:** https://muxi.org/community
-- **Documentation:** docs/CLI-COMMAND-DESIGN.md
-
----
-
-## ✅ Definition of Done
-
-### For Phase 1 (Core CLI)
-- [ ] Go project setup complete
-- [ ] Profile management working
-- [ ] HMAC auth functional
-- [ ] Basic formation commands working
-- [ ] Tests passing (>80% coverage)
-- [ ] Documentation updated
-
-### For Phase 2 (Deployment)
-- [ ] Formation bundling working
-- [ ] Deploy command functional
-- [ ] Update command functional
-- [ ] Integration tests with server
-- [ ] Documentation updated
-
-### For Production Release
-- [ ] All phases complete
-- [ ] Cross-platform builds (Linux, macOS, Windows)
-- [ ] Homebrew formula published
-- [ ] Install script updated
-- [ ] User documentation complete
-- [ ] Tutorial videos created
-
----
-
-## 🗓️ Roadmap
-
-### Now (Blocked)
-- ⏳ Wait for runtime API stabilization
-- ⏳ Wait for server-runtime integration
-- ⏳ Review design documents
-
-### Week 1-2 (After Unblock)
-- ⏳ Phase 1: Core CLI implementation
-- ⏳ Profile management
-- ⏳ HMAC authentication
-
-### Week 3
-- ⏳ Phase 2: Formation deployment
-- ⏳ Bundle creation
-- ⏳ Deploy/update commands
-
-### Week 4
-- ⏳ Phase 3: Management commands
-- ⏳ Log streaming
-- ⏳ Status dashboard
-
-### Week 5-6
-- ⏳ Phase 4: Developer tools
-- ⏳ Scaffolding
-- ⏳ Validation
-- ⏳ Testing support
-
-### Future
-- ⏳ Phase 5: Registry integration (after registry redesign)
-- ⏳ Advanced features
-- ⏳ Plugin system
-
----
-
-## 🎯 Success Criteria
-
-### User Experience
-Users should be able to:
-1. Deploy a formation in one command
-2. Manage multiple server profiles
-3. Stream logs in real-time
-4. Scaffold new formations quickly
-5. Validate before deploying
-
-### Developer Experience
-Developers should be able to:
-1. Add new commands easily
-2. Test without real server
-3. Extend functionality
-4. Debug issues quickly
-
-### Performance
-- Command startup: <100ms
-- Deploy command: <5s (excluding upload)
-- Log streaming: <100ms latency
-- Binary size: <20MB
-
----
-
-**Last Updated:** 2025-11-24
-**Maintained by:** MUXI CLI Team
-
-**See also:**
-- [README.md](README.md) - Project overview
-- [docs/CLI-COMMAND-DESIGN.md](docs/CLI-COMMAND-DESIGN.md) - Command design
-- [docs/IMPLEMENTATION-PLAN.md](docs/IMPLEMENTATION-PLAN.md) - Implementation plan
-- [MUXI-ARCHITECTURE.md](../MUXI-ARCHITECTURE.md) - Ecosystem architecture
-
-**BLOCKED BY:** Runtime API stabilization (ETA: 2-3 weeks)
-**READY TO START:** As soon as runtime unblocks (design is complete)
+**Last Updated:** 2025-12-06
+**Maintained by:** MUXI Team
