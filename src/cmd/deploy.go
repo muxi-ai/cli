@@ -136,7 +136,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	existingFormation, _ := client.GetFormation(metadata.ID)
 	isUpdate := existingFormation != nil
 
-	// For updates, version is required and must be different
+	// For updates, version is required and must be higher than server version
 	if isUpdate {
 		if metadata.Version == "" {
 			ui.ErrorBlock(
@@ -146,7 +146,21 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 			)
 			os.Exit(1)
 		}
-		// TODO: Check if version is different from server version when server returns it
+
+		// Check version is higher than server version
+		serverVersion := ""
+		if existingFormation.Version != nil {
+			serverVersion = existingFormation.Version.Semantic
+		}
+
+		if serverVersion != "" && !isVersionHigher(metadata.Version, serverVersion) {
+			ui.ErrorBlock(
+				"Version conflict",
+				fmt.Sprintf("Cannot update '%s' to version %s\nServer already has version %s", metadata.ID, metadata.Version, serverVersion),
+				"Bump the version in formation.yaml and try again.",
+			)
+			os.Exit(1)
+		}
 	}
 
 	// Display deploy info
@@ -605,4 +619,51 @@ func formatBytes(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// isVersionHigher returns true if newVersion is strictly higher than oldVersion
+// Supports semver format: major.minor.patch with optional suffix
+func isVersionHigher(newVersion, oldVersion string) bool {
+	newParts := parseVersion(newVersion)
+	oldParts := parseVersion(oldVersion)
+
+	// Compare major, minor, patch
+	for i := 0; i < 3; i++ {
+		if newParts[i] > oldParts[i] {
+			return true
+		}
+		if newParts[i] < oldParts[i] {
+			return false
+		}
+	}
+
+	// All parts equal - not higher
+	return false
+}
+
+// parseVersion extracts major, minor, patch from version string
+func parseVersion(version string) [3]int {
+	var parts [3]int
+
+	// Strip leading 'v' if present
+	version = strings.TrimPrefix(version, "v")
+
+	// Split by dots and parse each part
+	segments := strings.Split(version, ".")
+	for i := 0; i < 3 && i < len(segments); i++ {
+		// Extract numeric part (stop at first non-digit)
+		numStr := ""
+		for _, c := range segments[i] {
+			if c >= '0' && c <= '9' {
+				numStr += string(c)
+			} else {
+				break
+			}
+		}
+		if numStr != "" {
+			fmt.Sscanf(numStr, "%d", &parts[i])
+		}
+	}
+
+	return parts
 }
