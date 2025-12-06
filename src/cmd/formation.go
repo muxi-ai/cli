@@ -541,6 +541,13 @@ func formatStartStageMessage(p server.DeployProgressEvent) string {
 		return prefix + "Loading formation configuration..."
 	case "resolving_runtime":
 		return prefix + "Resolving runtime version..."
+	case "downloading_sif":
+		if p.Progress > 0 {
+			return prefix + fmt.Sprintf("Downloading runtime image... %d%%", p.Progress)
+		}
+		return prefix + "Downloading runtime image..."
+	case "pulling_runner":
+		return prefix + "Pulling runtime runner..."
 	case "spawning":
 		return prefix + "Starting formation..."
 	case "health_check":
@@ -569,6 +576,10 @@ func formatStartStageComplete(stage string, p *server.DeployProgressEvent) strin
 			return prefix + "Resolved runtime " + p.Version
 		}
 		return prefix + "Resolved runtime version"
+	case "downloading_sif":
+		return prefix + "Downloaded runtime image"
+	case "pulling_runner":
+		return prefix + "Pulled runtime runner"
 	case "spawning":
 		return prefix + "Started formation"
 	case "health_check":
