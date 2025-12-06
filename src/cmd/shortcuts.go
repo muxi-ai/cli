@@ -109,7 +109,7 @@ func init() {
 	logsCmd.Flags().String("profile", "", "Server profile to use")
 	logsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
 	logsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
-	logsCmd.Flags().Bool("follow", false, "Stream new logs (like tail -f)")
+	logsCmd.Flags().BoolP("follow", "f", false, "Stream new logs (like tail -f)")
 }
 
 // requireFormationContext returns the formation context or exits with error
