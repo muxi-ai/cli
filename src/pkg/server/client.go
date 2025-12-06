@@ -319,7 +319,7 @@ func (c *Client) restartFormationInternal(id string, streaming bool, callback fu
 	return parseSSEStream(resp.Body, callback)
 }
 
-// RollbackFormation rolls back a formation to previous version
+// RollbackFormation rolls back a formation (non-streaming)
 func (c *Client) RollbackFormation(id string) (*RollbackResponse, error) {
 	resp, err := c.Post("/rpc/formations/"+id+"/rollback", nil, "")
 	if err != nil {
@@ -342,6 +342,34 @@ func (c *Client) RollbackFormation(id string) (*RollbackResponse, error) {
 	}
 
 	return &rollback, nil
+}
+
+// RollbackFormationStreaming rolls back with SSE progress
+func (c *Client) RollbackFormationStreaming(id string, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	path := "/rpc/formations/" + id + "/rollback"
+
+	req, err := http.NewRequest("POST", c.BaseURL+path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", "text/event-stream")
+	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "POST", path)
+	req.Header.Set("Authorization", authHeader)
+
+	client := &http.Client{Timeout: 10 * time.Minute}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to rollback: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, checkResponse(resp)
+	}
+
+	return parseSSEStream(resp.Body, callback)
 }
 
 // DeleteFormation deletes a formation

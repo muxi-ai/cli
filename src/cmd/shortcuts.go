@@ -331,45 +331,8 @@ func runShortcutRollback(cmd *cobra.Command, args []string) error {
 	}
 
 	profile, _ := cmd.Flags().GetString("profile")
-	client, err := server.NewClient(profile)
-	if err != nil {
-		return err
-	}
 
-	// Check if formation exists
-	_, err = client.GetFormation(ctx.ID)
-	if err != nil {
-		if err.Error() == "not found" {
-			ui.ErrorBlock(
-				"Formation not deployed",
-				fmt.Sprintf("Formation '%s' is not deployed to the server.", ctx.ID),
-				ui.Command("muxi deploy"),
-			)
-			os.Exit(1)
-		}
-		return err
-	}
-
-	spinner := ui.NewSpinner("Rolling back formation...")
-	spinner.Start()
-
-	resp, err := client.RollbackFormation(ctx.ID)
-	if err != nil {
-		spinner.StopWithError("Rollback failed")
-		return err
-	}
-
-	spinner.StopWithSuccess("Rolled back formation")
-
-	fmt.Println()
-	if resp != nil && resp.PreviousVersion != "" {
-		ui.Success(fmt.Sprintf("Rolled back %s to version %s", ctx.ID, resp.PreviousVersion))
-	} else {
-		ui.Success(fmt.Sprintf("Rolled back %s", ctx.ID))
-	}
-	fmt.Println()
-
-	return nil
+	return runFormationRollbackWithID(ctx.ID, profile)
 }
 
 func runShortcutLogs(cmd *cobra.Command, args []string) error {

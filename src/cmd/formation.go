@@ -802,6 +802,11 @@ func runFormationRollback(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	return runFormationRollbackWithID(formationID, profile)
+}
+
+// runFormationRollbackWithID rolls back a formation by ID (used by shortcut too)
+func runFormationRollbackWithID(formationID, profile string) error {
 	client, err := server.NewClient(profile)
 	if err != nil {
 		return err
@@ -821,26 +826,151 @@ func runFormationRollback(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	spinner := ui.NewSpinner("Rolling back formation...")
+	fmt.Println()
+	fmt.Printf("  Rolling back: %s\n", ui.BoldText(formationID))
+	fmt.Println()
+
+	spinner := ui.NewSpinner("Sending rollback request...")
 	spinner.Start()
 
-	resp, err := client.RollbackFormation(formationID)
-	if err != nil {
-		spinner.StopWithError("Rollback failed")
-		return err
+	var lastStage string
+	var lastProgress *server.DeployProgressEvent
+
+	callback := func(event server.SSEEvent) error {
+		if event.Event == "progress" {
+			var progress server.DeployProgressEvent
+			if err := json.Unmarshal([]byte(event.Data), &progress); err != nil {
+				return nil
+			}
+
+			if lastStage == progress.Stage {
+				spinner.UpdateMessage(formatRollbackStageMessage(progress))
+				lastProgress = &progress
+				return nil
+			}
+
+			if lastStage == "" {
+				spinner.StopWithSuccess("Rollback initiated")
+			} else {
+				spinner.StopWithSuccess(formatRollbackStageComplete(lastStage, lastProgress))
+			}
+
+			lastStage = progress.Stage
+			lastProgress = &progress
+			if progress.Stage == "health_check" {
+				spinner = ui.NewSpinnerWithPadding(formatRollbackStageMessage(progress), 1)
+			} else {
+				spinner = ui.NewSpinner(formatRollbackStageMessage(progress))
+			}
+			spinner.Start()
+		}
+		return nil
 	}
 
-	spinner.StopWithSuccess("Rolled back formation")
+	_, rollbackErr := client.RollbackFormationStreaming(formationID, callback)
 
-	fmt.Println()
-	if resp != nil && resp.PreviousVersion != "" {
-		ui.Success(fmt.Sprintf("Rolled back %s to version %s", formationID, resp.PreviousVersion))
+	if rollbackErr != nil {
+		if lastStage != "" {
+			spinner.StopWithError(ui.DimmedText("[SERVER]") + " Failed")
+		} else {
+			spinner.StopWithError("Rollback failed")
+		}
+		playRollbackNotificationSound(false)
+		fmt.Println()
+		return rollbackErr
+	}
+
+	if lastStage != "" {
+		spinner.StopWithSuccess(formatRollbackStageComplete(lastStage, lastProgress))
 	} else {
-		ui.Success(fmt.Sprintf("Rolled back %s", formationID))
+		spinner.StopWithSuccess("Rollback complete")
 	}
+
 	fmt.Println()
+	ui.Success(fmt.Sprintf("Formation `%s` rolled back!", formationID))
+	fmt.Println()
+
+	playRollbackNotificationSound(true)
 
 	return nil
+}
+
+// formatRollbackStageMessage formats a progress event for rollback
+func formatRollbackStageMessage(p server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch p.Stage {
+	case "validating":
+		return prefix + "Validating rollback request..."
+	case "stopping":
+		return prefix + "Stopping current formation..."
+	case "swapping":
+		return prefix + "Swapping to previous version..."
+	case "resolving_runtime":
+		return prefix + "Resolving runtime version..."
+	case "downloading_sif":
+		if p.Progress > 0 {
+			return prefix + fmt.Sprintf("Downloading runtime image... %d%%", p.Progress)
+		}
+		return prefix + "Downloading runtime image..."
+	case "pulling_runner":
+		return prefix + "Pulling runtime runner..."
+	case "spawning":
+		return prefix + "Starting formation..."
+	case "health_check":
+		if p.Attempt > 0 && p.MaxAttempts > 0 {
+			remaining := p.MaxAttempts - p.Attempt
+			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
+		}
+		return prefix + "Waiting for formation to start..."
+	default:
+		if p.Message != "" {
+			return prefix + p.Message
+		}
+		return prefix + p.Stage + "..."
+	}
+}
+
+// formatRollbackStageComplete formats the completion message for a rollback stage
+func formatRollbackStageComplete(stage string, p *server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch stage {
+	case "validating":
+		return prefix + "Validated rollback request"
+	case "stopping":
+		return prefix + "Stopped current formation"
+	case "swapping":
+		return prefix + "Swapped to previous version"
+	case "resolving_runtime":
+		if p != nil && p.Version != "" {
+			return prefix + "Resolved runtime " + p.Version
+		}
+		return prefix + "Resolved runtime version"
+	case "downloading_sif":
+		return prefix + "Downloaded runtime image"
+	case "pulling_runner":
+		return prefix + "Pulled runtime runner"
+	case "spawning":
+		return prefix + "Started formation"
+	case "health_check":
+		return prefix + "Formation started"
+	default:
+		return prefix + stage + " complete"
+	}
+}
+
+// playRollbackNotificationSound plays a sound for rollback completion
+func playRollbackNotificationSound(success bool) {
+	if runtime.GOOS == "darwin" {
+		sound := "/System/Library/Sounds/Glass.aiff"
+		if !success {
+			sound = "/System/Library/Sounds/Sosumi.aiff"
+		}
+		exec.Command("afplay", sound).Run()
+	} else {
+		fmt.Print("\a")
+	}
 }
 
 // runFormationLogs handles muxi formation logs <id>
