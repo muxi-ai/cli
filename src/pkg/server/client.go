@@ -231,6 +231,52 @@ func (c *Client) RestartFormationStreaming(id string, callback func(SSEEvent) er
 	return c.restartFormationInternal(id, true, callback)
 }
 
+// StartFormation starts a stopped formation (non-streaming)
+func (c *Client) StartFormation(id string) error {
+	_, err := c.startFormationInternal(id, false, nil)
+	return err
+}
+
+// StartFormationStreaming starts a formation with SSE progress
+func (c *Client) StartFormationStreaming(id string, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	return c.startFormationInternal(id, true, callback)
+}
+
+// startFormationInternal handles both streaming and non-streaming start
+func (c *Client) startFormationInternal(id string, streaming bool, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
+	path := "/rpc/formations/" + id + "/start"
+
+	req, err := http.NewRequest("POST", c.BaseURL+path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if streaming {
+		req.Header.Set("Accept", "text/event-stream")
+	}
+
+	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "POST", path)
+	req.Header.Set("Authorization", authHeader)
+
+	client := &http.Client{Timeout: 10 * time.Minute}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, checkResponse(resp)
+	}
+
+	if !streaming {
+		return nil, checkResponse(resp)
+	}
+
+	return parseSSEStream(resp.Body, callback)
+}
+
 // restartFormationInternal handles both streaming and non-streaming restart
 func (c *Client) restartFormationInternal(id string, streaming bool, callback func(SSEEvent) error) (*DeployCompleteEvent, error) {
 	path := "/rpc/formations/" + id + "/restart"

@@ -37,6 +37,17 @@ This is a shortcut for 'muxi formation stop <id>'.`,
 	RunE: runShortcutStop,
 }
 
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Start current formation (shortcut for 'formation start')",
+	Long: `Start the current formation (must be stopped).
+
+Must be run from inside a formation directory.
+This is a shortcut for 'muxi formation start <id>'.`,
+	Args: cobra.NoArgs,
+	RunE: runShortcutStart,
+}
+
 var restartCmd = &cobra.Command{
 	Use:   "restart",
 	Short: "Restart current formation (shortcut for 'formation restart')",
@@ -85,6 +96,7 @@ func init() {
 	// Register shortcut commands
 	rootCmd.AddCommand(getCmd)
 	rootCmd.AddCommand(stopCmd)
+	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(restartCmd)
 	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(rollbackCmd)
@@ -96,6 +108,8 @@ func init() {
 
 	stopCmd.Flags().String("profile", "", "Server profile to use")
 	stopCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+
+	startCmd.Flags().String("profile", "", "Server profile to use")
 
 	restartCmd.Flags().String("profile", "", "Server profile to use")
 	restartCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
@@ -223,6 +237,17 @@ func runShortcutStop(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
+}
+
+func runShortcutStart(cmd *cobra.Command, args []string) error {
+	ctx, err := requireFormationContext("start")
+	if err != nil {
+		return err
+	}
+
+	profile, _ := cmd.Flags().GetString("profile")
+
+	return runFormationStartWithID(ctx.ID, profile)
 }
 
 func runShortcutRestart(cmd *cobra.Command, args []string) error {

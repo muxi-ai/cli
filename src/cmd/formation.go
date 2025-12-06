@@ -58,6 +58,13 @@ var formationStopCmd = &cobra.Command{
 	RunE:  runFormationStop,
 }
 
+var formationStartCmd = &cobra.Command{
+	Use:   "start <id>",
+	Short: "Start a stopped formation",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runFormationStart,
+}
+
 var formationRestartCmd = &cobra.Command{
 	Use:   "restart <id>",
 	Short: "Restart a formation",
@@ -87,6 +94,7 @@ func init() {
 	formationCmd.AddCommand(formationGetCmd)
 	formationCmd.AddCommand(formationDeleteCmd)
 	formationCmd.AddCommand(formationStopCmd)
+	formationCmd.AddCommand(formationStartCmd)
 	formationCmd.AddCommand(formationRestartCmd)
 	formationCmd.AddCommand(formationRollbackCmd)
 	formationCmd.AddCommand(formationLogsCmd)
@@ -100,6 +108,7 @@ func init() {
 	formationDeleteCmd.Flags().Bool("atomic", false, "Skip confirmation prompt (alias for --force)")
 	formationStopCmd.Flags().String("profile", "", "Server profile to use")
 	formationStopCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	formationStartCmd.Flags().String("profile", "", "Server profile to use")
 	formationRestartCmd.Flags().String("profile", "", "Server profile to use")
 	formationRestartCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 	formationRollbackCmd.Flags().String("profile", "", "Server profile to use")
@@ -415,6 +424,171 @@ func runFormationStop(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
+}
+
+// runFormationStart handles muxi formation start <id>
+func runFormationStart(cmd *cobra.Command, args []string) error {
+	profile, _ := cmd.Flags().GetString("profile")
+	formationID := args[0]
+
+	return runFormationStartWithID(formationID, profile)
+}
+
+// runFormationStartWithID starts a formation by ID (used by shortcut too)
+func runFormationStartWithID(formationID, profile string) error {
+	client, err := server.NewClient(profile)
+	if err != nil {
+		return err
+	}
+
+	// Check if formation exists
+	f, err := client.GetFormation(formationID)
+	if err != nil {
+		if err.Error() == "not found" {
+			ui.ErrorBlock(
+				"Formation not found",
+				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
+				ui.Command("muxi formation list"),
+			)
+			os.Exit(1)
+		}
+		return err
+	}
+
+	// Check if already running
+	if f.Status == "running" {
+		fmt.Println()
+		ui.Warning(fmt.Sprintf("Formation '%s' is already running", formationID))
+		fmt.Println()
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Printf("  Starting: %s\n", ui.BoldText(formationID))
+	fmt.Println()
+
+	spinner := ui.NewSpinner("Sending start request...")
+	spinner.Start()
+
+	var lastStage string
+	var lastProgress *server.DeployProgressEvent
+
+	callback := func(event server.SSEEvent) error {
+		if event.Event == "progress" {
+			var progress server.DeployProgressEvent
+			if err := json.Unmarshal([]byte(event.Data), &progress); err != nil {
+				return nil
+			}
+
+			if lastStage == progress.Stage {
+				spinner.UpdateMessage(formatStartStageMessage(progress))
+				lastProgress = &progress
+				return nil
+			}
+
+			if lastStage == "" {
+				spinner.StopWithSuccess("Start initiated")
+			} else {
+				spinner.StopWithSuccess(formatStartStageComplete(lastStage, lastProgress))
+			}
+
+			lastStage = progress.Stage
+			lastProgress = &progress
+			if progress.Stage == "health_check" {
+				spinner = ui.NewSpinnerWithPadding(formatStartStageMessage(progress), 1)
+			} else {
+				spinner = ui.NewSpinner(formatStartStageMessage(progress))
+			}
+			spinner.Start()
+		}
+		return nil
+	}
+
+	_, startErr := client.StartFormationStreaming(formationID, callback)
+
+	if startErr != nil {
+		if lastStage != "" {
+			spinner.StopWithError(ui.DimmedText("[SERVER]") + " Failed")
+		} else {
+			spinner.StopWithError("Start failed")
+		}
+		playStartNotificationSound(false)
+		fmt.Println()
+		return startErr
+	}
+
+	if lastStage != "" {
+		spinner.StopWithSuccess(formatStartStageComplete(lastStage, lastProgress))
+	} else {
+		spinner.StopWithSuccess("Start complete")
+	}
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Formation `%s` started!", formationID))
+	fmt.Println()
+
+	playStartNotificationSound(true)
+
+	return nil
+}
+
+// formatStartStageMessage formats a progress event for start
+func formatStartStageMessage(p server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch p.Stage {
+	case "validating":
+		return prefix + "Loading formation configuration..."
+	case "resolving_runtime":
+		return prefix + "Resolving runtime version..."
+	case "spawning":
+		return prefix + "Starting formation..."
+	case "health_check":
+		if p.Attempt > 0 && p.MaxAttempts > 0 {
+			remaining := p.MaxAttempts - p.Attempt
+			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
+		}
+		return prefix + "Waiting for formation to start..."
+	default:
+		if p.Message != "" {
+			return prefix + p.Message
+		}
+		return prefix + p.Stage + "..."
+	}
+}
+
+// formatStartStageComplete formats the completion message for a start stage
+func formatStartStageComplete(stage string, p *server.DeployProgressEvent) string {
+	prefix := ui.DimmedText("[SERVER]") + " "
+
+	switch stage {
+	case "validating":
+		return prefix + "Loaded formation configuration"
+	case "resolving_runtime":
+		if p != nil && p.Version != "" {
+			return prefix + "Resolved runtime " + p.Version
+		}
+		return prefix + "Resolved runtime version"
+	case "spawning":
+		return prefix + "Started formation"
+	case "health_check":
+		return prefix + "Formation started"
+	default:
+		return prefix + stage + " complete"
+	}
+}
+
+// playStartNotificationSound plays a sound for start completion
+func playStartNotificationSound(success bool) {
+	if runtime.GOOS == "darwin" {
+		sound := "/System/Library/Sounds/Glass.aiff"
+		if !success {
+			sound = "/System/Library/Sounds/Sosumi.aiff"
+		}
+		exec.Command("afplay", sound).Run()
+	} else {
+		fmt.Print("\a")
+	}
 }
 
 // runFormationRestart handles muxi formation restart <id>
