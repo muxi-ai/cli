@@ -116,10 +116,10 @@ func init() {
 func requireFormationContext(command string) (*context.FormationContext, error) {
 	ctx, err := context.DetectFormation()
 	if err != nil {
-		return nil, fmt.Errorf("not in a formation directory\n\nRun this command from inside a formation directory, or use:\n  %s <formation-id>", ui.CyanText("muxi formation "+command))
+		return nil, fmt.Errorf("%s not in a formation directory\n\nRun this command from inside a formation directory, or use:\n  %s <formation-id>", ui.RedText("✗"), ui.CyanText("muxi formation "+command))
 	}
 	if ctx.ID == "" {
-		return nil, fmt.Errorf("formation.yaml is missing 'id' field")
+		return nil, fmt.Errorf("%s formation.yaml is missing 'id' field", ui.RedText("✗"))
 	}
 	return ctx, nil
 }
