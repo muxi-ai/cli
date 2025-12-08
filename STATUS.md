@@ -12,6 +12,12 @@
 MUXI CLI is **fully functional** with complete scaffolding system, secrets management, all config commands, full registry integration, and **complete server/formation lifecycle commands** with SSE streaming progress.
 
 ### Recent Changes (2025-12-08)
+- ✅ **Formation API Foundation COMPLETE:** `pkg/formation/` package ready
+  - `client.go` - HTTP client with admin/client key auth
+  - `auth.go` - API key resolution from secrets.enc or env vars
+  - `types.go` - Response types for all Formation API endpoints
+  - `flags.go` - Common flag helpers (-F, -p, -u)
+  - Tested against live formation
 - ✅ **Unified defaults command:** `muxi set default server|registry|user`
 - ✅ **Command groups in help:** Organized into Formation/Registry/Server/Config groups
 - ✅ **Default user_id support:** For upcoming Formation API commands
@@ -295,12 +301,13 @@ muxi server ping [--profile string]
 ### Formation API Commands (Priority)
 See **[docs/plan-formation-api.md](docs/plan-formation-api.md)** for full implementation plan.
 
-**Foundation (must complete first):**
-- [ ] `pkg/formation/client.go` - Formation API HTTP client
-- [ ] `pkg/formation/auth.go` - API key resolution
-- [ ] `pkg/formation/types.go` - Response types
+**Foundation: ✅ COMPLETE**
+- [x] `pkg/formation/client.go` - Formation API HTTP client
+- [x] `pkg/formation/auth.go` - API key resolution
+- [x] `pkg/formation/types.go` - Response types
+- [x] `pkg/formation/flags.go` - Common flags
 
-**Parallel Tracks (after foundation):**
+**Parallel Tracks (READY - can run simultaneously):**
 - [ ] Track A: `muxi info`, `muxi triggers`, `muxi sops`
 - [ ] Track B: `muxi agents`, `muxi mcp`
 - [ ] Track C: `muxi secrets --remote`, `muxi config --remote`

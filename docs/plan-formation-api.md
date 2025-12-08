@@ -697,26 +697,25 @@ cmd/
 
 Commands can be developed in parallel after the foundation is complete.
 
-### Foundation (Blocking - 1 Droid)
+### Foundation (Blocking - 1 Droid) ✅ COMPLETE
 
-Must be completed first. All other tracks depend on this.
+All other tracks can now proceed.
 
 ```
 pkg/formation/
-├── client.go    # HTTP client, base URL resolution, request helpers
-├── auth.go      # API key resolution (admin key vs client key)
-├── types.go     # Response structs for all endpoints
-└── flags.go     # Common flags (-F, -p, -u) and resolution logic
+├── client.go    # HTTP client with Get/Post/Patch/Delete + admin/client key variants
+├── auth.go      # ResolveKeys() from env vars or secrets.enc, BuildFormationURL()
+├── types.go     # Response structs for all endpoints (tested against live formation)
+└── flags.go     # AddCommonFlags(), ClientFromFlags(), ResolveUserID()
 ```
 
-**Deliverables:**
-- `FormationClient` struct with `Get`, `Post`, `Patch`, `Delete` methods
-- `ResolveFormationID()` - from flag, .muxi, or formation.yaml
-- `ResolveServerProfile()` - from flag, .muxi, or global default
-- `GetAdminKey()` / `GetClientKey()` - fetch from deployed formation
-- Common flag registration helper
-
-**Estimate:** 2-3 hours
+**Delivered:**
+- `Client` struct with `Get()`, `GetClient()`, `GetWithUser()`, `Post()`, `PostClient()`, `PostWithUser()`, `Patch()`, `Put()`, `Delete()`, `DeleteWithUser()`
+- `ResolveFormationID()` - from flag or formation.yaml
+- `ResolveProfile()` - from flag, .muxi, or global default
+- `ResolveKeys()` - from env vars (`MUXI_ADMIN_KEY`/`MUXI_CLIENT_KEY`) or secrets.enc
+- `ClientFromFlags()`, `ClientAndUserFromFlags()` - one-liner client creation
+- All response types tested against live `some-forma` formation
 
 ---
 
