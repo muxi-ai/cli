@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/secrets"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
@@ -31,67 +32,129 @@ var secretsListCmd = &cobra.Command{
 By default, only shows secret names. Use --with-values to also display
 the actual secret values (use with caution).
 
+Use --remote to fetch secrets from a running Formation via the API
+(values are masked for security).
+
 Examples:
-  # List secret names only
+  # List secret names only (local)
   muxi secrets list
 
-  # List secrets with values
-  muxi secrets list --with-values`,
+  # List secrets with values (local)
+  muxi secrets list --with-values
+
+  # List secrets from remote Formation
+  muxi secrets list --remote
+
+  # List secrets from specific formation
+  muxi secrets list --remote -F my-formation`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		withValues, _ := cmd.Flags().GetBool("with-values")
+	RunE: runSecretsList,
+}
 
-		ctx, err := context.MustDetectFormation()
-		if err != nil {
-			ui.ErrorBlock(
-				"Not in formation directory",
-				"This command must be run inside a formation directory.",
-				"Navigate to your formation:\n  cd my-formation",
-			)
-			return nil
-		}
+func runSecretsList(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
 
-		mgr := secrets.NewManager(ctx.RootDir)
-		if err := mgr.Initialize(); err != nil {
-			return fmt.Errorf("failed to initialize secrets: %w", err)
-		}
+	if remote {
+		return runRemoteSecretsList(cmd, args)
+	}
+	return runLocalSecretsList(cmd, args)
+}
 
-		secretsList, err := mgr.List()
-		if err != nil {
-			return fmt.Errorf("failed to list secrets: %w", err)
-		}
+func runLocalSecretsList(cmd *cobra.Command, args []string) error {
+	withValues, _ := cmd.Flags().GetBool("with-values")
 
-		if len(secretsList) == 0 {
-			ui.Dimmed("No secrets stored")
-			fmt.Println()
-			ui.Dimmed("Add secrets with:")
-			fmt.Printf("  %s\n", ui.Command("muxi secrets set SECRET_NAME"))
-			return nil
-		}
-
-		// Sort alphabetically
-		sort.Strings(secretsList)
-
-		fmt.Println()
-		if withValues {
-			ui.Bold(fmt.Sprintf("Secrets (%d):", len(secretsList)))
-			fmt.Println()
-			for _, name := range secretsList {
-				value, _ := mgr.Get(name)
-				fmt.Printf("  %s = %s\n", name, value)
-			}
-		} else {
-			ui.Bold(fmt.Sprintf("Secrets (%d):", len(secretsList)))
-			fmt.Println()
-			for _, name := range secretsList {
-				fmt.Printf("  %s\n", name)
-			}
-			fmt.Println()
-			ui.Dimmed("Use --with-values to show secret values")
-		}
-
+	ctx, err := context.MustDetectFormation()
+	if err != nil {
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"This command must be run inside a formation directory.",
+			"Navigate to your formation:\n  cd my-formation",
+		)
 		return nil
-	},
+	}
+
+	mgr := secrets.NewManager(ctx.RootDir)
+	if err := mgr.Initialize(); err != nil {
+		return fmt.Errorf("failed to initialize secrets: %w", err)
+	}
+
+	secretsList, err := mgr.List()
+	if err != nil {
+		return fmt.Errorf("failed to list secrets: %w", err)
+	}
+
+	if len(secretsList) == 0 {
+		ui.Dimmed("No secrets stored")
+		fmt.Println()
+		ui.Dimmed("Add secrets with:")
+		fmt.Printf("  %s\n", ui.Command("muxi secrets set SECRET_NAME"))
+		return nil
+	}
+
+	// Sort alphabetically
+	sort.Strings(secretsList)
+
+	fmt.Println()
+	if withValues {
+		ui.Bold(fmt.Sprintf("Secrets (%d):", len(secretsList)))
+		fmt.Println()
+		for _, name := range secretsList {
+			value, _ := mgr.Get(name)
+			fmt.Printf("  %s = %s\n", name, value)
+		}
+	} else {
+		ui.Bold(fmt.Sprintf("Secrets (%d):", len(secretsList)))
+		fmt.Println()
+		for _, name := range secretsList {
+			fmt.Printf("  %s\n", name)
+		}
+		fmt.Println()
+		ui.Dimmed("Use --with-values to show secret values")
+	}
+
+	return nil
+}
+
+func runRemoteSecretsList(cmd *cobra.Command, args []string) error {
+	client, err := formation.ClientFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	secretsResp, err := client.GetSecrets()
+	if err != nil {
+		return fmt.Errorf("failed to get secrets: %w", err)
+	}
+
+	if secretsResp.Count == 0 {
+		ui.Dimmed("No secrets configured")
+		return nil
+	}
+
+	// Get sorted keys
+	keys := make([]string, 0, len(secretsResp.Secrets))
+	for k := range secretsResp.Secrets {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Find max key length for alignment
+	maxKeyLen := 0
+	for _, k := range keys {
+		if len(k) > maxKeyLen {
+			maxKeyLen = len(k)
+		}
+	}
+
+	fmt.Println()
+	ui.Bold(fmt.Sprintf("Secrets (%d):", secretsResp.Count))
+	fmt.Println()
+	for _, key := range keys {
+		value := secretsResp.Secrets[key]
+		fmt.Printf("  %-*s  %s\n", maxKeyLen, key, value)
+	}
+
+	return nil
 }
 
 var secretsSetCmd = &cobra.Command{
@@ -502,6 +565,8 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 func init() {
 	// Add flags
 	secretsListCmd.Flags().Bool("with-values", false, "Show secret values (use with caution)")
+	secretsListCmd.Flags().Bool("remote", false, "Fetch secrets from remote Formation API")
+	formation.AddCommonFlags(secretsListCmd)
 	secretsSetupCmd.Flags().Bool("dry-run", false, "Preview what would be prompted")
 	secretsSyncCmd.Flags().BoolP("interactive", "i", false, "Confirm deletions interactively")
 	secretsSyncCmd.Flags().Bool("dry-run", false, "Preview changes without applying")

@@ -1,6 +1,51 @@
 # Triggers Guide
 
-This guide covers creating webhook triggers in MUXI formations.
+This guide covers creating and managing webhook triggers in MUXI formations.
+
+## CLI Commands
+
+### List Triggers
+
+View all triggers defined in a running formation:
+
+```bash
+muxi triggers
+```
+
+**Example output:**
+
+```
+    NAME                 DESCRIPTION
+    github-issue         Handle GitHub issue events
+    linear-ticket        Process Linear ticket updates
+    slack-message        Respond to Slack messages
+```
+
+**Flags:**
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--formation` | `-F` | Formation ID (default: from formation.yaml) |
+| `--profile` | `-p` | Server profile (default: from .muxi or global) |
+
+Requires **client API key** (from `secrets.enc` or `MUXI_CLIENT_KEY`).
+
+### Fire a Trigger
+
+Invoke a trigger with JSON data:
+
+```bash
+# Simple invocation
+muxi trigger github-issue --data '{"issue": {"title": "Bug"}}'
+
+# From a file
+muxi trigger github-issue --file payload.json
+
+# Async mode (returns job ID)
+muxi trigger github-issue --data '...' --async
+```
+
+---
 
 ## What is a Trigger?
 

@@ -1,7 +1,7 @@
 # Formation API Commands Implementation Plan
 
 **Date:** 2025-12-08
-**Status:** Planning
+**Status:** Complete (Phases 1-5)
 **Priority:** HIGH
 **API Spec:** `../schemas/api/formation-api-v1-final.yaml`
 
@@ -344,7 +344,9 @@ muxi config logging --remote      # Logging config
 
 ---
 
-## Phase 3: Session Management
+## Phase 3: Session Management ✅ COMPLETE
+
+*See [docs/guides/sessions.md](guides/sessions.md) for full usage guide.*
 
 ### `muxi sessions`
 
@@ -721,14 +723,14 @@ pkg/formation/
 
 ### Parallel Tracks (After Foundation)
 
-| Track | Commands | Files | Auth | Estimate |
-|-------|----------|-------|------|----------|
-| **A: Introspection** | `info`, `triggers`, `sops` | info.go, triggers.go, sops.go | Admin/Client | 2h |
-| **B: CRUD Resources** | `agents`, `mcp` | agents.go, mcp.go | Admin | 3h |
-| **C: Config Extension** | `secrets --remote`, `config --remote` | secrets.go*, config.go* | Admin | 3h |
-| **D: Sessions** | `sessions`, `history`, `clear` | sessions.go, history.go, clear.go | Client+User | 2h |
-| **E: Operations** | `trigger`, `jobs`, `audit`, `stream` | triggers.go*, jobs.go, audit.go, stream.go | Mixed | 4h |
-| **F: Advanced** | `scheduler`, `users`, `memory` | scheduler.go, users.go, memory.go | Mixed | 3h |
+| Track | Commands | Files | Auth | Estimate | Status |
+|-------|----------|-------|------|----------|--------|
+| **A: Introspection** | `info`, `triggers`, `sops` | info.go, triggers.go, sops.go | Admin/Client | 2h | **Done** |
+| **B: CRUD Resources** | `agents`, `mcp` | agents.go, mcp.go | Admin | 3h | Done |
+| **C: Config Extension** | `secrets --remote`, `config --remote` | secrets.go*, config.go* | Admin | 3h | Done |
+| **D: Sessions** | `sessions`, `history`, `clear` | sessions.go, history.go, clear.go | Client+User | 2h | **Done** |
+| **E: Operations** | `trigger`, `jobs`, `audit`, `stream` | triggers.go*, jobs.go, audit.go, stream.go | Mixed | 4h | Done |
+| **F: Advanced** | `scheduler`, `users`, `memory` | scheduler.go, users.go, memory.go | Mixed | 3h | **Done** |
 
 *\* = modifying existing file*
 
@@ -761,14 +763,15 @@ muxi config --remote   → GET /config, GET /llm/settings, etc.
 - Extends existing local commands with `--remote` flag
 - Needs careful integration with existing code
 
-**Track D - Sessions (User-scoped)**
+**Track D - Sessions (User-scoped)** ✅ COMPLETE
 ```
 muxi sessions  → GET /sessions
 muxi history   → GET /sessions/{id}/messages
-muxi clear     → DELETE /sessions/{id}, DELETE /memory/buffer
+muxi clear     → DELETE /sessions/{id}
 ```
 - All require `X-User-ID` header
 - Uses default user_id from config
+- See [docs/guides/sessions.md](guides/sessions.md) for usage guide
 
 **Track E - Operations (Mixed complexity)**
 ```

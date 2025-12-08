@@ -46,7 +46,24 @@ cli/
 │   │   ├── formation.go    # muxi formation <action>
 │   │   ├── server.go       # muxi server <action>
 │   │   ├── registry.go     # muxi registry <action>
-│   │   └── version.go      # muxi version
+│   │   ├── version.go      # muxi version
+│   │   │
+│   │   │   # Formation API commands
+│   │   ├── agents.go       # muxi agents (list/manage agents)
+│   │   ├── mcp.go          # muxi mcp (list/manage MCP servers)
+│   │   ├── info.go         # muxi info (formation status)
+│   │   ├── triggers.go     # muxi triggers (list triggers)
+│   │   ├── sops.go         # muxi sops (list SOPs)
+│   │   ├── sessions.go     # muxi sessions (list sessions)
+│   │   ├── history.go      # muxi history (session messages)
+│   │   ├── clear.go        # muxi clear (clear session)
+│   │   ├── trigger.go      # muxi trigger (execute trigger)
+│   │   ├── jobs.go         # muxi jobs (async jobs)
+│   │   ├── audit.go        # muxi audit (audit log)
+│   │   ├── stream.go       # muxi stream (log streaming)
+│   │   ├── scheduler.go    # muxi scheduler (scheduled jobs)
+│   │   ├── users.go        # muxi users (identity management)
+│   │   └── memory.go       # muxi memory (memory ops)
 │   │
 │   ├── pkg/
 │   │   ├── scaffold/       # Scaffolding wizards
@@ -67,6 +84,12 @@ cli/
 │   │   ├── client/         # Server API client
 │   │   │   ├── client.go   # HTTP client, HMAC auth
 │   │   │   └── sse.go      # SSE streaming
+│   │   │
+│   │   ├── formation/      # Formation API client
+│   │   │   ├── client.go   # HTTP client with admin/client key auth
+│   │   │   ├── auth.go     # API key resolution (env vars, secrets.enc)
+│   │   │   ├── types.go    # Response types for all endpoints
+│   │   │   └── flags.go    # Common flag helpers (-F, -p, -u)
 │   │   │
 │   │   ├── config/         # Config management
 │   │   │   └── config.go
@@ -141,6 +164,24 @@ Manage deployed formations:
 - `muxi formation rollback` - Rollback version
 - `muxi formation delete` - Delete formation
 - `muxi formation logs` - View logs
+
+### Formation API Commands
+Interact with running formations via Formation API:
+- `muxi agents` - List/manage agents in formation
+- `muxi mcp` - List/manage MCP servers
+- `muxi info` - Formation runtime status
+- `muxi triggers` - List available triggers
+- `muxi sops` - List SOPs
+- `muxi sessions` - List user sessions
+- `muxi history` - View session messages
+- `muxi clear` - Clear session/buffer
+- `muxi trigger` - Execute a trigger
+- `muxi jobs` - List/cancel async jobs
+- `muxi audit` - View audit log
+- `muxi stream` - Live log streaming
+- `muxi scheduler` - Manage scheduled jobs
+- `muxi users` - User identity management
+- `muxi memory` - Memory operations
 
 ### Registry (`muxi registry`)
 Formation distribution:

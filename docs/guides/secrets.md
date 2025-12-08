@@ -4,6 +4,15 @@ This guide covers how to manage secrets in MUXI formations using the `muxi secre
 
 ## Overview
 
+MUXI supports two modes for secrets management:
+
+| Mode | Command | Description |
+|------|---------|-------------|
+| **Local** | `muxi secrets list` | Manage secrets in local `secrets.enc` file |
+| **Remote** | `muxi secrets list --remote` | View secrets on a running Formation |
+
+### Local Secrets (Default)
+
 MUXI uses encrypted secrets storage to protect sensitive values like API keys, tokens, and credentials. Secrets are:
 
 - **Encrypted at rest** using Fernet encryption (compatible with Python runtime)
@@ -195,3 +204,54 @@ Check that:
 1. The secret exists: `muxi secrets list`
 2. The name matches exactly (case-sensitive)
 3. The syntax is correct: `${{ secrets.NAME }}`
+
+---
+
+## Remote Secrets (Formation API)
+
+When a formation is deployed and running, you can view its configured secrets using the `--remote` flag. This queries the Formation API to show what secrets are loaded in the runtime environment.
+
+### List Remote Secrets
+
+```bash
+# View secrets on running formation (values are masked)
+muxi secrets list --remote
+
+# Specify formation ID explicitly
+muxi secrets list --remote -F my-formation
+
+# Use a specific server profile
+muxi secrets list --remote -p production
+```
+
+**Example output:**
+
+```
+Secrets (3):
+  ANTHROPIC_API_KEY    sk-ant-••••••••••
+  GITHUB_TOKEN         ghp_••••••••••••
+  OPENAI_API_KEY       sk-••••••••••Gst
+```
+
+### Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--remote` | | Fetch secrets from Formation API |
+| `--formation` | `-F` | Formation ID (default: from `formation.yaml`) |
+| `--profile` | `-p` | Server profile (default: from `.muxi` or global) |
+
+### Authentication
+
+Remote secrets require admin API key access. The key is resolved in order:
+1. `MUXI_ADMIN_KEY` environment variable
+2. `admin_key` in local `secrets.enc`
+3. Server profile configuration
+
+### Use Cases
+
+- **Verify deployment:** Confirm secrets were properly loaded after deploy
+- **Debug issues:** Check if a secret exists in the running formation
+- **Audit:** Review what secrets are configured in production
+
+> **Note:** Remote secrets are always masked for security. To see full values, use `muxi secrets list --with-values` on the local `secrets.enc` file.

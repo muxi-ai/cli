@@ -196,8 +196,29 @@ Create the database:
 CREATE DATABASE muxi_memory;
 ```
 
+## Runtime Memory Management
+
+Once your formation is deployed, use CLI commands to manage memories:
+
+```bash
+# View runtime memory configuration
+muxi memory status
+
+# List memories for a user
+muxi memory list -u alice
+
+# Add a memory
+muxi memory add -u alice "Prefers dark mode"
+
+# Delete a memory
+muxi memory delete -u alice mem_abc123
+```
+
+See [Admin Guide](admin.md) for full details on runtime memory commands.
+
 ## Related
 
+- [Admin Guide](admin.md) - Runtime memory management
 - [LLM Guide](llm.md) - Configure embedding models
 - [Secrets Guide](secrets.md) - Managing sensitive values
 - [Formations Guide](formations.md) - Formation structure

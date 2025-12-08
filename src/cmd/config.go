@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
+	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/scaffold"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var configCmd = &cobra.Command{
@@ -17,7 +21,62 @@ This command provides interactive wizards for configuring various
 formation-level settings like A2A communication, LLM providers,
 logging, and more.
 
-Must be run inside a formation directory.`,
+Use --remote to fetch configuration from a running Formation via the API (read-only).
+
+Must be run inside a formation directory.
+
+Examples:
+  # Interactive configuration (local)
+  muxi config llm
+
+  # Fetch full config from remote Formation
+  muxi config --remote
+
+  # Fetch specific config section from remote
+  muxi config llm --remote
+  muxi config memory --remote
+  muxi config overlord --remote`,
+	RunE: runConfig,
+}
+
+func runConfig(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+
+	if remote {
+		return runRemoteConfig(cmd, args)
+	}
+
+	// Default: show help since there's no default action for config without subcommand
+	return cmd.Help()
+}
+
+func runRemoteConfig(cmd *cobra.Command, args []string) error {
+	client, err := formation.ClientFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	configResp, err := client.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get config: %w", err)
+	}
+
+	output, _ := cmd.Flags().GetString("output")
+	return printConfigOutput(configResp, output)
+}
+
+func printConfigOutput(data interface{}, format string) error {
+	switch format {
+	case "json":
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(data)
+	case "yaml":
+		return yaml.NewEncoder(os.Stdout).Encode(data)
+	default:
+		// Pretty print as yaml by default
+		return yaml.NewEncoder(os.Stdout).Encode(data)
+	}
 }
 
 var configAsyncCmd = &cobra.Command{
@@ -55,18 +114,42 @@ This command provides an interactive wizard for:
   - Configuring models for different capabilities (text, vision, audio, etc.)
   - Global LLM settings (temperature, tokens, caching)
 
+Use --remote to fetch LLM settings from a running Formation (read-only).
+
 Must be run inside a formation directory.
 
 Examples:
-  # Configure with interactive wizard
-  muxi config llm`,
+  # Configure with interactive wizard (local)
+  muxi config llm
+
+  # Fetch LLM settings from remote Formation
+  muxi config llm --remote`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := scaffold.ConfigureLLM(); err != nil {
-			return fmt.Errorf("failed to configure LLM: %w", err)
+	RunE: runConfigLLM,
+}
+
+func runConfigLLM(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
+		if err != nil {
+			return err
 		}
-		return nil
-	},
+
+		llmSettings, err := client.GetLLMSettings()
+		if err != nil {
+			return fmt.Errorf("failed to get LLM settings: %w", err)
+		}
+
+		output, _ := cmd.Flags().GetString("output")
+		return printConfigOutput(llmSettings, output)
+	}
+
+	if err := scaffold.ConfigureLLM(); err != nil {
+		return fmt.Errorf("failed to configure LLM: %w", err)
+	}
+	return nil
 }
 
 var configMemoryCmd = &cobra.Command{
@@ -79,18 +162,42 @@ This command provides an interactive wizard for:
   - Buffer memory (conversation context)
   - Persistent memory (PostgreSQL or SQLite database)
 
+Use --remote to fetch memory settings from a running Formation (read-only).
+
 Must be run inside a formation directory.
 
 Examples:
-  # Configure with interactive wizard
-  muxi config memory`,
+  # Configure with interactive wizard (local)
+  muxi config memory
+
+  # Fetch memory settings from remote Formation
+  muxi config memory --remote`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := scaffold.ConfigureMemory(); err != nil {
-			return fmt.Errorf("failed to configure memory: %w", err)
+	RunE: runConfigMemory,
+}
+
+func runConfigMemory(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
+		if err != nil {
+			return err
 		}
-		return nil
-	},
+
+		memoryConfig, err := client.GetMemoryConfig()
+		if err != nil {
+			return fmt.Errorf("failed to get memory config: %w", err)
+		}
+
+		output, _ := cmd.Flags().GetString("output")
+		return printConfigOutput(memoryConfig, output)
+	}
+
+	if err := scaffold.ConfigureMemory(); err != nil {
+		return fmt.Errorf("failed to configure memory: %w", err)
+	}
+	return nil
 }
 
 var configOverlordCmd = &cobra.Command{
@@ -104,18 +211,42 @@ This command provides an interactive wizard for:
   - Workflow behavior (routing, decomposition, timeouts)
   - Clarification settings (question style, limits)
 
+Use --remote to fetch overlord settings from a running Formation (read-only).
+
 Must be run inside a formation directory.
 
 Examples:
-  # Configure with interactive wizard
-  muxi config overlord`,
+  # Configure with interactive wizard (local)
+  muxi config overlord
+
+  # Fetch overlord settings from remote Formation
+  muxi config overlord --remote`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := scaffold.ConfigureOverlord(); err != nil {
-			return fmt.Errorf("failed to configure overlord: %w", err)
+	RunE: runConfigOverlord,
+}
+
+func runConfigOverlord(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
+		if err != nil {
+			return err
 		}
-		return nil
-	},
+
+		overlordConfig, err := client.GetOverlordConfig()
+		if err != nil {
+			return fmt.Errorf("failed to get overlord config: %w", err)
+		}
+
+		output, _ := cmd.Flags().GetString("output")
+		return printConfigOutput(overlordConfig, output)
+	}
+
+	if err := scaffold.ConfigureOverlord(); err != nil {
+		return fmt.Errorf("failed to configure overlord: %w", err)
+	}
+	return nil
 }
 
 var configLoggingCmd = &cobra.Command{
@@ -199,6 +330,23 @@ Examples:
 }
 
 func init() {
+	// Add --remote and --output flags to config and subcommands
+	configCmd.Flags().Bool("remote", false, "Fetch config from remote Formation API")
+	configCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	formation.AddCommonFlags(configCmd)
+
+	configLLMCmd.Flags().Bool("remote", false, "Fetch LLM settings from remote Formation API")
+	configLLMCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	formation.AddCommonFlags(configLLMCmd)
+
+	configMemoryCmd.Flags().Bool("remote", false, "Fetch memory config from remote Formation API")
+	configMemoryCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	formation.AddCommonFlags(configMemoryCmd)
+
+	configOverlordCmd.Flags().Bool("remote", false, "Fetch overlord config from remote Formation API")
+	configOverlordCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	formation.AddCommonFlags(configOverlordCmd)
+
 	// Add flags to config a2a
 	configA2ACmd.Flags().Bool("inbound", false, "Configure inbound A2A (skip direction question)")
 	configA2ACmd.Flags().Bool("outbound", false, "Configure outbound A2A (skip direction question)")

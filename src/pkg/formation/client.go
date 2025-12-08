@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -366,6 +367,213 @@ func (c *Client) ClearAuditLog() error {
 	defer resp.Body.Close()
 
 	return checkResponse(resp)
+}
+
+// GetLLMSettings gets LLM settings
+func (c *Client) GetLLMSettings() (*LLMSettingsResponse, error) {
+	resp, err := c.Get("/llm/settings")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[LLMSettingsResponse](resp)
+}
+
+// GetMemoryConfig gets memory configuration
+func (c *Client) GetMemoryConfig() (*MemoryConfigResponse, error) {
+	resp, err := c.Get("/memory")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[MemoryConfigResponse](resp)
+}
+
+// GetOverlordConfig gets overlord configuration
+func (c *Client) GetOverlordConfig() (*OverlordConfigResponse, error) {
+	resp, err := c.Get("/overlord")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[OverlordConfigResponse](resp)
+}
+
+// TriggerTrigger fires a trigger with optional data
+func (c *Client) TriggerTrigger(name string, data json.RawMessage, async bool) (*TriggerResponse, error) {
+	path := "/triggers/" + name
+	if async {
+		path += "?async=true"
+	}
+
+	body := TriggerRequest{Data: data}
+	resp, err := c.PostClient(path, body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[TriggerResponse](resp)
+}
+
+// GetSchedulerConfig gets scheduler configuration
+func (c *Client) GetSchedulerConfig() (*SchedulerConfigResponse, error) {
+	resp, err := c.Get("/scheduler")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[SchedulerConfigResponse](resp)
+}
+
+// GetSchedulerJobs lists scheduler jobs
+func (c *Client) GetSchedulerJobs() (*SchedulerJobsResponse, error) {
+	resp, err := c.Get("/scheduler/jobs")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[SchedulerJobsResponse](resp)
+}
+
+// GetUserIdentifiers lists all user identifier mappings (admin)
+func (c *Client) GetUserIdentifiers() (*UserIdentifiersResponse, error) {
+	resp, err := c.Get("/users/identifiers")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[UserIdentifiersResponse](resp)
+}
+
+// GetUserIdentifiersForUser lists identifier mappings for a specific user
+func (c *Client) GetUserIdentifiersForUser(userID string) (*UserIdentifiersResponse, error) {
+	resp, err := c.GetWithUser("/users/identifiers", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[UserIdentifiersResponse](resp)
+}
+
+// LinkUserIdentifier links an identifier to a user ID
+func (c *Client) LinkUserIdentifier(identifier, userID, idType string) error {
+	body := map[string]string{
+		"identifier": identifier,
+		"user_id":    userID,
+		"type":       idType,
+	}
+	resp, err := c.Post("/users/identifiers", body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// UnlinkUserIdentifier removes an identifier mapping
+func (c *Client) UnlinkUserIdentifier(identifier string) error {
+	resp, err := c.Delete("/users/identifiers/" + identifier)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// ResolveUserIdentifier resolves an identifier to a user
+func (c *Client) ResolveUserIdentifier(identifier string) (*UserIdentifier, error) {
+	resp, err := c.Get("/users/identifiers/" + identifier)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[UserIdentifier](resp)
+}
+
+// GetMemories lists memories for a user
+func (c *Client) GetMemories(userID string) (*MemoriesListResponse, error) {
+	resp, err := c.GetWithUser("/memories", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[MemoriesListResponse](resp)
+}
+
+// AddMemory adds a memory for a user
+func (c *Client) AddMemory(userID, content string) (*Memory, error) {
+	body := map[string]string{
+		"content": content,
+	}
+
+	resp, err := c.PostWithUser("/memories", body, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[Memory](resp)
+}
+
+// DeleteMemory deletes a memory
+func (c *Client) DeleteMemory(userID, memoryID string) error {
+	resp, err := c.DeleteWithUser("/memories/"+memoryID, userID)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// StreamLogs returns the response body for SSE log streaming (caller must close)
+func (c *Client) StreamLogs(userID, level, agent, requestID string) (*http.Response, error) {
+	path := "/logs/stream"
+	params := []string{}
+	if userID != "" {
+		params = append(params, "user_id="+userID)
+	}
+	if level != "" {
+		params = append(params, "level="+level)
+	}
+	if agent != "" {
+		params = append(params, "agent="+agent)
+	}
+	if requestID != "" {
+		params = append(params, "request_id="+requestID)
+	}
+	if len(params) > 0 {
+		path += "?" + strings.Join(params, "&")
+	}
+
+	// Create request with no timeout for streaming
+	url := c.BaseURL + path
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.AdminKey == "" {
+		return nil, fmt.Errorf("admin key required but not set")
+	}
+	req.Header.Set("X-MUXI-ADMIN-KEY", c.AdminKey)
+	req.Header.Set("Accept", "text/event-stream")
+
+	// Use a client with no timeout for streaming
+	streamClient := &http.Client{}
+	return streamClient.Do(req)
 }
 
 // parseResponse parses an API response into the target type

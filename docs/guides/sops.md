@@ -1,6 +1,63 @@
 # SOPs Guide
 
-This guide covers creating Standard Operating Procedures (SOPs) in MUXI formations.
+This guide covers creating and managing Standard Operating Procedures (SOPs) in MUXI formations.
+
+## CLI Commands
+
+### List SOPs
+
+View all SOPs defined in a running formation:
+
+```bash
+muxi sops
+```
+
+**Example output:**
+
+```
+    NAME                TYPE        DESCRIPTION
+    customer-onboard    template    Guide new customers through setup
+    bug-triage          guide       Categorize and prioritize bugs
+    content-review      template    Review and approve content
+```
+
+### Show SOP Details
+
+View detailed information about a specific SOP:
+
+```bash
+muxi sops show customer-onboard
+```
+
+**Example output:**
+
+```
+  SOP: customer-onboard
+
+    Description:  Guide new customers through account setup
+    Type:         template
+    Steps:        4
+    Agents:       [support-agent, setup-assistant]
+
+    Content:
+    ─────────────────────────────────────────
+    # Customer Onboarding
+
+    ## Step 1: Welcome and Verification
+    ...
+    ─────────────────────────────────────────
+```
+
+**Flags (both commands):**
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--formation` | `-F` | Formation ID (default: from formation.yaml) |
+| `--profile` | `-p` | Server profile (default: from .muxi or global) |
+
+Requires **client API key** (from `secrets.enc` or `MUXI_CLIENT_KEY`).
+
+---
 
 ## What is an SOP?
 

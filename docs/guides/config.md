@@ -16,6 +16,85 @@ This document covers the implementation patterns for `muxi config *` commands.
 
 ---
 
+## Remote Config (Formation API)
+
+Config commands support a `--remote` flag to fetch configuration from a running Formation. This is **read-only** and useful for inspecting deployed formations.
+
+### Commands with --remote Support
+
+```bash
+# Full formation config
+muxi config --remote
+muxi config --remote -o json    # JSON output
+
+# Specific sections
+muxi config llm --remote        # GET /llm/settings
+muxi config memory --remote     # GET /memory
+muxi config overlord --remote   # GET /overlord
+
+# With formation/profile flags
+muxi config llm --remote -F my-formation -p production
+```
+
+### Output Formats
+
+```bash
+muxi config --remote              # Default: YAML
+muxi config --remote -o yaml      # Explicit YAML
+muxi config --remote -o json      # JSON output
+```
+
+### Implementation Pattern
+
+For commands that support both local (interactive wizard) and remote modes:
+
+```go
+var configLLMCmd = &cobra.Command{
+    Use:   "llm",
+    Short: "Configure LLM providers and models",
+    RunE:  runConfigLLM,
+}
+
+func runConfigLLM(cmd *cobra.Command, args []string) error {
+    remote, _ := cmd.Flags().GetBool("remote")
+
+    if remote {
+        client, err := formation.ClientFromFlags(cmd)
+        if err != nil {
+            return err
+        }
+
+        llmSettings, err := client.GetLLMSettings()
+        if err != nil {
+            return fmt.Errorf("failed to get LLM settings: %w", err)
+        }
+
+        output, _ := cmd.Flags().GetString("output")
+        return printConfigOutput(llmSettings, output)
+    }
+
+    // Local: run interactive wizard
+    return scaffold.ConfigureLLM()
+}
+
+func init() {
+    configLLMCmd.Flags().Bool("remote", false, "Fetch from Formation API")
+    configLLMCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+    formation.AddCommonFlags(configLLMCmd)
+}
+```
+
+### Flags Added for Remote Mode
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--remote` | | Fetch config from Formation API (read-only) |
+| `--output` | `-o` | Output format: `yaml` (default) or `json` |
+| `--formation` | `-F` | Formation ID |
+| `--profile` | `-p` | Server profile |
+
+---
+
 ## YAML Formatting Rules
 
 All config commands follow consistent YAML formatting via helpers in `yaml.go`:
