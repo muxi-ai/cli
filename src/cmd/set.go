@@ -23,9 +23,10 @@ type DotMuxi struct {
 }
 
 var setCmd = &cobra.Command{
-	Use:   "set",
-	Short: "Set defaults",
-	Long:  `Set default server, registry, or user ID (local or global).`,
+	Use:     "set",
+	Short:   "Set defaults",
+	GroupID: "config",
+	Long:    `Set default server, registry, or user ID (local or global).`,
 }
 
 var setDefaultCmd = &cobra.Command{

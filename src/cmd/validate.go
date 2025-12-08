@@ -12,8 +12,9 @@ import (
 )
 
 var validateCmd = &cobra.Command{
-	Use:   "validate",
-	Short: "Validate formation configuration",
+	Use:     "validate",
+	Short:   "Validate formation configuration",
+	GroupID: "formation",
 	Long: `Validate the current formation's configuration files.
 
 Checks for:

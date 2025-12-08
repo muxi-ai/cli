@@ -8,8 +8,9 @@ import (
 )
 
 var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Configure formation settings",
+	Use:     "config",
+	Short:   "Configure formation settings",
+	GroupID: "formation",
 	Long: `Configure settings in formation.yaml.
 
 This command provides interactive wizards for configuring various

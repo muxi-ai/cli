@@ -9,8 +9,9 @@ import (
 )
 
 var editCmd = &cobra.Command{
-	Use:   "edit [component] [id]",
-	Short: "Open component files in your editor",
+	Use:     "edit [component] [id]",
+	Short:   "Open component files in your editor",
+	GroupID: "formation",
 	Long: `Open component configuration files in your default editor ($EDITOR).
 
 Examples:

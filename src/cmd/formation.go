@@ -19,9 +19,10 @@ import (
 )
 
 var formationCmd = &cobra.Command{
-	Use:   "formation",
-	Short: "Manage deployed formations",
-	Long:  `List, inspect, and manage formations deployed to a MUXI server.`,
+	Use:     "formation",
+	Short:   "Manage deployed formations",
+	GroupID: "server",
+	Long:    `List, inspect, and manage formations deployed to a MUXI server.`,
 }
 
 var formationListCmd = &cobra.Command{

@@ -32,6 +32,12 @@ func init() {
 	rootCmd.Version = version
 	rootCmd.SetVersionTemplate(fmt.Sprintf("muxi version %s\n", version))
 
+	// Define command groups for organized help output
+	rootCmd.AddGroup(&cobra.Group{ID: "formation", Title: "Formation Commands (available inside a formation directory):"})
+	rootCmd.AddGroup(&cobra.Group{ID: "registry", Title: "Registry Commands:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "server", Title: "Server Commands:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "config", Title: "Configuration:"})
+
 	// Add subcommands here as we build them
 	rootCmd.AddCommand(newCmd)
 }

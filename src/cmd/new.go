@@ -12,8 +12,9 @@ var (
 )
 
 var newCmd = &cobra.Command{
-	Use:   "new",
-	Short: "Create formation or components",
+	Use:     "new",
+	Short:   "Create formation or components",
+	GroupID: "config",
 	Long: `Create formation scaffolding or component files.
 
 Examples:

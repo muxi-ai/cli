@@ -16,8 +16,9 @@ import (
 // Shortcut commands - work from inside a formation directory without specifying ID
 
 var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Get current formation details (shortcut for 'formation get')",
+	Use:     "get",
+	Short:   "Get current formation details (shortcut for 'formation get')",
+	GroupID: "formation",
 	Long: `Get details of the current formation.
 
 Must be run from inside a formation directory.
@@ -27,8 +28,9 @@ This is a shortcut for 'muxi formation get <id>'.`,
 }
 
 var stopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop current formation (shortcut for 'formation stop')",
+	Use:     "stop",
+	Short:   "Stop current formation (shortcut for 'formation stop')",
+	GroupID: "formation",
 	Long: `Stop the current formation.
 
 Must be run from inside a formation directory.
@@ -38,8 +40,9 @@ This is a shortcut for 'muxi formation stop <id>'.`,
 }
 
 var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start current formation (shortcut for 'formation start')",
+	Use:     "start",
+	Short:   "Start current formation (shortcut for 'formation start')",
+	GroupID: "formation",
 	Long: `Start the current formation (must be stopped).
 
 Must be run from inside a formation directory.
@@ -49,8 +52,9 @@ This is a shortcut for 'muxi formation start <id>'.`,
 }
 
 var restartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart current formation (shortcut for 'formation restart')",
+	Use:     "restart",
+	Short:   "Restart current formation (shortcut for 'formation restart')",
+	GroupID: "formation",
 	Long: `Restart the current formation.
 
 Must be run from inside a formation directory.
@@ -60,8 +64,9 @@ This is a shortcut for 'muxi formation restart <id>'.`,
 }
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Delete current formation (shortcut for 'formation delete')",
+	Use:     "delete",
+	Short:   "Delete current formation (shortcut for 'formation delete')",
+	GroupID: "formation",
 	Long: `Delete the current formation from the server.
 
 Must be run from inside a formation directory.
@@ -71,8 +76,9 @@ This is a shortcut for 'muxi formation delete <id>'.`,
 }
 
 var rollbackCmd = &cobra.Command{
-	Use:   "rollback",
-	Short: "Rollback current formation (shortcut for 'formation rollback')",
+	Use:     "rollback",
+	Short:   "Rollback current formation (shortcut for 'formation rollback')",
+	GroupID: "formation",
 	Long: `Rollback the current formation to its previous version.
 
 Must be run from inside a formation directory.
@@ -82,8 +88,9 @@ This is a shortcut for 'muxi formation rollback <id>'.`,
 }
 
 var logsCmd = &cobra.Command{
-	Use:   "logs",
-	Short: "View current formation logs (shortcut for 'formation logs')",
+	Use:     "logs",
+	Short:   "View current formation logs (shortcut for 'formation logs')",
+	GroupID: "formation",
 	Long: `View logs for the current formation.
 
 Must be run from inside a formation directory.

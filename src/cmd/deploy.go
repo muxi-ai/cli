@@ -25,8 +25,9 @@ import (
 )
 
 var deployCmd = &cobra.Command{
-	Use:   "deploy",
-	Short: "Deploy formation to server",
+	Use:     "deploy",
+	Short:   "Deploy formation to server",
+	GroupID: "formation",
 	Long: `Deploy a formation to a MUXI server.
 
 If the formation already exists on the server, it will be updated.

@@ -23,61 +23,68 @@ import (
 
 // loginCmd handles muxi login
 var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Authenticate with the registry",
-	Long:  "Authenticate with the MUXI registry using GitHub OAuth",
-	RunE:  runLogin,
+	Use:     "login",
+	Short:   "Authenticate with the registry",
+	GroupID: "registry",
+	Long:    "Authenticate with the MUXI registry using GitHub OAuth",
+	RunE:    runLogin,
 }
 
 // logoutCmd handles muxi logout
 var logoutCmd = &cobra.Command{
-	Use:   "logout [registry]",
-	Short: "Remove registry credentials",
-	Long:  "Remove stored credentials for a registry",
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  runLogout,
+	Use:     "logout [registry]",
+	Short:   "Remove registry credentials",
+	GroupID: "registry",
+	Long:    "Remove stored credentials for a registry",
+	Args:    cobra.MaximumNArgs(1),
+	RunE:    runLogout,
 }
 
 // pushCmd handles muxi push
 var pushCmd = &cobra.Command{
-	Use:   "push",
-	Short: "Publish formation to registry",
-	Long:  "Publish the current formation to the MUXI registry",
-	RunE:  runPush,
+	Use:     "push",
+	Short:   "Publish formation to registry",
+	GroupID: "registry",
+	Long:    "Publish the current formation to the MUXI registry",
+	RunE:    runPush,
 }
 
 // pullCmd handles muxi pull
 var pullCmd = &cobra.Command{
-	Use:   "pull <@user/formation[:version]>",
-	Short: "Download formation from registry",
-	Long:  "Download a formation from the MUXI registry",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runPull,
+	Use:     "pull <@user/formation[:version]>",
+	Short:   "Download formation from registry",
+	GroupID: "registry",
+	Long:    "Download a formation from the MUXI registry",
+	Args:    cobra.ExactArgs(1),
+	RunE:    runPull,
 }
 
 // searchCmd handles muxi search
 var searchCmd = &cobra.Command{
-	Use:   "search <query>",
-	Short: "Search for formations",
-	Long:  "Search for formations in the MUXI registry",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSearch,
+	Use:     "search <query>",
+	Short:   "Search for formations",
+	GroupID: "registry",
+	Long:    "Search for formations in the MUXI registry",
+	Args:    cobra.ExactArgs(1),
+	RunE:    runSearch,
 }
 
 // showCmd handles muxi show
 var showCmd = &cobra.Command{
-	Use:   "show <@user/formation[:version]>",
-	Short: "Display formation details",
-	Long:  "Display detailed information about a formation",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runShow,
+	Use:     "show <@user/formation[:version]>",
+	Short:   "Display formation details",
+	GroupID: "registry",
+	Long:    "Display detailed information about a formation",
+	Args:    cobra.ExactArgs(1),
+	RunE:    runShow,
 }
 
 // registryCmd is the parent command for registry subcommands
 var registryCmd = &cobra.Command{
-	Use:   "registry",
-	Short: "Registry commands",
-	Long:  "Commands for interacting with the MUXI registry",
+	Use:     "registry",
+	Short:   "Registry commands",
+	GroupID: "registry",
+	Long:    "Commands for interacting with the MUXI registry",
 }
 
 // Subcommand aliases for muxi registry *

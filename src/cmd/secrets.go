@@ -12,8 +12,9 @@ import (
 )
 
 var secretsCmd = &cobra.Command{
-	Use:   "secrets",
-	Short: "Manage formation secrets",
+	Use:     "secrets",
+	Short:   "Manage formation secrets",
+	GroupID: "formation",
 	Long: `Manage encrypted secrets for a formation.
 
 Secrets are stored in secrets.enc (encrypted) and can be referenced

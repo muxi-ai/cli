@@ -15,9 +15,10 @@ import (
 )
 
 var serverCmd = &cobra.Command{
-	Use:   "server",
-	Short: "Manage server connections",
-	Long:  `Add, list, and manage MUXI Server connections.`,
+	Use:     "server",
+	Short:   "Manage server connections",
+	GroupID: "server",
+	Long:    `Add, list, and manage MUXI Server connections.`,
 }
 
 var serverAddCmd = &cobra.Command{
