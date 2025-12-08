@@ -18,6 +18,7 @@ import (
 type DotMuxi struct {
 	Profile  string `yaml:"profile,omitempty"`
 	Registry string `yaml:"registry,omitempty"`
+	UserID   string `yaml:"user_id,omitempty"`
 }
 
 var setCmd = &cobra.Command{
@@ -38,10 +39,19 @@ var setRegistryCmd = &cobra.Command{
 	RunE:  runSetRegistry,
 }
 
+var setUserCmd = &cobra.Command{
+	Use:   "user [user_id]",
+	Short: "Set default user ID for this formation",
+	Long:  `Set the default user ID for Formation API commands (chat, sessions, etc.).`,
+	Args:  cobra.MaximumNArgs(1),
+	RunE:  runSetUser,
+}
+
 func init() {
 	rootCmd.AddCommand(setCmd)
 	setCmd.AddCommand(setServerCmd)
 	setCmd.AddCommand(setRegistryCmd)
+	setCmd.AddCommand(setUserCmd)
 }
 
 // loadDotMuxi loads the .muxi file from the current directory
@@ -223,6 +233,59 @@ func runSetRegistry(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	ui.Success("Saved to .muxi")
+	fmt.Println()
+
+	return nil
+}
+
+// runSetUser handles muxi set user
+func runSetUser(cmd *cobra.Command, args []string) error {
+	if !checkFormationDir() {
+		os.Exit(1)
+	}
+
+	// Load current .muxi
+	dotMuxi, err := loadDotMuxi()
+	if err != nil {
+		return fmt.Errorf("failed to load .muxi: %w", err)
+	}
+
+	var userID string
+
+	if len(args) > 0 {
+		// User ID provided as argument
+		userID = args[0]
+	} else {
+		// Show banner for interactive mode
+		ui.Banner(`╭──────────────────────────────────────────────────────────────╮
+│ [⚙] Set Default User ID                                 MUXI │
+│──────────────────────────────────────────────────────────────│
+│ Set the default user ID for Formation API commands.          │
+│ Used by: chat, sessions, history, clear, jobs, etc.          │
+╰──────────────────────────────────────────────────────────────╯`)
+
+		fmt.Println()
+		
+		// Show current value if set
+		defaultValue := dotMuxi.UserID
+		if defaultValue == "" {
+			defaultValue = "default-user"
+		}
+		
+		userID, err = wizard.PromptString("Enter user ID", defaultValue, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Save
+	dotMuxi.UserID = userID
+	if err := saveDotMuxi(dotMuxi); err != nil {
+		return fmt.Errorf("failed to save .muxi: %w", err)
+	}
+
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Default user ID set to '%s'", userID))
 	fmt.Println()
 
 	return nil

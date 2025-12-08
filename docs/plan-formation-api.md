@@ -1,8 +1,8 @@
 # Formation API Commands Implementation Plan
 
-**Date:** 2025-12-06  
-**Status:** Planning  
-**Priority:** HIGH  
+**Date:** 2025-12-08
+**Status:** Planning
+**Priority:** HIGH
 **API Spec:** `../schemas/api/formation-api-v1-final.yaml`
 
 ---
@@ -25,153 +25,145 @@ Implement CLI commands for interacting with **deployed formations** via the Form
 ## Command Design Principles
 
 1. **No `muxi api` prefix** - Commands should feel native
-2. **Shortcut from formation dir** - Like existing shortcuts
+2. **Shortcut from formation dir** - Like existing shortcuts (e.g., `muxi stop` = `muxi formation stop`)
 3. **Formation ID flag** - `--formation <id>` or `-F <id>` for anywhere
-4. **User ID required** - Most client endpoints need `--user <id>`
-5. **No conflicts** - Don't shadow existing commands
+4. **Server/Profile flag** - `--profile <name>` or `-p <name>` for testing same formation on different servers
+5. **User ID** - `--user <id>` or `-u <id>`, with default from config
+6. **`--remote` flag** - Distinguishes local vs runtime operations for conflicting commands
+
+---
+
+## Global Configuration
+
+### Default User ID (Implemented)
+
+Same pattern as server/registry defaults:
+
+```yaml
+# ~/.muxi/cli/defaults.yaml (global)
+version: "1.0"
+user_id: "alice"
+
+# .muxi (formation-level, overrides global)
+profile: "local"
+registry: "muxihub"
+user_id: "dev-user"
+```
+
+**Commands:**
+```bash
+# Global default
+muxi user default alice          # Set global default
+muxi user default                # Interactive
+muxi user show                   # Show current defaults
+
+# Per-formation override  
+muxi set user alice              # Set for this formation
+muxi set user                    # Interactive
+```
+
+**Resolution order:**
+1. `--user` flag (highest priority)
+2. `.muxi` → `user_id` in formation dir
+3. `~/.muxi/cli/defaults.yaml` → `user_id` (global)
+4. Prompt if none set
+
+**Helper function:** `defaults.GetEffectiveUserID(formationUserID)` checks formation then global.
+
+---
+
+## Conflict Resolution: `--remote` Flag
+
+For commands with both local and remote variants, use `--remote` flag:
+
+```go
+func runSecrets(cmd *cobra.Command, args []string) error {
+    remote, _ := cmd.Flags().GetBool("remote")
+
+    if remote {
+        return runRemoteSecrets(cmd, args)  // Formation API
+    }
+    return runLocalSecrets(cmd, args)  // Local secrets.enc
+}
+```
+
+| Command | Default (local) | `--remote` flag |
+|---------|----------------|-----------------|
+| `muxi secrets list` | List secrets.enc | GET /secrets |
+| `muxi secrets set KEY` | Update secrets.enc | POST/PUT /secrets |
+| `muxi secrets delete KEY` | Remove from secrets.enc | DELETE /secrets/{key} |
+| `muxi config` | Interactive wizards | GET /config |
+| `muxi config llm` | LLM wizard | GET /llm/settings |
+| `muxi config memory` | Memory wizard | GET /memory |
+| `muxi config overlord` | Overlord wizard | GET /overlord |
+
+**Future-proof:** If we add local `muxi agents` (list from `agents/*.yaml`), same pattern applies.
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Chat (Core Interaction)
-1. `muxi chat` - Send message to formation (streaming)
+### Phase 1: Foundation & Introspection
+1. `muxi info` - Formation runtime status
+2. `muxi agents` - List/manage agents
+3. `muxi mcp` - List MCP servers
+4. `muxi triggers` - List triggers
+5. `muxi sops` - List SOPs
 
-### Phase 2: Introspection
-2. `muxi info` - Formation runtime status/info
-3. `muxi agents list` - List agents in formation (conflicts with `muxi new agent`, so use subcommand)
-4. `muxi triggers` - List available triggers
+### Phase 2: Configuration (--remote flag)
+6. `muxi secrets --remote` - Runtime secrets
+7. `muxi config --remote` - Runtime config dump
 
 ### Phase 3: Session Management
-5. `muxi sessions` - List user sessions
-6. `muxi history` - Get session message history
-7. `muxi clear` - Clear session/buffer
+8. `muxi sessions` - List user sessions
+9. `muxi history` - Get session messages
+10. `muxi clear` - Clear session/buffer
 
-### Phase 4: Advanced
-8. `muxi trigger` - Execute a trigger
-9. `muxi audit` - View audit log
-10. `muxi stream` - Stream live logs (SSE)
+### Phase 4: Operations
+11. `muxi trigger` - Execute trigger
+12. `muxi jobs` - List/cancel async jobs
+13. `muxi audit` - View audit log
+14. `muxi stream` - Live log streaming
 
----
+### Phase 5: Advanced Admin
+15. `muxi scheduler` - Scheduler jobs
+16. `muxi users` - User identity management
+17. `muxi memory` - Memory operations
 
-## Phase 1: Chat
-
-### `muxi chat`
-
-**The primary way to interact with a deployed formation.**
-
-```bash
-# From inside formation directory
-muxi chat "What's the weather like today?"
-
-# From anywhere
-muxi chat --formation my-formation "What's the weather like today?"
-muxi chat -F my-formation "Hello!"
-
-# With user context
-muxi chat --user alice "Help me with my account"
-
-# With session persistence
-muxi chat --user alice --session sess_abc123 "Continue our conversation"
-
-# Non-streaming mode
-muxi chat --no-stream "Quick question"
-
-# Pipe input
-echo "Analyze this data" | muxi chat --user alice
-cat document.txt | muxi chat --user alice "Summarize this:"
-```
-
-**API:** `POST /api/{formation}/v1/chat`
-
-**Auth:** Client Key (`X-MUXI-CLIENT-KEY`)
-
-**Headers:**
-- `X-User-ID: {user_id}` (required)
-- `Accept: text/event-stream` (for streaming)
-
-**Request:**
-```json
-{
-  "message": "What's the weather like?",
-  "session_id": "sess_abc123"  // optional
-}
-```
-
-**Output (streaming):**
-```
-muxi chat --user alice "What's the weather?"
-
-◐ Thinking...
-
-The weather today is sunny with a high of 72°F (22°C). 
-Perfect day to be outside!
-
----
-Tokens: 45 prompt, 28 completion | 1.2s
-```
-
-**Output (non-streaming):**
-```
-muxi chat --user alice --no-stream "Quick question"
-
-The answer is 42.
-```
-
-**Flags:**
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--formation` | `-F` | Formation ID (optional if in formation dir) |
-| `--user` | `-u` | User ID (required) |
-| `--session` | `-s` | Session ID for conversation continuity |
-| `--no-stream` | | Disable streaming output |
-| `--profile` | | Server profile to use |
-
-**Implementation Notes:**
-- Detect formation from `formation.yaml` if in formation dir
-- Get formation URL from server: `GET /rpc/formations/{id}` returns port
-- Connect to formation at `http://localhost:{port}/v1/chat`
-- Or via server proxy: `http://server:7890/api/{formation}/v1/chat`
-- Stream tokens in real-time using SSE
-- Show usage stats at the end
+### Phase 6: Chat (Last - needs careful UX design)
+18. `muxi chat` - Interactive chat with formation
 
 ---
 
-## Phase 2: Introspection
+## Phase 1: Foundation & Introspection
 
 ### `muxi info`
 
-**Get formation runtime status and configuration.**
+**Get formation runtime status.**
 
 ```bash
-# From formation directory
-muxi info
-
-# From anywhere
-muxi info --formation my-formation
-
-# Verbose output
-muxi info -v
+muxi info                           # From formation dir
+muxi info -F my-formation           # From anywhere
+muxi info -F my-formation -p prod   # Specific server profile
+muxi info --full                    # Include full config
 ```
 
-**API:** `GET /api/{formation}/v1/status`
+**API:** `GET /status`, `GET /config`
 
 **Auth:** Admin Key
 
 **Output:**
 ```
-muxi info
-
 Formation: my-formation
 
   Status:     ● running
   Version:    1.2.0
   Uptime:     5d 12h 30m
-  
+
   Agents:     3 (2 active)
   MCP:        2 servers connected
   Memory:     256 MB working, 1.2 GB persistent
-  
+
   Stats:
     Requests:   1,234 total (12 active)
     CPU:        15%
@@ -182,49 +174,54 @@ Formation: my-formation
 
 ---
 
-### `muxi agents list`
+### `muxi agents`
 
-**List agents in the running formation.**
+**List and manage agents in running formation.**
 
 ```bash
-muxi agents list
-muxi agents list --formation my-formation
-muxi agents list -v  # verbose
+muxi agents                    # List agents
+muxi agents -v                 # Verbose
+muxi agents add <config.yaml>  # Add agent (POST /agents)
+muxi agents remove <id>        # Remove agent (DELETE /agents/{id})
+muxi agents disable <id>       # Disable agent (PATCH /agents/{id})
+muxi agents enable <id>        # Enable agent
 ```
 
-**API:** `GET /api/{formation}/v1/agents`
+**API:** `GET/POST/PATCH/DELETE /agents`
 
 **Auth:** Admin Key
 
 **Output:**
 ```
-muxi agents list
-
   ID                  ROLE        STATUS    MODEL
   weather-assistant   specialist  ● active  openai/gpt-4o
   code-helper         specialist  ● active  anthropic/claude-3
   general-assistant   generalist  ○ idle    openai/gpt-4o-mini
 ```
 
-**Verbose Output:**
+---
+
+### `muxi mcp`
+
+**List MCP servers in running formation.**
+
+```bash
+muxi mcp                       # List servers
+muxi mcp -v                    # Verbose with tools
+muxi mcp add <config.yaml>     # Add server
+muxi mcp remove <id>           # Remove server
 ```
-muxi agents list -v
 
-weather-assistant
-  Role:        specialist
-  Status:      ● active
-  Model:       openai/gpt-4o
-  Specialties: weather_forecasting, meteorology
-  A2A:         internal=yes, external=yes
-  Source:      formation
+**API:** `GET/POST/PATCH/DELETE /mcp/servers`
 
-code-helper
-  Role:        specialist
-  Status:      ● active
-  Model:       anthropic/claude-3
-  Specialties: programming, debugging
-  A2A:         internal=yes, external=no
-  Source:      api
+**Auth:** Admin Key
+
+**Output:**
+```
+  ID              TYPE      STATUS       TOOLS
+  local-tools     command   ● connected  5 tools
+  web-search      http      ● connected  3 tools
+  database        sse       ○ error      -
 ```
 
 ---
@@ -235,22 +232,103 @@ code-helper
 
 ```bash
 muxi triggers
-muxi triggers --formation my-formation
+muxi triggers -F my-formation
 ```
 
-**API:** `GET /api/{formation}/v1/triggers`
+**API:** `GET /triggers`
 
 **Auth:** Client Key
 
 **Output:**
 ```
-muxi triggers
-
-  NAME                    DESCRIPTION
-  github-issue           Handle GitHub issue events
-  linear-ticket          Process Linear ticket updates
-  deployment-notify      Deployment notification handler
+  NAME                 DESCRIPTION
+  github-issue         Handle GitHub issue events
+  linear-ticket        Process Linear ticket updates
+  deployment-notify    Deployment notification handler
 ```
+
+---
+
+### `muxi sops`
+
+**List Standard Operating Procedures.**
+
+```bash
+muxi sops                      # List SOPs
+muxi sops show <name>          # Show SOP details
+```
+
+**API:** `GET /sops`, `GET /sops/{name}`
+
+**Auth:** Client Key
+
+**Output:**
+```
+  NAME                 TYPE       STEPS  AGENTS
+  customer-onboarding  template   5      identity-verifier, account-manager
+  incident-response    guide      8      security-analyst, incident-coordinator
+```
+
+---
+
+## Phase 2: Configuration (--remote flag)
+
+### `muxi secrets --remote`
+
+**Manage runtime secrets.**
+
+```bash
+# Local (default, existing behavior)
+muxi secrets list
+muxi secrets set OPENAI_KEY
+muxi secrets delete OLD_KEY
+
+# Remote (Formation API)
+muxi secrets list --remote
+muxi secrets set NEW_KEY --remote
+muxi secrets delete OLD_KEY --remote
+
+# From anywhere (always remote)
+muxi formation secrets list -F my-formation
+muxi formation secrets set KEY -F my-formation
+```
+
+**API:** `GET/POST/PUT/DELETE /secrets`
+
+**Auth:** Admin Key
+
+**Output (--remote):**
+```
+  KEY                    VALUE
+  OPENAI_API_KEY         sk-••••••••••••••••Gst
+  ANTHROPIC_API_KEY      sk-ant-••••••••••••••
+  DATABASE_URL           postgresql://••••@localhost
+```
+
+---
+
+### `muxi config --remote`
+
+**View runtime configuration.**
+
+```bash
+# Local (default, existing behavior - interactive wizards)
+muxi config llm
+muxi config memory
+
+# Remote (Formation API - read-only dump)
+muxi config --remote              # Full config
+muxi config llm --remote          # LLM settings
+muxi config memory --remote       # Memory settings
+muxi config overlord --remote     # Overlord config
+muxi config async --remote        # Async settings
+muxi config a2a --remote          # A2A settings
+muxi config logging --remote      # Logging config
+```
+
+**API:** `GET /config`, `GET /llm/settings`, `GET /memory`, etc.
+
+**Auth:** Admin Key
 
 ---
 
@@ -261,23 +339,20 @@ muxi triggers
 **List user sessions.**
 
 ```bash
-muxi sessions --user alice
-muxi sessions --user alice --active  # only active sessions
-muxi sessions -F my-formation --user alice
+muxi sessions                    # Uses default user
+muxi sessions -u alice           # Specific user
+muxi sessions -u alice --active  # Active only
 ```
 
-**API:** `GET /api/{formation}/v1/sessions`
+**API:** `GET /sessions`
 
-**Auth:** Client Key + `X-User-ID` header
+**Auth:** Client Key + `X-User-ID`
 
 **Output:**
 ```
-muxi sessions --user alice
-
-  SESSION ID      MESSAGES   LAST ACTIVITY         STATUS
-  sess_abc123     25         2 minutes ago         ● active
-  sess_xyz789     12         3 hours ago           ○ inactive
-  sess_def456     8          2 days ago            ○ inactive
+  SESSION ID      MESSAGES   LAST ACTIVITY      STATUS
+  sess_abc123     25         2 minutes ago      ● active
+  sess_xyz789     12         3 hours ago        ○ inactive
 ```
 
 ---
@@ -287,19 +362,18 @@ muxi sessions --user alice
 **Get session message history.**
 
 ```bash
-muxi history --session sess_abc123 --user alice
-muxi history -s sess_abc123 -u alice --lines 20
-muxi history -s sess_abc123 -u alice --json
+muxi history -s sess_abc123           # Uses default user
+muxi history -s sess_abc123 -u alice  # Specific user
+muxi history -s sess_abc123 --lines 50
+muxi history -s sess_abc123 --json
 ```
 
-**API:** `GET /api/{formation}/v1/sessions/{session_id}/messages`
+**API:** `GET /sessions/{session_id}/messages`
 
-**Auth:** Client Key + `X-User-ID` header
+**Auth:** Client Key + `X-User-ID`
 
 **Output:**
 ```
-muxi history --session sess_abc123 --user alice
-
 Session: sess_abc123 (25 messages)
 
 [10:00:15] alice: What's the weather like?
@@ -307,8 +381,6 @@ Session: sess_abc123 (25 messages)
 
 [10:05:00] alice: Can you help me with Python code?
 [10:05:03] code-helper: Of course! What do you need help with?
-
-... (showing last 10 messages, use --lines for more)
 ```
 
 ---
@@ -318,60 +390,54 @@ Session: sess_abc123 (25 messages)
 **Clear session or buffer memory.**
 
 ```bash
-# Clear specific session
-muxi clear --session sess_abc123 --user alice
-
-# Clear all user buffer memory
-muxi clear --user alice --all
-
-# With confirmation skip
-muxi clear --session sess_abc123 --user alice -f
+muxi clear -s sess_abc123        # Clear session
+muxi clear --all                 # Clear all user buffer
+muxi clear -s sess_abc123 -f     # Skip confirmation
 ```
 
-**API:** 
-- `DELETE /api/{formation}/v1/sessions/{session_id}`
-- `DELETE /api/{formation}/v1/memory/buffer`
+**API:** `DELETE /sessions/{session_id}`, `DELETE /memory/buffer`
 
-**Auth:** Client Key + `X-User-ID` header
-
-**Output:**
-```
-muxi clear --session sess_abc123 --user alice
-
-Clear session "sess_abc123"? (25 messages will be deleted) [y/N]: y
-
-✓ Session cleared (25 messages removed)
-```
+**Auth:** Client Key + `X-User-ID`
 
 ---
 
-## Phase 4: Advanced
+## Phase 4: Operations
 
 ### `muxi trigger`
 
-**Execute a trigger with data.**
+**Execute a trigger.**
 
 ```bash
-muxi trigger github-issue --data '{"issue": {"number": 123, "title": "Bug"}}'
+muxi trigger github-issue --data '{"issue": {"number": 123}}'
 muxi trigger github-issue --file event.json
-muxi trigger github-issue --user webhook-bot --data '...'
+muxi trigger github-issue --async   # Don't wait for result
 ```
 
-**API:** `POST /api/{formation}/v1/triggers/{trigger_name}`
+**API:** `POST /triggers/{trigger_name}`
+
+**Auth:** Client Key
+
+---
+
+### `muxi jobs`
+
+**List and manage async jobs.**
+
+```bash
+muxi jobs                        # List jobs for default user
+muxi jobs -u webhook-bot         # List jobs for user
+muxi jobs cancel <job_id>        # Cancel job
+```
+
+**API:** `GET /jobs/{user_id}`, `DELETE /jobs/{user_id}/{job_id}`
 
 **Auth:** Client Key
 
 **Output:**
 ```
-muxi trigger github-issue --data '{"issue": {"number": 123}}'
-
-  ⠹ Executing trigger...
-  ✓ Trigger queued
-
-  Job ID: job_abc123
-  Status: processing
-  
-  Use 'muxi jobs --user webhook-bot' to check status
+  JOB ID        STATUS       PROGRESS   CREATED
+  job_456789    processing   75%        2 minutes ago
+  job_123456    completed    100%       1 hour ago
 ```
 
 ---
@@ -385,16 +451,15 @@ muxi audit
 muxi audit --lines 50
 muxi audit --action agent.created
 muxi audit --since "2025-12-01"
+muxi audit --clear               # Clear audit log
 ```
 
-**API:** `GET /api/{formation}/v1/audit`
+**API:** `GET /audit`, `DELETE /audit`
 
 **Auth:** Admin Key
 
 **Output:**
 ```
-muxi audit --lines 10
-
   TIMESTAMP            ACTION           RESOURCE         USER
   2025-12-06 10:15:00  agent.created    weather-bot      admin
   2025-12-06 10:14:30  secret.created   OPENAI_KEY       admin
@@ -408,113 +473,196 @@ muxi audit --lines 10
 **Stream live logs from formation.**
 
 ```bash
-muxi stream --user alice
-muxi stream --level ERROR
-muxi stream --agent weather-assistant
-muxi stream --request req_abc123
+muxi stream -u alice              # Filter by user
+muxi stream --level ERROR         # Filter by level
+muxi stream --agent weather-bot   # Filter by agent
+muxi stream --request req_abc123  # Filter by request
 ```
 
-**API:** `GET /api/{formation}/v1/logs/stream` (SSE)
+**API:** `GET /logs/stream` (SSE)
 
 **Auth:** Admin Key
 
 **Output:**
 ```
-muxi stream --user alice
-
-Streaming logs for user: alice (Ctrl+C to stop)
+Streaming logs (Ctrl+C to stop)
 
 [10:15:00] INFO  chat.started     user=alice session=sess_abc
 [10:15:01] INFO  agent.invoked    agent=weather-assistant
 [10:15:02] INFO  llm.request      model=gpt-4o tokens=150
 [10:15:03] INFO  chat.completed   user=alice duration=2.1s
-^C
-Stopped.
 ```
 
 ---
 
-## API Key Management
+## Phase 5: Advanced Admin
 
-Formations use API keys for authentication. The CLI needs to:
+### `muxi scheduler`
 
-1. **Get keys from server** - Server knows formation's keys
-2. **Cache keys locally** - Avoid repeated lookups
-3. **Support key override** - `--admin-key` / `--client-key` flags
+**Manage scheduled jobs.**
 
-**Key Discovery:**
 ```bash
-# Server returns formation details including API endpoint
-GET /rpc/formations/{id}
-{
-  "id": "my-formation",
-  "port": 8001,
-  "api_url": "http://localhost:7890/api/my-formation",
-  "keys": {
-    "admin": "fma-abc...",  # Only returned with server HMAC auth
-    "client": "fmc-xyz..."
-  }
-}
+muxi scheduler                   # List scheduled jobs
+muxi scheduler add <config.yaml> # Create job
+muxi scheduler remove <id>       # Remove job
+muxi scheduler show <id>         # Show job details
 ```
 
-**Key Caching:**
-- Store in `~/.muxi/cli/formation-keys.yaml`
-- TTL: 1 hour
-- Refresh on 401 errors
+**API:** `GET/POST/DELETE /scheduler/jobs`
+
+**Auth:** Admin Key
 
 ---
 
-## Command Summary
+### `muxi users`
 
-| Command | Description | Auth | Phase |
-|---------|-------------|------|-------|
-| `muxi chat` | Send message to formation | Client | 1 |
-| `muxi info` | Formation runtime status | Admin | 2 |
-| `muxi agents list` | List formation agents | Admin | 2 |
-| `muxi triggers` | List available triggers | Client | 2 |
-| `muxi sessions` | List user sessions | Client | 3 |
-| `muxi history` | Get message history | Client | 3 |
-| `muxi clear` | Clear session/buffer | Client | 3 |
-| `muxi trigger` | Execute a trigger | Client | 4 |
-| `muxi audit` | View audit log | Admin | 4 |
-| `muxi stream` | Stream live logs | Admin | 4 |
+**Manage user identities.**
+
+```bash
+muxi users identifiers -u alice           # List user's identifiers
+muxi users link -u alice "alice@co.com"   # Link identifier
+muxi users unlink "alice@co.com"          # Unlink identifier
+muxi users resolve "alice@co.com"         # Resolve to MUXI user
+```
+
+**API:** `GET/POST/DELETE /users/identifiers`
+
+**Auth:** Client Key
+
+---
+
+### `muxi memory`
+
+**Memory operations.**
+
+```bash
+muxi memory status               # Buffer status
+muxi memory list                 # List user memories
+muxi memory add <content>        # Add memory
+muxi memory delete <id>          # Delete memory
+```
+
+**API:** `GET /memory/buffer`, `GET/POST/DELETE /memories`
+
+**Auth:** Client Key + `X-User-ID`
+
+---
+
+## Phase 6: Chat (Last)
+
+### `muxi chat`
+
+**Interactive chat with formation. (Requires careful UX design)**
+
+```bash
+# Basic usage
+muxi chat "What's the weather?"
+
+# With context
+muxi chat -u alice "Help me with my account"
+muxi chat -u alice -s sess_abc123 "Continue our conversation"
+
+# Options
+muxi chat --no-stream "Quick question"
+muxi chat --group analyst "Generate Q1 report"
+
+# Pipe input
+echo "Analyze this" | muxi chat
+cat doc.txt | muxi chat "Summarize:"
+
+# From anywhere
+muxi chat -F my-formation -p prod "Hello"
+```
+
+**API:** `POST /chat`
+
+**Auth:** Client Key + `X-User-ID`
+
+**Flags:**
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--formation` | `-F` | Formation ID |
+| `--profile` | `-p` | Server profile |
+| `--user` | `-u` | User ID |
+| `--session` | `-s` | Session ID |
+| `--group` | `-g` | Group ID for routing |
+| `--no-stream` | | Disable streaming |
+| `--webhook` | | Webhook URL for async |
+
+**Note:** Chat UX needs careful design - streaming, interrupts, multi-turn, file attachments, etc.
+
+---
+
+## API Coverage Summary
+
+| Endpoint | Command | Phase |
+|----------|---------|-------|
+| `GET /health` | (internal) | - |
+| `GET /status` | `muxi info` | 1 |
+| `GET /config` | `muxi config --remote` | 2 |
+| `GET /overlord` | `muxi config overlord --remote` | 2 |
+| `GET/POST/PATCH/DELETE /agents` | `muxi agents` | 1 |
+| `GET/POST/PUT/DELETE /secrets` | `muxi secrets --remote` | 2 |
+| `GET/PATCH /llm/settings` | `muxi config llm --remote` | 2 |
+| `GET/DELETE /audit` | `muxi audit` | 4 |
+| `GET /sops` | `muxi sops` | 1 |
+| `POST /chat` | `muxi chat` | 6 |
+| `POST /avchat` | `muxi chat --av` (future) | - |
+| `GET /events/{user_id}` | (internal/future) | - |
+| `GET/DELETE /jobs/{user_id}` | `muxi jobs` | 4 |
+| `GET/DELETE /requests/{id}` | `muxi jobs` (combined) | 4 |
+| `GET /triggers` | `muxi triggers` | 1 |
+| `POST /triggers/{name}` | `muxi trigger` | 4 |
+| `GET/POST/PATCH/DELETE /logging` | `muxi config logging --remote` | 2 |
+| `GET /logs/stream` | `muxi stream` | 4 |
+| `GET/PATCH /memory` | `muxi config memory --remote` | 2 |
+| `GET/DELETE /memory/buffer` | `muxi clear` | 3 |
+| `GET/POST/DELETE /memories` | `muxi memory` | 5 |
+| `GET/PATCH /async` | `muxi config async --remote` | 2 |
+| `GET/PATCH /scheduler` | `muxi scheduler` | 5 |
+| `GET/POST/DELETE /scheduler/jobs` | `muxi scheduler` | 5 |
+| `GET/PATCH /a2a` | `muxi config a2a --remote` | 2 |
+| `GET /sessions` | `muxi sessions` | 3 |
+| `GET/DELETE /sessions/{id}` | `muxi sessions`, `muxi clear` | 3 |
+| `GET /sessions/{id}/messages` | `muxi history` | 3 |
+| `GET/POST/DELETE /users/identifiers` | `muxi users` | 5 |
+| `GET/PATCH /mcp` | `muxi mcp` | 1 |
+| `GET/POST/PATCH/DELETE /mcp/servers` | `muxi mcp` | 1 |
 
 ---
 
 ## File Structure
 
 ```
-pkg/formation/
-├── client.go      # Formation API client
-├── auth.go        # API key management
-├── types.go       # API response types
-└── cache.go       # Key caching
+pkg/
+├── formation/
+│   ├── client.go       # Formation API client
+│   ├── auth.go         # API key management
+│   ├── types.go        # API response types
+│   └── cache.go        # Key caching
+│
+└── config/
+    └── defaults.go     # Default user_id, etc.
 
 cmd/
-├── chat.go        # muxi chat
-├── info.go        # muxi info
-├── agents.go      # muxi agents list (add subcommand)
-├── triggers.go    # muxi triggers, muxi trigger
-├── sessions.go    # muxi sessions, muxi history
-├── clear.go       # muxi clear
-├── audit.go       # muxi audit
-└── stream.go      # muxi stream
+├── info.go             # muxi info
+├── agents.go           # muxi agents
+├── mcp.go              # muxi mcp
+├── triggers.go         # muxi triggers, muxi trigger
+├── sops.go             # muxi sops
+├── secrets.go          # Update: add --remote support
+├── config.go           # Update: add --remote support
+├── sessions.go         # muxi sessions
+├── history.go          # muxi history
+├── clear.go            # muxi clear
+├── jobs.go             # muxi jobs
+├── audit.go            # muxi audit
+├── stream.go           # muxi stream
+├── scheduler.go        # muxi scheduler
+├── users.go            # muxi users
+├── memory.go           # muxi memory
+└── chat.go             # muxi chat (Phase 6)
 ```
-
----
-
-## Existing Commands (No Conflicts)
-
-| Existing Command | Purpose | Conflict? |
-|-----------------|---------|-----------|
-| `muxi deploy` | Deploy formation | No |
-| `muxi formation *` | Server lifecycle | No |
-| `muxi get/stop/start/...` | Server shortcuts | No - different purpose |
-| `muxi new agent` | Scaffold agent | Use `muxi agents list` to avoid |
-| `muxi config *` | Configure formation | No |
-| `muxi secrets *` | Local secrets | No - Formation API is runtime |
-| `muxi server *` | Server profiles | No |
-| `muxi login/push/...` | Registry | No |
 
 ---
 
@@ -522,19 +670,22 @@ cmd/
 
 | Phase | Tasks | Estimate |
 |-------|-------|----------|
-| 1 | Chat command (streaming, sessions) | 4 hours |
-| 2 | Info, agents list, triggers | 3 hours |
-| 3 | Sessions, history, clear | 3 hours |
-| 4 | Trigger execution, audit, stream | 4 hours |
-| - | Testing & polish | 2 hours |
-| **Total** | | **16 hours** |
+| 1 | Foundation (info, agents, mcp, triggers, sops) | 6 hours |
+| 2 | Config --remote (secrets, config) | 4 hours |
+| 3 | Sessions (sessions, history, clear) | 3 hours |
+| 4 | Operations (trigger, jobs, audit, stream) | 5 hours |
+| 5 | Advanced (scheduler, users, memory) | 4 hours |
+| 6 | Chat (streaming, UX, edge cases) | 6 hours |
+| - | Testing & polish | 4 hours |
+| **Total** | | **32 hours** |
 
 ---
 
 ## Notes
 
-1. **Formation Detection**: Same logic as shortcuts - read `formation.yaml`
-2. **Server Proxy**: Use server's `/api/{id}/*` proxy, not direct port access
-3. **Streaming**: Reuse SSE parsing from deploy command
-4. **User ID**: Most client endpoints require it - make it a persistent setting?
-5. **Key Caching**: Important for performance - avoid key lookup on every request
+1. **Formation Detection:** Same logic as shortcuts - read `formation.yaml`
+2. **Server Proxy:** Use server's `/api/{id}/*` proxy, not direct port access
+3. **Streaming:** Reuse SSE parsing from deploy command
+4. **Default User ID:** Critical for good UX - most commands need it
+5. **Key Caching:** Store in `~/.muxi/cli/formation-keys.yaml`, TTL 1 hour
+6. **Chat Last:** Needs careful UX design for streaming, interrupts, files, etc.
