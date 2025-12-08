@@ -661,7 +661,7 @@ Uses Bubble Tea for input box only, streams responses to stdout above:
 2. **Response Streaming** (stdout)
    - SSE streaming from `POST /chat`
    - Real-time token display
-   - Markdown rendering (optional)
+   - Markdown rendering via `glamour` (code blocks, lists, links, etc.)
 
 3. **State Management**
    - Session ID persistence
@@ -724,6 +724,7 @@ pkg/
 - `github.com/charmbracelet/bubbletea` - TUI framework
 - `github.com/charmbracelet/bubbles` - Input component
 - `github.com/charmbracelet/lipgloss` - Styling (already used)
+- `github.com/charmbracelet/glamour` - Markdown rendering with syntax highlighting
 
 ### API
 
