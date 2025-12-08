@@ -4,7 +4,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+)
+
+// Colors for help output
+var (
+	gold   = color.New(color.FgHiYellow)
+	cyan   = color.New(color.FgCyan)
+	dimmed = color.New(color.Faint)
 )
 
 var (
@@ -50,39 +58,43 @@ func customHelp(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Version header outside box
+	fmt.Print("MUXI CLI • ")
+	dimmed.Println(version)
+
 	// Header box
 	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
-	fmt.Println("│ MUXI CLI • Build, deploy, and manage formations with ease    │")
+	fmt.Println("│ Build, deploy, and manage formations with ease               │")
 	printBoxDivider()
 	printBoxLine("Examples:")
-	printBoxLine(" $ muxi new formation my-bot")
-	printBoxLine(" $ muxi deploy --profile production")
-	printBoxLine(" $ muxi agents list")
+	printColoredCommand(" $ muxi new formation my-bot")
+	printColoredCommand(" $ muxi deploy --profile production")
+	printColoredCommand(" $ muxi agents list")
 	printBoxDivider()
 	printBoxLine("Usage:")
-	printBoxLine(" $ muxi [command]")
+	printColoredCommand(" $ muxi [command]")
 	printBoxBottom()
 	fmt.Println()
 
 	// Formation Commands
 	printBoxWithSubtitle("Formation Commands", "MUXI")
-	printBoxLine("$ muxi formation [command]")
+	printColoredCommand("$ muxi formation [command]")
 	printBoxLine("  or (from formation dir):")
-	printBoxLine("$ muxi [command]")
+	printColoredCommand("$ muxi [command]")
 	printBoxBottom()
 	printCommandGroup(cmd, "formation")
 	fmt.Println()
 
 	// Registry Commands
 	printBoxWithSubtitle("Registry Commands", "MUXI")
-	printBoxLine("$ muxi registry [command]")
+	printColoredCommand("$ muxi registry [command]")
 	printBoxBottom()
 	printCommandGroup(cmd, "registry")
 	fmt.Println()
 
 	// Server Commands
 	printBoxWithSubtitle("Server Commands", "MUXI")
-	printBoxLine("$ muxi server [command]")
+	printColoredCommand("$ muxi server [command]")
 	printBoxBottom()
 	printCommandGroup(cmd, "server")
 	fmt.Println()
@@ -99,14 +111,14 @@ func customHelp(cmd *cobra.Command, args []string) {
 
 	// Flags
 	printBoxSimple("Flags", "MUXI")
-	fmt.Println("  -h, --help       Help for muxi")
-	fmt.Println("  -v, --version    Version for muxi")
+	fmt.Printf("  -h, --help       %s\n", dimmed.Sprint("Help for muxi"))
+	fmt.Printf("  -v, --version    %s\n", dimmed.Sprint("Version for muxi"))
 	fmt.Println()
 
 	// Footer
 	printDivider()
 	fmt.Println()
-	fmt.Println("Use \"muxi [command] --help\" for more information about a command.")
+	dimmed.Println("Use \"muxi [command] --help\" for more information about a command.")
 	fmt.Println()
 }
 
@@ -123,13 +135,13 @@ func printBoxWithSubtitle(title, subtitle string) {
 	fmt.Print(strings.Repeat("─", boxWidth-2))
 	fmt.Println("╮")
 	
-	// Title with subtitle right-aligned
+	// Title with colored subtitle right-aligned
 	content := title
 	padding := boxWidth - 4 - len(content) - len(subtitle)
 	if padding < 1 {
 		padding = 1
 	}
-	fmt.Printf("│ %s%s%s │\n", content, strings.Repeat(" ", padding), subtitle)
+	fmt.Printf("│ %s%s%s │\n", content, strings.Repeat(" ", padding), gold.Sprint(subtitle))
 	
 	printBoxDivider()
 }
@@ -144,7 +156,7 @@ func printBoxSimple(title, subtitle string) {
 	if padding < 1 {
 		padding = 1
 	}
-	fmt.Printf("│ %s%s%s │\n", content, strings.Repeat(" ", padding), subtitle)
+	fmt.Printf("│ %s%s%s │\n", content, strings.Repeat(" ", padding), gold.Sprint(subtitle))
 	
 	fmt.Print("╰")
 	fmt.Print(strings.Repeat("─", boxWidth-2))
@@ -176,10 +188,24 @@ func printDivider() {
 	fmt.Println(strings.Repeat("─", boxWidth))
 }
 
+func printColoredCommand(content string) {
+	// Color $ as dimmed, muxi as cyan
+	colored := strings.Replace(content, "$", dimmed.Sprint("$"), 1)
+	colored = strings.Replace(colored, "muxi", cyan.Sprint("muxi"), 1)
+	
+	// Calculate padding (account for ANSI codes not taking visual space)
+	visualLen := len(content)
+	padding := boxWidth - 4 - visualLen
+	if padding < 0 {
+		padding = 0
+	}
+	fmt.Printf("│ %s%s │\n", colored, strings.Repeat(" ", padding))
+}
+
 func printCommandGroup(cmd *cobra.Command, groupID string) {
 	for _, c := range cmd.Commands() {
 		if c.GroupID == groupID && c.Name() != "help" {
-			fmt.Printf("  %-12s%s\n", c.Name(), c.Short)
+			fmt.Printf("  %-12s%s\n", c.Name(), dimmed.Sprint(c.Short))
 		}
 	}
 }
@@ -187,12 +213,12 @@ func printCommandGroup(cmd *cobra.Command, groupID string) {
 func printUngroupedCommands(cmd *cobra.Command) {
 	for _, c := range cmd.Commands() {
 		if c.GroupID == "" && c.Name() != "help" && c.Name() != "completion" {
-			fmt.Printf("  %-12s%s\n", c.Name(), c.Short)
+			fmt.Printf("  %-12s%s\n", c.Name(), dimmed.Sprint(c.Short))
 		}
 	}
 	// Always show these
-	fmt.Printf("  %-12s%s\n", "completion", "Generate autocompletion script for your shell")
-	fmt.Printf("  %-12s%s\n", "help", "Help about any command")
+	fmt.Printf("  %-12s%s\n", "completion", dimmed.Sprint("Generate autocompletion script for your shell"))
+	fmt.Printf("  %-12s%s\n", "help", dimmed.Sprint("Help about any command"))
 }
 
 // SetVersionInfo sets version information from main
