@@ -603,7 +603,155 @@ muxi chat -F my-formation -p prod "Hello"
 | `--no-stream` | | Disable streaming |
 | `--webhook` | | Webhook URL for async |
 
-**Note:** Chat UX needs careful design - streaming, interrupts, multi-turn, file attachments, etc.
+---
+
+## Phase 6: Chat (Detailed Design)
+
+### Overview
+
+`muxi chat` provides an interactive chat interface with a formation using Bubble Tea for input and SSE streaming for responses.
+
+### Modes
+
+**Interactive Mode (default):**
+```bash
+muxi chat                          # New session
+muxi chat -s sess_abc123           # Resume session
+muxi chat --no-splash              # Skip welcome banner
+```
+
+**One-shot Mode (for scripting):**
+```bash
+muxi chat "What's the weather?"              # Single message, stream response, exit
+muxi chat --no-stream "Quick question"       # Wait for full response
+echo "Analyze this" | muxi chat              # Pipe input
+cat doc.txt | muxi chat "Summarize:"         # Pipe with prompt
+```
+
+### Interactive UI
+
+```
+$ muxi chat
+
+╭──────────────────────────────────────────────────────────────╮
+│ my-formation • Connected                                MUXI │
+╰──────────────────────────────────────────────────────────────╯
+
+  Welcome! Type your message or /help for commands.
+
+> What's the weather in NYC?
+
+  The weather in New York City is currently sunny with a 
+  temperature of 72°F (22°C). Expected high of 78°F today
+  with clear skies throughout the afternoon.
+
+> _
+```
+
+### Implementation Approach: Hybrid TUI
+
+Uses Bubble Tea for input box only, streams responses to stdout above:
+
+1. **Input Component** (Bubble Tea)
+   - Multiline support (for pasting code)
+   - Up/down arrow for message history
+   - Tab completion for `/commands`
+   - Enter to send, Shift+Enter for newline
+
+2. **Response Streaming** (stdout)
+   - SSE streaming from `POST /chat`
+   - Real-time token display
+   - Markdown rendering (optional)
+
+3. **State Management**
+   - Session ID persistence
+   - Message history (local cache)
+   - Connection status
+
+### Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show available commands |
+| `/exit`, `/quit` | Exit chat |
+| `/clear` | Clear screen |
+| `/session` | Show current session ID |
+| `/sessions` | List all sessions |
+| `/switch <id>` | Switch to different session |
+| `/new` | Start new session |
+| `/history` | Show recent messages |
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Send message |
+| `Shift+Enter` | New line |
+| `Up/Down` | Browse message history |
+| `Ctrl+C` | Cancel current response / Exit |
+| `Ctrl+L` | Clear screen |
+| `Ctrl+D` | Exit (EOF) |
+
+### Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--formation` | `-F` | Formation ID |
+| `--profile` | `-p` | Server profile |
+| `--user` | `-u` | User ID |
+| `--session` | `-s` | Resume session ID |
+| `--group` | `-g` | Agent group for routing |
+| `--no-stream` | | Disable streaming (wait for full response) |
+| `--no-splash` | | Skip welcome banner |
+
+### File Structure
+
+```
+cmd/
+└── chat.go           # Main command, mode detection
+
+pkg/
+└── chat/
+    ├── chat.go       # Interactive chat loop
+    ├── input.go      # Bubble Tea input component
+    ├── stream.go     # SSE response streaming
+    ├── commands.go   # Slash command handlers
+    └── history.go    # Local message history cache
+```
+
+### Dependencies
+
+- `github.com/charmbracelet/bubbletea` - TUI framework
+- `github.com/charmbracelet/bubbles` - Input component
+- `github.com/charmbracelet/lipgloss` - Styling (already used)
+
+### API
+
+**Endpoint:** `POST /chat`
+
+**Auth:** Client Key + `X-User-ID`
+
+**Request:**
+```json
+{
+  "message": "What's the weather?",
+  "user_id": "alice",
+  "session_id": "sess_abc123",
+  "stream": true
+}
+```
+
+**Response (SSE):**
+```
+event: chat_token
+data: {"token": "The"}
+
+event: chat_token
+data: {"token": " weather"}
+
+event: chat_done
+data: {"session_id": "sess_abc123", "message_id": "msg_xyz"}
+```
 
 ---
 
