@@ -52,6 +52,7 @@ func customHelp(cmd *cobra.Command, args []string) {
 
 	// Header box
 	printBox("MUXI CLI • Build, deploy, and manage formations with ease", "")
+	printBoxDivider()
 	printBoxLine("Examples:")
 	printBoxLine(" $ muxi new formation my-bot")
 	printBoxLine(" $ muxi deploy --profile production")
