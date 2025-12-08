@@ -317,8 +317,7 @@ See **[docs/plan-formation-api.md](docs/plan-formation-api.md)** for full implem
 - [ ] Phase 6: `muxi chat` (deferred - needs careful UX design)
 
 ### Future Enhancements
-- [ ] `muxi formation scale <id> --replicas N` - Horizontal scaling
-- [ ] `muxi formation exec <id> -- command` - Execute in formation
+- [ ] `muxi chat` - Interactive chat with formation (needs UX design)
 - [ ] Tab completion for bash/zsh/fish
 
 ---
