@@ -111,8 +111,8 @@ func customHelp(cmd *cobra.Command, args []string) {
 
 	// Flags
 	printBoxSimple("Flags", "MUXI")
-	fmt.Printf("  -h, --help       %s\n", dimmed.Sprint("Help for muxi"))
-	fmt.Printf("  -v, --version    %s\n", dimmed.Sprint("Version for muxi"))
+	fmt.Printf("  -h, --help       %s\n", dimmed.Sprint("Help for MUXI CLI"))
+	fmt.Printf("  -v, --version    %s\n", dimmed.Sprint("Version for MUXI CLI"))
 	fmt.Println()
 
 	// Footer
