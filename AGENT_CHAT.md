@@ -12,13 +12,13 @@ See **[docs/plan-formation-api.md](docs/plan-formation-api.md)** for the full im
 
 | Track | Commands | Status |
 |-------|----------|--------|
-| **Foundation** | `pkg/formation/client.go`, `auth.go`, `types.go` | Not started |
-| **A** | `info`, `triggers`, `sops` | Not started |
-| **B** | `agents`, `mcp` | Not started |
-| **C** | `secrets --remote`, `config --remote` | Not started |
-| **D** | `sessions`, `history`, `clear` | Not started |
-| **E** | `trigger`, `jobs`, `audit`, `stream` | Not started |
-| **F** | `scheduler`, `users`, `memory` | Not started |
+| **Foundation** | `pkg/formation/client.go`, `auth.go`, `types.go`, `flags.go` | **DONE** |
+| **A** | `info`, `triggers`, `sops` | Ready |
+| **B** | `agents`, `mcp` | Ready |
+| **C** | `secrets --remote`, `config --remote` | Ready |
+| **D** | `sessions`, `history`, `clear` | Ready |
+| **E** | `trigger`, `jobs`, `audit`, `stream` | Ready |
+| **F** | `scheduler`, `users`, `memory` | Ready |
 
 ---
 
@@ -54,8 +54,6 @@ Status: in-progress | blocked | done
 
 <!-- Add your work tag below this line -->
 
-
-
 <!-- Add your work tag above this line -->
 
 ---
@@ -65,6 +63,12 @@ Status: in-progress | blocked | done
 <!-- Move completed tags here for reference, delete after a few days -->
 
 ### 2025-12-08
+- **Foundation (Formation API)** - `pkg/formation/` package with:
+  - `client.go` - HTTP client with admin/client key auth
+  - `auth.go` - API key resolution from env vars or secrets.enc
+  - `types.go` - Response types for all Formation API endpoints
+  - `flags.go` - Common flag helpers (-F, -p, -u)
+  - Tested against live `some-forma` formation
 - Unified `muxi set default` command (server/registry/user)
 - Command groups in CLI help output
 - Default user_id support in `pkg/defaults/`
