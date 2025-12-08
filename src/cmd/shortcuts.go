@@ -17,7 +17,7 @@ import (
 
 var getCmd = &cobra.Command{
 	Use:     "get",
-	Short:   "Get current formation details (shortcut for 'formation get')",
+	Short:   "Get current formation details",
 	GroupID: "formation",
 	Long: `Get details of the current formation.
 
@@ -29,7 +29,7 @@ This is a shortcut for 'muxi formation get <id>'.`,
 
 var stopCmd = &cobra.Command{
 	Use:     "stop",
-	Short:   "Stop current formation (shortcut for 'formation stop')",
+	Short:   "Stop current formation",
 	GroupID: "formation",
 	Long: `Stop the current formation.
 
@@ -41,7 +41,7 @@ This is a shortcut for 'muxi formation stop <id>'.`,
 
 var startCmd = &cobra.Command{
 	Use:     "start",
-	Short:   "Start current formation (shortcut for 'formation start')",
+	Short:   "Start current formation",
 	GroupID: "formation",
 	Long: `Start the current formation (must be stopped).
 
@@ -53,7 +53,7 @@ This is a shortcut for 'muxi formation start <id>'.`,
 
 var restartCmd = &cobra.Command{
 	Use:     "restart",
-	Short:   "Restart current formation (shortcut for 'formation restart')",
+	Short:   "Restart current formation",
 	GroupID: "formation",
 	Long: `Restart the current formation.
 
@@ -65,7 +65,7 @@ This is a shortcut for 'muxi formation restart <id>'.`,
 
 var deleteCmd = &cobra.Command{
 	Use:     "delete",
-	Short:   "Delete current formation (shortcut for 'formation delete')",
+	Short:   "Delete current formation",
 	GroupID: "formation",
 	Long: `Delete the current formation from the server.
 
@@ -77,7 +77,7 @@ This is a shortcut for 'muxi formation delete <id>'.`,
 
 var rollbackCmd = &cobra.Command{
 	Use:     "rollback",
-	Short:   "Rollback current formation (shortcut for 'formation rollback')",
+	Short:   "Rollback current formation",
 	GroupID: "formation",
 	Long: `Rollback the current formation to its previous version.
 
@@ -89,7 +89,7 @@ This is a shortcut for 'muxi formation rollback <id>'.`,
 
 var logsCmd = &cobra.Command{
 	Use:     "logs",
-	Short:   "View current formation logs (shortcut for 'formation logs')",
+	Short:   "View current formation logs",
 	GroupID: "formation",
 	Long: `View logs for the current formation.
 
