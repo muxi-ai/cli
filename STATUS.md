@@ -1,8 +1,8 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-12-06
+**Last Updated:** 2025-12-08
 **Version:** 0.4.0-dev
-**Status:** ✅ Server Commands Complete - All Formation Lifecycle Commands Working
+**Status:** ✅ Ready for Formation API Implementation
 
 ---
 
@@ -10,6 +10,12 @@
 
 ### Overview
 MUXI CLI is **fully functional** with complete scaffolding system, secrets management, all config commands, full registry integration, and **complete server/formation lifecycle commands** with SSE streaming progress.
+
+### Recent Changes (2025-12-08)
+- ✅ **Unified defaults command:** `muxi set default server|registry|user`
+- ✅ **Command groups in help:** Organized into Formation/Registry/Server/Config groups
+- ✅ **Default user_id support:** For upcoming Formation API commands
+- ✅ **Formation API plan:** Complete parallelization strategy in `docs/plan-formation-api.md`
 
 ### What Exists ✅
 
@@ -86,9 +92,16 @@ MUXI CLI is **fully functional** with complete scaffolding system, secrets manag
 - ✅ `muxi show @user/formation` - Display formation info
 - ✅ `muxi registry mine` - List your published formations
 
-**Formation-Level Settings:**
-- ✅ `muxi set server` - Set default server for formation
-- ✅ `muxi set registry` - Set default registry for formation
+**Default Settings (Unified Command):**
+- ✅ `muxi set default server [name]` - Set default server (--local/--global)
+- ✅ `muxi set default registry [name]` - Set default registry (--local/--global)
+- ✅ `muxi set default user [id]` - Set default user ID (--local/--global)
+
+**CLI Help Organization:**
+- ✅ Formation Commands (available inside a formation directory)
+- ✅ Registry Commands
+- ✅ Server Commands
+- ✅ Configuration
 
 ---
 
@@ -279,18 +292,29 @@ muxi server ping [--profile string]
 
 ## 🎯 What's Next
 
+### Formation API Commands (Priority)
+See **[docs/plan-formation-api.md](docs/plan-formation-api.md)** for full implementation plan.
+
+**Foundation (must complete first):**
+- [ ] `pkg/formation/client.go` - Formation API HTTP client
+- [ ] `pkg/formation/auth.go` - API key resolution
+- [ ] `pkg/formation/types.go` - Response types
+
+**Parallel Tracks (after foundation):**
+- [ ] Track A: `muxi info`, `muxi triggers`, `muxi sops`
+- [ ] Track B: `muxi agents`, `muxi mcp`
+- [ ] Track C: `muxi secrets --remote`, `muxi config --remote`
+- [ ] Track D: `muxi sessions`, `muxi history`, `muxi clear`
+- [ ] Track E: `muxi trigger`, `muxi jobs`, `muxi audit`, `muxi stream`
+- [ ] Track F: `muxi scheduler`, `muxi users`, `muxi memory`
+- [ ] Phase 6: `muxi chat` (separate, needs careful UX design)
+
 ### Future Enhancements
 - [ ] `muxi formation scale <id> --replicas N` - Horizontal scaling
 - [ ] `muxi formation exec <id> -- command` - Execute in formation
-- [ ] `muxi formation env <id>` - View/set environment variables
-- [ ] `muxi formation metrics <id>` - View metrics/stats
 - [ ] Tab completion for bash/zsh/fish
-
-### Registry Improvements
-- [ ] `muxi registry versions @user/formation` - List versions
-- [ ] `muxi pull @user/formation:version` - Pull specific version
 
 ---
 
-**Last Updated:** 2025-12-06
+**Last Updated:** 2025-12-08
 **Maintained by:** MUXI Team

@@ -16,9 +16,31 @@ This is the MUXI CLI - a command-line tool for formation scaffolding, secrets ma
 
 **Key Documentation:**
 - [STATUS.md](STATUS.md) - Current status, what's working, what's next
+- [docs/plan-formation-api.md](docs/plan-formation-api.md) - **Formation API implementation plan with parallelization strategy**
 - [docs/architecture.md](docs/architecture.md) - CLI architecture, key files, patterns
 - [docs/api-reference.md](docs/api-reference.md) - HMAC auth, server communication
 - [docs/UX-PATTERNS.md](docs/UX-PATTERNS.md) - TUI design system and conventions
+
+---
+
+## Current Priority: Formation API Commands
+
+**See [docs/plan-formation-api.md](docs/plan-formation-api.md) for full details.**
+
+The next major work is implementing Formation API commands. This can be parallelized:
+
+1. **Foundation (blocking):** `pkg/formation/client.go`, `auth.go`, `types.go` - must complete first
+2. **Then 6 parallel tracks:** Each track is independent after foundation
+
+**Track assignments:**
+| Track | Commands | Est |
+|-------|----------|-----|
+| A | `info`, `triggers`, `sops` | 2h |
+| B | `agents`, `mcp` | 3h |
+| C | `secrets --remote`, `config --remote` | 3h |
+| D | `sessions`, `history`, `clear` | 2h |
+| E | `trigger`, `jobs`, `audit`, `stream` | 4h |
+| F | `scheduler`, `users`, `memory` | 3h |
 
 ---
 
@@ -72,21 +94,33 @@ cd src && go test ./...
 ```
 src/
 ├── cmd/                    # Command implementations
-│   ├── root.go            # Root command, CLI setup
+│   ├── root.go            # Root command, CLI setup, command groups
+│   ├── set.go             # muxi set default (server/registry/user)
 │   ├── new.go             # muxi new subcommands
 │   ├── config.go          # muxi config subcommands
 │   ├── deploy.go          # muxi deploy
 │   ├── formation.go       # muxi formation subcommands
 │   ├── server.go          # muxi server subcommands
-│   └── secrets.go         # muxi secrets subcommands
+│   ├── secrets.go         # muxi secrets subcommands
+│   ├── shortcuts.go       # Formation dir shortcuts (get, stop, start, etc.)
+│   └── registry.go        # Registry commands (login, push, pull, etc.)
 │
 ├── pkg/
+│   ├── defaults/          # Global defaults (~/.muxi/cli/defaults.yaml)
 │   ├── scaffold/          # Scaffolding wizards
 │   ├── secrets/           # Fernet encryption
 │   ├── wizard/            # Prompt helpers
 │   ├── ui/                # TUI design system
-│   ├── client/            # Server API client, HMAC auth
-│   └── config/            # Config loading/saving
+│   ├── server/            # Server API client, HMAC auth
+│   ├── registry/          # Registry API client
+│   ├── context/           # Formation context detection
+│   └── validate/          # Formation validation
+│
+│   # NEW (Formation API - to be created):
+│   └── formation/         # Formation API client (TODO)
+│       ├── client.go      # HTTP client
+│       ├── auth.go        # API key resolution
+│       └── types.go       # Response types
 ```
 
 For full architecture details, see [docs/architecture.md](docs/architecture.md).
