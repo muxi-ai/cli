@@ -131,11 +131,6 @@ var (
 		Short: "Remove a registry",
 		RunE:  runRegistryRemove,
 	}
-	registryDefaultCmd = &cobra.Command{
-		Use:   "default",
-		Short: "Set default registry",
-		RunE:  runRegistryDefault,
-	}
 	registryMineCmd = &cobra.Command{
 		Use:   "mine",
 		Short: "List my published formations",
@@ -207,7 +202,6 @@ func init() {
 	registryCmd.AddCommand(registryListCmd)
 	registryCmd.AddCommand(registryAddCmd)
 	registryCmd.AddCommand(registryRemoveCmd)
-	registryCmd.AddCommand(registryDefaultCmd)
 	registryCmd.AddCommand(registryMineCmd)
 }
 
@@ -1085,56 +1079,6 @@ func runRegistryRemove(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Removed registry: %s", selected))
-
-	return nil
-}
-
-// runRegistryDefault handles muxi registry default
-func runRegistryDefault(cmd *cobra.Command, args []string) error {
-	config, err := registry.LoadRegistries()
-	if err != nil {
-		return fmt.Errorf("failed to load registries: %w", err)
-	}
-
-	if len(config.Registries) == 0 {
-		fmt.Println()
-		ui.Dimmed("  No registries configured")
-		fmt.Println()
-		fmt.Printf("  Add a registry first: %s\n", ui.Command("muxi registry add"))
-		return nil
-	}
-
-	// Build options with current default marked
-	var options []wizard.SelectOption
-	currentIndex := 0
-	i := 0
-	for name := range config.Registries {
-		label := name
-		if name == config.DefaultRegistry {
-			label += " [current]"
-			currentIndex = i
-		}
-		options = append(options, wizard.SelectOption{
-			Value: name,
-			Label: label,
-		})
-		i++
-	}
-
-	fmt.Println()
-	selected, err := wizard.PromptSelect("Select default registry", options, currentIndex)
-	if err != nil {
-		return err
-	}
-
-	// Update default
-	config.DefaultRegistry = selected
-	if err := registry.SaveRegistries(config); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
-	}
-
-	fmt.Println()
-	ui.Success(fmt.Sprintf("Default registry set to: %s", selected))
 
 	return nil
 }

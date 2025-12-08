@@ -35,16 +35,24 @@ Implement CLI commands for interacting with **deployed formations** via the Form
 
 ## Global Configuration
 
-### Default User ID (Implemented)
+### Unified Defaults Command (Implemented)
 
-Same pattern as server/registry defaults:
+All defaults use the same pattern: `muxi set default <item>`
 
 ```yaml
-# ~/.muxi/cli/defaults.yaml (global)
+# ~/.muxi/cli/defaults.yaml (global user_id)
 version: "1.0"
 user_id: "alice"
 
-# .muxi (formation-level, overrides global)
+# ~/.muxi/cli/servers.yaml (global server default)
+default: "production"
+servers: {...}
+
+# ~/.muxi/cli/registries.yaml (global registry default)
+default_registry: "registry.muxi.org"
+registries: {...}
+
+# .muxi (formation-level overrides)
 profile: "local"
 registry: "muxihub"
 user_id: "dev-user"
@@ -52,20 +60,24 @@ user_id: "dev-user"
 
 **Commands:**
 ```bash
-# Global default
-muxi user default alice          # Set global default
-muxi user default                # Interactive
-muxi user show                   # Show current defaults
+muxi set default server [name]     # Set default server
+muxi set default registry [name]   # Set default registry  
+muxi set default user [user_id]    # Set default user ID
 
-# Per-formation override  
-muxi set user alice              # Set for this formation
-muxi set user                    # Interactive
+# Flags
+--local, -l    # Save to .muxi (this formation only)
+--global, -g   # Save to ~/.muxi/cli/ (all formations)
 ```
 
-**Resolution order:**
-1. `--user` flag (highest priority)
-2. `.muxi` → `user_id` in formation dir
-3. `~/.muxi/cli/defaults.yaml` → `user_id` (global)
+**Behavior:**
+- Outside formation dir: always sets global (no prompt)
+- Inside formation dir: prompts "Local or Global?" 
+- `--local` / `--global` flags bypass prompt
+
+**Resolution order (for each setting):**
+1. Command flag (e.g., `--user`, `--profile`)
+2. `.muxi` in formation dir (local)
+3. `~/.muxi/cli/` config files (global)
 4. Prompt if none set
 
 **Helper function:** `defaults.GetEffectiveUserID(formationUserID)` checks formation then global.

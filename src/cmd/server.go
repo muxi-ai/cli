@@ -32,12 +32,6 @@ var serverListCmd = &cobra.Command{
 	RunE:  runServerList,
 }
 
-var serverDefaultCmd = &cobra.Command{
-	Use:   "default",
-	Short: "Set default server",
-	RunE:  runServerDefault,
-}
-
 var serverRemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove a server connection",
@@ -61,7 +55,6 @@ func init() {
 
 	serverCmd.AddCommand(serverAddCmd)
 	serverCmd.AddCommand(serverListCmd)
-	serverCmd.AddCommand(serverDefaultCmd)
 	serverCmd.AddCommand(serverRemoveCmd)
 	serverCmd.AddCommand(serverStatusCmd)
 	serverCmd.AddCommand(serverPingCmd)
@@ -216,56 +209,6 @@ func runServerList(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	ui.Dimmed("  * = default")
-	fmt.Println()
-
-	return nil
-}
-
-// runServerDefault handles muxi server default
-func runServerDefault(cmd *cobra.Command, args []string) error {
-	config, err := server.LoadServers()
-	if err != nil {
-		return err
-	}
-
-	if len(config.Servers) == 0 {
-		fmt.Println()
-		ui.Dimmed("  No servers configured")
-		fmt.Println()
-		fmt.Printf("  Add a server: %s\n", ui.Command("muxi server add"))
-		fmt.Println()
-		return nil
-	}
-
-	// Build options
-	var options []wizard.SelectOption
-	currentIndex := 0
-	i := 0
-	for name := range config.Servers {
-		label := name
-		if name == config.Default {
-			label += " [current]"
-			currentIndex = i
-		}
-		options = append(options, wizard.SelectOption{
-			Value: name,
-			Label: label,
-		})
-		i++
-	}
-
-	fmt.Println()
-	selected, err := wizard.PromptSelect("Select default server", options, currentIndex)
-	if err != nil {
-		return err
-	}
-
-	if err := server.SetDefaultServer(selected); err != nil {
-		return err
-	}
-
-	fmt.Println()
-	ui.Success(fmt.Sprintf("Default server set to: %s", selected))
 	fmt.Println()
 
 	return nil

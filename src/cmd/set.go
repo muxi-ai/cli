@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/defaults"
 	"github.com/muxi-ai/cli/pkg/registry"
 	"github.com/muxi-ai/cli/pkg/server"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -23,35 +24,59 @@ type DotMuxi struct {
 
 var setCmd = &cobra.Command{
 	Use:   "set",
-	Short: "Set formation-level defaults",
-	Long:  `Set default server or registry for this formation (saved to .muxi file).`,
+	Short: "Set defaults",
+	Long:  `Set default server, registry, or user ID (local or global).`,
 }
 
-var setServerCmd = &cobra.Command{
-	Use:   "server",
-	Short: "Set default server for this formation",
-	RunE:  runSetServer,
+var setDefaultCmd = &cobra.Command{
+	Use:   "default",
+	Short: "Set default values",
+	Long: `Set default server, registry, or user ID.
+
+In a formation directory: prompts for local (this formation) or global.
+Outside formation directory: sets global default.
+
+Use --local or --global flags to skip the prompt.`,
 }
 
-var setRegistryCmd = &cobra.Command{
-	Use:   "registry",
-	Short: "Set default registry for this formation",
-	RunE:  runSetRegistry,
+var setDefaultServerCmd = &cobra.Command{
+	Use:   "server [name]",
+	Short: "Set default server",
+	Long:  `Set the default server profile for deployments and commands.`,
+	Args:  cobra.MaximumNArgs(1),
+	RunE:  runSetDefaultServer,
 }
 
-var setUserCmd = &cobra.Command{
+var setDefaultRegistryCmd = &cobra.Command{
+	Use:   "registry [name]",
+	Short: "Set default registry",
+	Long:  `Set the default registry for push/pull commands.`,
+	Args:  cobra.MaximumNArgs(1),
+	RunE:  runSetDefaultRegistry,
+}
+
+var setDefaultUserCmd = &cobra.Command{
 	Use:   "user [user_id]",
-	Short: "Set default user ID for this formation",
+	Short: "Set default user ID",
 	Long:  `Set the default user ID for Formation API commands (chat, sessions, etc.).`,
 	Args:  cobra.MaximumNArgs(1),
-	RunE:  runSetUser,
+	RunE:  runSetDefaultUser,
 }
 
 func init() {
 	rootCmd.AddCommand(setCmd)
-	setCmd.AddCommand(setServerCmd)
-	setCmd.AddCommand(setRegistryCmd)
-	setCmd.AddCommand(setUserCmd)
+	setCmd.AddCommand(setDefaultCmd)
+
+	// Add subcommands to 'set default'
+	setDefaultCmd.AddCommand(setDefaultServerCmd)
+	setDefaultCmd.AddCommand(setDefaultRegistryCmd)
+	setDefaultCmd.AddCommand(setDefaultUserCmd)
+
+	// Add --local and --global flags to each
+	for _, cmd := range []*cobra.Command{setDefaultServerCmd, setDefaultRegistryCmd, setDefaultUserCmd} {
+		cmd.Flags().BoolP("local", "l", false, "Set for this formation only (requires formation directory)")
+		cmd.Flags().BoolP("global", "g", false, "Set as global default")
+	}
 }
 
 // loadDotMuxi loads the .muxi file from the current directory
@@ -82,33 +107,57 @@ func saveDotMuxi(config *DotMuxi) error {
 	return os.WriteFile(".muxi", data, 0644)
 }
 
-// checkFormationDir checks if we're in a formation directory
-func checkFormationDir() bool {
+// isInFormationDir checks if we're in a formation directory
+func isInFormationDir() bool {
 	_, err := context.MustDetectFormation()
-	if err != nil {
-		ui.ErrorBlock(
-			"Not in formation directory",
-			"Run this command from inside a formation directory.",
-			"cd my-formation && muxi set server",
-		)
-		return false
-	}
-	return true
+	return err == nil
 }
 
-// runSetServer handles muxi set server
-func runSetServer(cmd *cobra.Command, args []string) error {
-	if !checkFormationDir() {
-		os.Exit(1)
+// determineScope returns "local" or "global" based on flags and context
+func determineScope(cmd *cobra.Command) (string, error) {
+	local, _ := cmd.Flags().GetBool("local")
+	global, _ := cmd.Flags().GetBool("global")
+
+	if local && global {
+		return "", fmt.Errorf("cannot specify both --local and --global")
 	}
 
-	// Show banner
-	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
-│ [⚙] Set Default Server                                  MUXI │
-│──────────────────────────────────────────────────────────────│
-│ Set the default server profile for this formation.           │
-│ This is saved to .muxi and overrides the global default.     │
-╰──────────────────────────────────────────────────────────────╯`)
+	if local {
+		if !isInFormationDir() {
+			return "", fmt.Errorf("--local requires being in a formation directory")
+		}
+		return "local", nil
+	}
+
+	if global {
+		return "global", nil
+	}
+
+	// No flag specified - check context
+	if !isInFormationDir() {
+		// Not in formation dir, default to global
+		return "global", nil
+	}
+
+	// In formation dir, prompt
+	fmt.Println()
+	options := []wizard.SelectOption{
+		{Value: "local", Label: "Local (this formation only, saved to .muxi)"},
+		{Value: "global", Label: "Global (all formations, saved to ~/.muxi/cli/)"},
+	}
+	scope, err := wizard.PromptSelect("Apply to", options, 0)
+	if err != nil {
+		return "", err
+	}
+	return scope, nil
+}
+
+// runSetDefaultServer handles muxi set default server
+func runSetDefaultServer(cmd *cobra.Command, args []string) error {
+	scope, err := determineScope(cmd)
+	if err != nil {
+		return err
+	}
 
 	// Load servers
 	config, err := server.LoadServers()
@@ -125,61 +174,77 @@ func runSetServer(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Load current .muxi
-	dotMuxi, err := loadDotMuxi()
-	if err != nil {
-		return fmt.Errorf("failed to load .muxi: %w", err)
-	}
+	var selected string
 
-	// Build options
-	var options []wizard.SelectOption
-	currentIndex := 0
-	i := 0
-	for name := range config.Servers {
-		label := name
-		if name == dotMuxi.Profile {
-			label += " [current]"
-			currentIndex = i
+	if len(args) > 0 {
+		// Server name provided as argument
+		selected = args[0]
+		if _, ok := config.Servers[selected]; !ok {
+			return fmt.Errorf("server '%s' not found", selected)
 		}
-		options = append(options, wizard.SelectOption{
-			Value: name,
-			Label: label,
-		})
-		i++
+	} else {
+		// Interactive selection
+		var currentDefault string
+		if scope == "local" {
+			dotMuxi, _ := loadDotMuxi()
+			currentDefault = dotMuxi.Profile
+		} else {
+			currentDefault = config.Default
+		}
+
+		var options []wizard.SelectOption
+		currentIndex := 0
+		i := 0
+		for name := range config.Servers {
+			label := name
+			if name == currentDefault {
+				label += " [current]"
+				currentIndex = i
+			}
+			options = append(options, wizard.SelectOption{
+				Value: name,
+				Label: label,
+			})
+			i++
+		}
+
+		fmt.Println()
+		selected, err = wizard.PromptSelect("Select server", options, currentIndex)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Save based on scope
+	if scope == "local" {
+		dotMuxi, err := loadDotMuxi()
+		if err != nil {
+			return fmt.Errorf("failed to load .muxi: %w", err)
+		}
+		dotMuxi.Profile = selected
+		if err := saveDotMuxi(dotMuxi); err != nil {
+			return fmt.Errorf("failed to save .muxi: %w", err)
+		}
+		fmt.Println()
+		ui.Success(fmt.Sprintf("Default server set to '%s' (local)", selected))
+	} else {
+		if err := server.SetDefaultServer(selected); err != nil {
+			return err
+		}
+		fmt.Println()
+		ui.Success(fmt.Sprintf("Default server set to '%s' (global)", selected))
 	}
 
 	fmt.Println()
-	selected, err := wizard.PromptSelect("Select server for this formation", options, currentIndex)
-	if err != nil {
-		return err
-	}
-
-	// Save
-	dotMuxi.Profile = selected
-	if err := saveDotMuxi(dotMuxi); err != nil {
-		return fmt.Errorf("failed to save .muxi: %w", err)
-	}
-
-	fmt.Println()
-	ui.Success("Saved to .muxi")
-	fmt.Println()
-
 	return nil
 }
 
-// runSetRegistry handles muxi set registry
-func runSetRegistry(cmd *cobra.Command, args []string) error {
-	if !checkFormationDir() {
-		os.Exit(1)
+// runSetDefaultRegistry handles muxi set default registry
+func runSetDefaultRegistry(cmd *cobra.Command, args []string) error {
+	scope, err := determineScope(cmd)
+	if err != nil {
+		return err
 	}
-
-	// Show banner
-	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
-│ [⚙] Set Default Registry                                MUXI │
-│──────────────────────────────────────────────────────────────│
-│ Set the default registry for this formation.                 │
-│ This is saved to .muxi and overrides the global default.     │
-╰──────────────────────────────────────────────────────────────╯`)
 
 	// Load registries
 	config, err := registry.LoadRegistries()
@@ -196,97 +261,125 @@ func runSetRegistry(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Load current .muxi
-	dotMuxi, err := loadDotMuxi()
-	if err != nil {
-		return fmt.Errorf("failed to load .muxi: %w", err)
-	}
+	var selected string
 
-	// Build options
-	var options []wizard.SelectOption
-	currentIndex := 0
-	i := 0
-	for name := range config.Registries {
-		label := name
-		if name == dotMuxi.Registry {
-			label += " [current]"
-			currentIndex = i
+	if len(args) > 0 {
+		// Registry name provided as argument
+		selected = args[0]
+		if _, ok := config.Registries[selected]; !ok {
+			return fmt.Errorf("registry '%s' not found", selected)
 		}
-		options = append(options, wizard.SelectOption{
-			Value: name,
-			Label: label,
-		})
-		i++
+	} else {
+		// Interactive selection
+		var currentDefault string
+		if scope == "local" {
+			dotMuxi, _ := loadDotMuxi()
+			currentDefault = dotMuxi.Registry
+		} else {
+			currentDefault = config.DefaultRegistry
+		}
+
+		var options []wizard.SelectOption
+		currentIndex := 0
+		i := 0
+		for name := range config.Registries {
+			label := name
+			if name == currentDefault {
+				label += " [current]"
+				currentIndex = i
+			}
+			options = append(options, wizard.SelectOption{
+				Value: name,
+				Label: label,
+			})
+			i++
+		}
+
+		fmt.Println()
+		selected, err = wizard.PromptSelect("Select registry", options, currentIndex)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Save based on scope
+	if scope == "local" {
+		dotMuxi, err := loadDotMuxi()
+		if err != nil {
+			return fmt.Errorf("failed to load .muxi: %w", err)
+		}
+		dotMuxi.Registry = selected
+		if err := saveDotMuxi(dotMuxi); err != nil {
+			return fmt.Errorf("failed to save .muxi: %w", err)
+		}
+		fmt.Println()
+		ui.Success(fmt.Sprintf("Default registry set to '%s' (local)", selected))
+	} else {
+		config.DefaultRegistry = selected
+		if err := registry.SaveRegistries(config); err != nil {
+			return fmt.Errorf("failed to save config: %w", err)
+		}
+		fmt.Println()
+		ui.Success(fmt.Sprintf("Default registry set to '%s' (global)", selected))
 	}
 
 	fmt.Println()
-	selected, err := wizard.PromptSelect("Select registry for this formation", options, currentIndex)
-	if err != nil {
-		return err
-	}
-
-	// Save
-	dotMuxi.Registry = selected
-	if err := saveDotMuxi(dotMuxi); err != nil {
-		return fmt.Errorf("failed to save .muxi: %w", err)
-	}
-
-	fmt.Println()
-	ui.Success("Saved to .muxi")
-	fmt.Println()
-
 	return nil
 }
 
-// runSetUser handles muxi set user
-func runSetUser(cmd *cobra.Command, args []string) error {
-	if !checkFormationDir() {
-		os.Exit(1)
-	}
-
-	// Load current .muxi
-	dotMuxi, err := loadDotMuxi()
+// runSetDefaultUser handles muxi set default user
+func runSetDefaultUser(cmd *cobra.Command, args []string) error {
+	scope, err := determineScope(cmd)
 	if err != nil {
-		return fmt.Errorf("failed to load .muxi: %w", err)
+		return err
 	}
 
 	var userID string
 
 	if len(args) > 0 {
-		// User ID provided as argument
 		userID = args[0]
 	} else {
-		// Show banner for interactive mode
-		ui.Banner(`╭──────────────────────────────────────────────────────────────╮
-│ [⚙] Set Default User ID                                 MUXI │
-│──────────────────────────────────────────────────────────────│
-│ Set the default user ID for Formation API commands.          │
-│ Used by: chat, sessions, history, clear, jobs, etc.          │
-╰──────────────────────────────────────────────────────────────╯`)
+		// Interactive input
+		var currentDefault string
+		if scope == "local" {
+			dotMuxi, _ := loadDotMuxi()
+			currentDefault = dotMuxi.UserID
+		} else {
+			currentDefault = defaults.GetUserID()
+		}
 
-		fmt.Println()
-		
-		// Show current value if set
-		defaultValue := dotMuxi.UserID
+		defaultValue := currentDefault
 		if defaultValue == "" {
 			defaultValue = "default-user"
 		}
-		
+
+		fmt.Println()
 		userID, err = wizard.PromptString("Enter user ID", defaultValue, nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Save
-	dotMuxi.UserID = userID
-	if err := saveDotMuxi(dotMuxi); err != nil {
-		return fmt.Errorf("failed to save .muxi: %w", err)
+	// Save based on scope
+	if scope == "local" {
+		dotMuxi, err := loadDotMuxi()
+		if err != nil {
+			return fmt.Errorf("failed to load .muxi: %w", err)
+		}
+		dotMuxi.UserID = userID
+		if err := saveDotMuxi(dotMuxi); err != nil {
+			return fmt.Errorf("failed to save .muxi: %w", err)
+		}
+		fmt.Println()
+		ui.Success(fmt.Sprintf("Default user ID set to '%s' (local)", userID))
+	} else {
+		if err := defaults.SetUserID(userID); err != nil {
+			return err
+		}
+		fmt.Println()
+		ui.Success(fmt.Sprintf("Default user ID set to '%s' (global)", userID))
 	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Default user ID set to '%s'", userID))
-	fmt.Println()
-
 	return nil
 }
