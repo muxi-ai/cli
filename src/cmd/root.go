@@ -79,7 +79,7 @@ func customHelp(cmd *cobra.Command, args []string) {
 	// Formation Commands
 	printBoxWithSubtitle("Formation Commands", "MUXI")
 	printColoredCommand("$ muxi formation [command]")
-	printBoxLine("  or (from formation dir):")
+	printBoxLineDimmed("  or (from formation dir):")
 	printColoredCommand("$ muxi [command]")
 	printBoxBottom()
 	printCommandGroup(cmd, "formation")
@@ -172,6 +172,15 @@ func printBoxLine(content string) {
 	fmt.Printf("│ %s%s │\n", content, strings.Repeat(" ", padding))
 }
 
+func printBoxLineDimmed(content string) {
+	padding := boxWidth - 4 - len(content)
+	if padding < 0 {
+		padding = 0
+		content = content[:boxWidth-4]
+	}
+	fmt.Printf("│ %s%s │\n", dimmed.Sprint(content), strings.Repeat(" ", padding))
+}
+
 func printBoxDivider() {
 	fmt.Print("│")
 	fmt.Print(strings.Repeat("─", boxWidth-2))
@@ -227,6 +236,7 @@ func SetVersionInfo(v, c, d string) {
 	commit = c
 	date = d
 	rootCmd.Version = v
+	rootCmd.SetVersionTemplate(fmt.Sprintf("muxi version %s\n", v))
 }
 
 // Execute runs the root command
