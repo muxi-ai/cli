@@ -678,7 +678,7 @@ cmd/
 
 ---
 
-## Timeline
+## Timeline (Sequential)
 
 | Phase | Tasks | Estimate |
 |-------|-------|----------|
@@ -690,6 +690,144 @@ cmd/
 | 6 | Chat (streaming, UX, edge cases) | 6 hours |
 | - | Testing & polish | 4 hours |
 | **Total** | | **32 hours** |
+
+---
+
+## Parallelization Strategy
+
+Commands can be developed in parallel after the foundation is complete.
+
+### Foundation (Blocking - 1 Droid)
+
+Must be completed first. All other tracks depend on this.
+
+```
+pkg/formation/
+├── client.go    # HTTP client, base URL resolution, request helpers
+├── auth.go      # API key resolution (admin key vs client key)
+├── types.go     # Response structs for all endpoints
+└── flags.go     # Common flags (-F, -p, -u) and resolution logic
+```
+
+**Deliverables:**
+- `FormationClient` struct with `Get`, `Post`, `Patch`, `Delete` methods
+- `ResolveFormationID()` - from flag, .muxi, or formation.yaml
+- `ResolveServerProfile()` - from flag, .muxi, or global default
+- `GetAdminKey()` / `GetClientKey()` - fetch from deployed formation
+- Common flag registration helper
+
+**Estimate:** 2-3 hours
+
+---
+
+### Parallel Tracks (After Foundation)
+
+| Track | Commands | Files | Auth | Estimate |
+|-------|----------|-------|------|----------|
+| **A: Introspection** | `info`, `triggers`, `sops` | info.go, triggers.go, sops.go | Admin/Client | 2h |
+| **B: CRUD Resources** | `agents`, `mcp` | agents.go, mcp.go | Admin | 3h |
+| **C: Config Extension** | `secrets --remote`, `config --remote` | secrets.go*, config.go* | Admin | 3h |
+| **D: Sessions** | `sessions`, `history`, `clear` | sessions.go, history.go, clear.go | Client+User | 2h |
+| **E: Operations** | `trigger`, `jobs`, `audit`, `stream` | triggers.go*, jobs.go, audit.go, stream.go | Mixed | 4h |
+| **F: Advanced** | `scheduler`, `users`, `memory` | scheduler.go, users.go, memory.go | Mixed | 3h |
+
+*\* = modifying existing file*
+
+---
+
+### Track Details
+
+**Track A - Introspection (Read-only, simple GETs)**
+```
+muxi info      → GET /status, GET /config
+muxi triggers  → GET /triggers  
+muxi sops      → GET /sops, GET /sops/{name}
+```
+- Simplest track, good starter task
+- No mutations, just display formatting
+
+**Track B - CRUD Resources (Similar patterns)**
+```
+muxi agents    → GET/POST/PATCH/DELETE /agents
+muxi mcp       → GET/POST/PATCH/DELETE /mcp/servers
+```
+- Both follow same CRUD pattern
+- Include add/remove/enable/disable subcommands
+
+**Track C - Config Extension (Modify existing commands)**
+```
+muxi secrets --remote  → GET/POST/PUT/DELETE /secrets
+muxi config --remote   → GET /config, GET /llm/settings, etc.
+```
+- Extends existing local commands with `--remote` flag
+- Needs careful integration with existing code
+
+**Track D - Sessions (User-scoped)**
+```
+muxi sessions  → GET /sessions
+muxi history   → GET /sessions/{id}/messages
+muxi clear     → DELETE /sessions/{id}, DELETE /memory/buffer
+```
+- All require `X-User-ID` header
+- Uses default user_id from config
+
+**Track E - Operations (Mixed complexity)**
+```
+muxi trigger   → POST /triggers/{name}
+muxi jobs      → GET/DELETE /jobs/{user_id}
+muxi audit     → GET/DELETE /audit
+muxi stream    → GET /logs/stream (SSE)
+```
+- `stream` is most complex (SSE handling)
+- Others are straightforward
+
+**Track F - Advanced (Lower priority)**
+```
+muxi scheduler → GET/POST/DELETE /scheduler/jobs
+muxi users     → GET/POST/DELETE /users/identifiers
+muxi memory    → GET/POST/DELETE /memories
+```
+- Can be deferred if needed
+- Less commonly used features
+
+---
+
+### Parallelization Timeline
+
+```
+Hour 0-3:  [Foundation] ████████████████████████████████
+Hour 3-5:  [Track A] ████████  [Track B] ████████████  [Track C] ████████████
+Hour 3-5:  [Track D] ████████  [Track E] ████████████████████████████████████
+Hour 5-8:  [Track E cont.]     [Track F] ████████████████████████
+Hour 8+:   [Testing & Integration] ████████████████████████████████████████
+```
+
+**With 4-5 droids:** ~8 hours total (vs 32 hours sequential)
+
+---
+
+### Assignment Recommendations
+
+| Droid | Assignment | Why |
+|-------|------------|-----|
+| **Droid 0** | Foundation | Most experienced, sets patterns for others |
+| **Droid 1** | Track A + D | Simple GETs + user-scoped, related patterns |
+| **Droid 2** | Track B | CRUD patterns, self-contained |
+| **Droid 3** | Track C | Requires understanding existing secrets/config code |
+| **Droid 4** | Track E | Most variety, includes SSE streaming |
+| **Droid 5** | Track F | Can start later, lower priority |
+
+---
+
+### Integration Points
+
+After parallel development, integration needed for:
+
+1. **Shared types** - Ensure `pkg/formation/types.go` covers all endpoints
+2. **Error handling** - Consistent error messages across commands
+3. **Output formatting** - Consistent table/list formatting
+4. **Flag behavior** - `-F`, `-p`, `-u` work identically everywhere
+5. **Help text** - Consistent style and examples
 
 ---
 
