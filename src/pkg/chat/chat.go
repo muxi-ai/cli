@@ -422,12 +422,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case thinkingCompleteMsg:
 		if int(msg) < len(m.thinking) {
 			m.thinking[msg].Completed = true
+			// Print completed thinking step to history
+			return m, printThinkingStepAbove(m.thinking[msg].Text)
 		}
 		return m, nil
 
 	case responseMsg:
 		m.isThinking = false
-		m.thinking = []ThinkingStep{} // Clear thinking indicators
+		m.thinking = []ThinkingStep{} // Clear for next request
 		// Add assistant message and print above TUI (persists in scrollback)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
@@ -506,9 +508,12 @@ func (m Model) View() string {
 	var b strings.Builder
 	margin := " "
 
-	// Thinking indicators (if active)
-	if m.isThinking || len(m.thinking) > 0 {
-		b.WriteString(m.renderThinking())
+	// 2 line-spaces before input area
+	b.WriteString("\n\n")
+
+	// Thinking indicators (if active) - shown in real-time, printed to history when complete
+	if m.isThinking {
+		b.WriteString(m.renderThinkingLive())
 	}
 
 	// Command menu or submenu (above input)
@@ -551,16 +556,43 @@ func (m Model) View() string {
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
 
+	// 1 line-space after
+	b.WriteString("\n")
+
+	return b.String()
+}
+
+// renderThinkingLive renders the current thinking state (spinner, not yet complete)
+func (m Model) renderThinkingLive() string {
+	var b strings.Builder
+	margin := " "
+
+	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	elapsed := time.Since(m.thinkingStart)
+	frame := frames[int(elapsed.Milliseconds()/100)%len(frames)]
+
+	// Show current thinking with spinner
+	b.WriteString(margin)
+	b.WriteString(thinkingStyle.Render(fmt.Sprintf("%s  Thinking... %.1fs", frame, elapsed.Seconds())))
+	b.WriteString("\n")
+
 	return b.String()
 }
 
 // printMessageAbove returns a command to print a message above the TUI (persists in scrollback)
 func printUserMessageAbove(content string) tea.Cmd {
-	return tea.Println(goldStyle.Render(">") + "  " + userStyle.Render(content))
+	// Empty line before, message, empty line after
+	return tea.Println("\n" + goldStyle.Render(">") + "  " + userStyle.Render(content) + "\n")
 }
 
 func printAssistantMessageAbove(content string) tea.Cmd {
-	return tea.Println(" " + goldStyle.Render("𝐌") + " " + content)
+	// Empty line before, message, empty line after
+	return tea.Println("\n " + goldStyle.Render("𝐌") + " " + content + "\n")
+}
+
+// printThinkingStepAbove prints a completed thinking step to history
+func printThinkingStepAbove(text string) tea.Cmd {
+	return tea.Println(" " + completedStyle.Render("⏺  "+text))
 }
 
 func (m Model) renderHeader() string {
