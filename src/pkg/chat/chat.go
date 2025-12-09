@@ -202,19 +202,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		headerHeight := 9 // ASCII header
-		statusHeight := 3 // Status bar + dividers
-		inputHeight := 5  // Input area
+		headerHeight := 11 // ASCII header + hint text
+		statusHeight := 3  // Status bar + dividers
+		inputHeight := 5   // Input area
+		maxChatHeight := 12 // Max lines between header and input
 
 		m.textarea.SetWidth(msg.Width - 4)
 
+		chatHeight := msg.Height - headerHeight - statusHeight - inputHeight
+		if chatHeight > maxChatHeight {
+			chatHeight = maxChatHeight
+		}
+		if chatHeight < 1 {
+			chatHeight = 1
+		}
+
 		if !m.ready {
-			m.viewport = viewport.New(msg.Width, msg.Height-headerHeight-statusHeight-inputHeight)
+			m.viewport = viewport.New(msg.Width, chatHeight)
 			m.viewport.SetContent(m.renderMessages())
 			m.ready = true
 		} else {
 			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - headerHeight - statusHeight - inputHeight
+			m.viewport.Height = chatHeight
 		}
 
 	case thinkingMsg:
@@ -385,7 +394,7 @@ func (m Model) renderHeader() string {
 	// Content lines
 	rightContents := []string{
 		"",
-		" Chatting with:",
+		dim(" Chatting with:"),
 		fmt.Sprintf("  ⌬ Formation: %s", m.config.FormationID),
 		fmt.Sprintf("  ⏍ Server: %s", m.config.ServerID),
 		fmt.Sprintf("  ♛ User: %s", m.config.UserID),
