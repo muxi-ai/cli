@@ -461,10 +461,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// No matching commands - hide menu
 			m.showCommands = false
 		}
-	} else if !strings.HasPrefix(val, "/") && !m.showSubmenu {
-		// Clear command menu when / is deleted (but not if submenu is active)
+	} else if !strings.HasPrefix(val, "/") {
+		// Clear both menus when / is deleted
 		m.showCommands = false
+		m.showSubmenu = false
 		m.commandSelected = 0
+		m.submenuSelected = 0
 	}
 
 	// Update viewport
@@ -509,31 +511,13 @@ func (m Model) View() string {
 
 	// Input area - add margin to continuation lines
 	inputLines := strings.Split(m.textarea.View(), "\n")
-	
-	// Auto/Async/Sync indicator on right side
-	indicator := ""
-	switch m.asyncMode {
-	case "on":
-		indicator = goldStyle.Render("A")
-	case "auto":
-		indicator = goldStyle.Render("⚡")
-	default:
-		indicator = dimmedStyle.Render("S")
-	}
-	
 	for i, line := range inputLines {
 		b.WriteString(margin)
 		if i == 0 {
 			b.WriteString(goldStyle.Render(">"))
 			b.WriteString("  ")
 			b.WriteString(line)
-			// Add indicator on right side of first line
-			lineLen := len(line) + 4 // "> " + "  "
-			padding := m.width - lineLen - 4 // 4 for margin and indicator
-			if padding > 0 {
-				b.WriteString(strings.Repeat(" ", padding))
-			}
-			b.WriteString(indicator)
+			b.WriteString("\n")
 		} else {
 			b.WriteString("   ") // Align with first line (same width as ">  ")
 			b.WriteString(line)
@@ -896,7 +880,22 @@ func (m Model) renderThinking() string {
 
 func (m Model) renderStatusBar() string {
 	dim := dimmedStyle.Render
+	gold := goldStyle.Render
 	bold := lipgloss.NewStyle().Bold(true).Render
+
+	// Async indicator
+	var indicator, indicatorVisual string
+	switch m.asyncMode {
+	case "on":
+		indicator = gold("A")
+		indicatorVisual = "A"
+	case "auto":
+		indicator = gold("⚡")
+		indicatorVisual = "⚡"
+	default:
+		indicator = dim("S")
+		indicatorVisual = "S"
+	}
 
 	left := fmt.Sprintf("%s@%s://%s",
 		m.config.UserID,
@@ -905,8 +904,8 @@ func (m Model) renderStatusBar() string {
 	)
 
 	// Visual length of right side (without ANSI codes)
-	rightVisual := "? for help • / for commands"
-	right := bold("?") + dim(" for help • ") + bold("/") + dim(" for commands")
+	rightVisual := indicatorVisual + " • ? for help • / for commands"
+	right := indicator + dim(" • ") + bold("?") + dim(" for help • ") + bold("/") + dim(" for commands")
 
 	gap := m.width - len(left) - len(rightVisual) - 2
 	if gap < 0 {
