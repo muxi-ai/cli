@@ -275,8 +275,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.textarea, cmd = m.textarea.Update(msg)
 	cmds = append(cmds, cmd)
 
-	// Check for ? as first/only character - show help immediately
-	if m.textarea.Value() == "?" {
+	// Check for ? as first/only character - show help immediately (not during streaming)
+	if m.textarea.Value() == "?" && !m.isThinking {
 		m.showHelp = true
 		m.textarea.Reset()
 		m.viewport.SetContent(m.renderMessages())
