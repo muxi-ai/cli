@@ -34,20 +34,40 @@ type ThinkingStep struct {
 
 // Model is the Bubble Tea model for the chat UI
 type Model struct {
-	config        Config
-	messages      []Message
-	thinking      []ThinkingStep
-	isThinking    bool
-	thinkingStart time.Time
-	textarea      textarea.Model
-	viewport      viewport.Model
-	renderer      *glamour.TermRenderer
-	width         int
-	height        int
-	ready         bool
-	quitting      bool
-	showHelp      bool
-	err           error
+	config          Config
+	messages        []Message
+	thinking        []ThinkingStep
+	isThinking      bool
+	thinkingStart   time.Time
+	textarea        textarea.Model
+	viewport        viewport.Model
+	renderer        *glamour.TermRenderer
+	width           int
+	height          int
+	ready           bool
+	quitting        bool
+	showHelp        bool
+	showCommands    bool
+	commandSelected int
+	err             error
+}
+
+// Command represents a slash command
+type Command struct {
+	Name        string
+	Description string
+}
+
+// Available commands
+var commands = []Command{
+	{"/clear", "Start a new session (clears context)"},
+	{"/config", "Show current configuration"},
+	{"/cost", "Show token usage for the session"},
+	{"/exit", "Exit the chat"},
+	{"/help", "Show help information"},
+	{"/history", "Show conversation history"},
+	{"/model", "Show or change the current model"},
+	{"/session", "Show session information"},
 }
 
 // Styles
@@ -147,6 +167,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyEsc:
+			if m.showCommands {
+				m.showCommands = false
+				m.commandSelected = 0
+				m.textarea.Reset()
+				return m, nil
+			}
 			if m.showHelp {
 				m.showHelp = false
 				m.viewport.SetContent(m.renderMessages())
@@ -161,6 +187,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 			}
 			return m, nil
+
+		case tea.KeyUp:
+			if m.showCommands {
+				filtered := m.filterCommands(m.textarea.Value())
+				if m.commandSelected > 0 {
+					m.commandSelected--
+				} else {
+					m.commandSelected = len(filtered) - 1 // Wrap to bottom
+				}
+				return m, nil
+			}
+
+		case tea.KeyDown:
+			if m.showCommands {
+				filtered := m.filterCommands(m.textarea.Value())
+				if m.commandSelected < len(filtered)-1 {
+					m.commandSelected++
+				} else {
+					m.commandSelected = 0 // Wrap to top
+				}
+				return m, nil
+			}
+
+		case tea.KeyTab:
+			if m.showCommands {
+				filtered := m.filterCommands(m.textarea.Value())
+				if len(filtered) > 0 && m.commandSelected < len(filtered) {
+					// Select the command
+					m.textarea.SetValue(filtered[m.commandSelected].Name + " ")
+					m.showCommands = false
+					m.commandSelected = 0
+				}
+				return m, nil
+			}
 
 		case tea.KeyCtrlJ:
 			// Shift+Enter sends ctrl+j in iTerm2
@@ -278,6 +338,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Check for ? as first/only character - show help immediately (not during streaming)
 	if m.textarea.Value() == "?" && !m.isThinking {
 		m.showHelp = true
+		m.showCommands = false
 		m.textarea.Reset()
 		m.viewport.SetContent(m.renderMessages())
 		m.viewport.GotoBottom()
@@ -286,6 +347,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.showHelp = false
 		m.viewport.SetContent(m.renderMessages())
 		m.viewport.GotoBottom()
+	}
+
+	// Check for / command menu
+	val := m.textarea.Value()
+	if strings.HasPrefix(val, "/") && !m.isThinking {
+		filtered := m.filterCommands(val)
+		if len(filtered) > 0 {
+			m.showCommands = true
+			m.showHelp = false
+			// Keep selection in bounds
+			if m.commandSelected >= len(filtered) {
+				m.commandSelected = len(filtered) - 1
+			}
+		} else {
+			// No matching commands - hide menu
+			m.showCommands = false
+		}
+	} else {
+		m.showCommands = false
+		m.commandSelected = 0
 	}
 
 	// Update viewport
@@ -311,6 +392,11 @@ func (m Model) View() string {
 	// Everything in viewport - scrolls naturally like terminal
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
+
+	// Command menu (above input)
+	if m.showCommands {
+		b.WriteString(m.renderCommands())
+	}
 
 	// Input divider
 	dividerWidth := m.width - 4 // Account for margins
@@ -553,6 +639,64 @@ func (m Model) renderHelp() string {
 	b.WriteString(dim("│  Delete word                             ") + key("Option + Delete") + dim("  │") + "\n")
 	b.WriteString(dim("│  Delete line                                ") + key("Cmd + Delete") + dim("  │") + "\n")
 	b.WriteString(dim("╰───────────────────────────────────────────────────────────╯") + "\n")
+	
+	return b.String()
+}
+
+func (m Model) filterCommands(input string) []Command {
+	var filtered []Command
+	input = strings.ToLower(input)
+	for _, cmd := range commands {
+		if strings.HasPrefix(strings.ToLower(cmd.Name), input) {
+			filtered = append(filtered, cmd)
+		}
+	}
+	return filtered
+}
+
+func (m Model) renderCommands() string {
+	dim := dimmedStyle.Render
+	key := userStyle.Render
+	
+	filtered := m.filterCommands(m.textarea.Value())
+	if len(filtered) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString(dim("╭───────────────────────────────────────────────────────────╮") + "\n")
+	
+	for i, cmd := range filtered {
+		prefix := "  "
+		if i == m.commandSelected {
+			prefix = "> "
+		}
+		
+		// Format: prefix + command name (padded) + description
+		name := cmd.Name
+		desc := cmd.Description
+		// Truncate description if too long
+		maxDesc := 40
+		if len(desc) > maxDesc {
+			desc = desc[:maxDesc-3] + "..."
+		}
+		
+		line := fmt.Sprintf("%-12s  %s", name, desc)
+		if i == m.commandSelected {
+			b.WriteString(dim("│ ") + key(prefix+line))
+		} else {
+			b.WriteString(dim("│ "+prefix+line))
+		}
+		// Pad to box width
+		padding := 57 - len(prefix) - len(line)
+		if padding > 0 {
+			b.WriteString(dim(strings.Repeat(" ", padding)))
+		}
+		b.WriteString(dim("│") + "\n")
+	}
+	
+	b.WriteString(dim("╰───────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
 }
