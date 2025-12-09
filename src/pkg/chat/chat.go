@@ -309,8 +309,8 @@ func (m Model) View() string {
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
 
-	// Thinking status (show completed steps even after response)
-	if m.isThinking || len(m.thinking) > 0 {
+	// Thinking status (only while actively thinking)
+	if m.isThinking {
 		b.WriteString(m.renderThinking())
 	}
 
@@ -348,6 +348,7 @@ func (m Model) View() string {
 	// Status bar
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
+	b.WriteString("\n\n") // Padding from terminal edge
 
 	return b.String()
 }
@@ -497,16 +498,16 @@ func (m Model) renderMessages() string {
 			if err != nil {
 				rendered = msg.Content
 			}
-			// Add margin to each line
+			// Add M prefix on first line, then indent rest
+			b.WriteString(margin)
+			b.WriteString(goldStyle.Render("𝐌  "))
+			
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
 			for j, line := range lines {
-				b.WriteString(margin)
-				if j == 0 {
-					b.WriteString(goldStyle.Render("𝐌  "))
-				} else {
-					b.WriteString("   ")
+				if j > 0 {
+					b.WriteString(margin + "   ")
 				}
-				b.WriteString(assistantStyle.Render(line))
+				b.WriteString(line)
 				b.WriteString("\n")
 			}
 		}
