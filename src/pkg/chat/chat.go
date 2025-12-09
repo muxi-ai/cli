@@ -207,19 +207,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 		headerHeight := 11 // ASCII header + hint text
-		statusHeight := 3  // Status bar + dividers
+		statusHeight := 5  // Status bar + dividers + footer padding
 		inputHeight := 5   // Input area
-		maxChatHeight := 12 // Max lines between header and input
+		fixedSpacing := 6  // Fixed spacing below hint
+		maxChatHeight := 20 // Max lines for messages
 
 		m.textarea.SetWidth(msg.Width - 4)
 
-		chatHeight := msg.Height - headerHeight - statusHeight - inputHeight
+		chatHeight := msg.Height - headerHeight - statusHeight - inputHeight - fixedSpacing
 		if chatHeight > maxChatHeight {
 			chatHeight = maxChatHeight
 		}
 		if chatHeight < 1 {
 			chatHeight = 1
 		}
+		_ = fixedSpacing // used in View()
 
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width, chatHeight)
@@ -304,6 +306,9 @@ func (m Model) View() string {
 	// Header
 	b.WriteString(m.renderHeader())
 	b.WriteString("\n")
+
+	// Fixed spacing below hint (always visible, not scrolled)
+	b.WriteString(strings.Repeat("\n", 6))
 
 	// Messages viewport
 	b.WriteString(m.viewport.View())
@@ -468,11 +473,6 @@ func (m Model) renderHeader() string {
 func (m Model) renderMessages() string {
 	var b strings.Builder
 	margin := " "
-
-	// Add initial spacing before first message
-	if len(m.messages) > 0 {
-		b.WriteString(strings.Repeat("\n", 6))
-	}
 
 	for i, msg := range m.messages {
 		// Add 2 line breaks between messages (not before first)
