@@ -536,12 +536,10 @@ func (m Model) View() string {
 	}
 	b.WriteString("\n")
 
-	// Bottom divider
+	// Bottom divider and status bar on same line
 	b.WriteString(margin)
 	b.WriteString(dividerStyle.Render(strings.Repeat("─", dividerWidth)))
 	b.WriteString("\n")
-
-	// Status bar
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
 
@@ -671,12 +669,11 @@ func (m Model) renderMessages() string {
 			// Add M prefix on first line, then align rest
 			b.WriteString(" ")
 			b.WriteString(goldStyle.Render("𝐌"))
-			b.WriteString(" ")
 			
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
 			for j, line := range lines {
 				if j > 0 {
-					b.WriteString(" ")
+					b.WriteString("  ") // Align with " 𝐌"
 				}
 				b.WriteString(strings.TrimLeft(line, " "))
 				b.WriteString("\n")
