@@ -525,8 +525,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if int(msg) < len(m.thinking) {
 			m.thinking[msg].Completed = true
-			// Print completed thinking step to history
-			return m, printThinkingStepAbove(m.thinking[msg].Text)
+			// Don't print yet - wait until response to print all in order
 		}
 		return m, nil
 
@@ -537,6 +536,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.isThinking = false
+		// Print all thinking steps in order, then the response
+		var cmds []tea.Cmd
+		for _, step := range m.thinking {
+			cmds = append(cmds, printThinkingStepAbove(step.Text))
+		}
 		m.thinking = []ThinkingStep{} // Clear for next request
 		// Add assistant message and print above TUI (persists in scrollback)
 		m.messages = append(m.messages, Message{
@@ -544,7 +548,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Content:   string(msg),
 			Timestamp: time.Now(),
 		})
-		return m, printAssistantMessageAbove(string(msg))
+		cmds = append(cmds, printAssistantMessageAbove(string(msg)))
+		return m, tea.Sequence(cmds...)
 
 	case tickMsg:
 		// Check if exit hint should be cleared (after 3 seconds)
@@ -684,11 +689,21 @@ func (m Model) View() string {
 	return b.String()
 }
 
-// renderThinkingLive renders the current thinking state (spinner, not yet complete)
+// renderThinkingLive renders the current thinking state (completed steps + spinner)
 func (m Model) renderThinkingLive() string {
 	var b strings.Builder
 	margin := " "
 
+	// Show completed thinking steps first (in order)
+	for _, step := range m.thinking {
+		if step.Completed {
+			b.WriteString(margin)
+			b.WriteString(completedStyle.Render("⏺  " + step.Text))
+			b.WriteString("\n")
+		}
+	}
+
+	// Show spinner with elapsed time
 	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	elapsed := time.Since(m.thinkingStart)
 	frame := frames[int(elapsed.Milliseconds()/100)%len(frames)]
