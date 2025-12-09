@@ -633,20 +633,37 @@ cat doc.txt | muxi chat "Summarize:"         # Pipe with prompt
 ```
 $ muxi chat
 
-╭──────────────────────────────────────────────────────────────╮
-│ my-formation • Connected                                MUXI │
-╰──────────────────────────────────────────────────────────────╯
+╭── MUXI Chat ────────────────────────────────────────────────╮
+│               │                                             │
+│  ███╗   ███╗  │ Chatting with:                              │
+│  ████╗ ████║  │  ⌬ Formation: my-formation                  │
+│  ██║╚██╔╝██║  │  ⏍ Server: local                            │
+│  ██║ ╚═╝ ██║  │  ♕ User: alice                              │
+│  ╚═╝     ╚═╝  │                                             │
+╰─────────────────────────────────────────────────────────────╯
 
-  Welcome! Type your message or /help for commands.
+>  What's the weather in NYC?
 
-> What's the weather in NYC?
+⠧  Thinking... 2.1s  (ESC to stop)
 
-  The weather in New York City is currently sunny with a 
-  temperature of 72°F (22°C). Expected high of 78°F today
-  with clear skies throughout the afternoon.
+𝐌  The weather in New York City is currently sunny with a 
+   temperature of 72°F (22°C). Expected high of 78°F today
+   with clear skies throughout the afternoon.
 
-> _
+────────────────────────────────────────────────────────────────
+>  type your message here...                                    
+   (auto-grows from 1 line to 50% screen height)
+────────────────────────────────────────────────────────────────
+alice@local://my-formation              ? help  / commands  ESC
 ```
+
+**UI Elements:**
+- **Header:** ASCII "M" logo with formation/server/user info (brand recognition for screenshots)
+- **User messages:** `>` prefix
+- **Thinking state:** Spinner with elapsed time, ESC to cancel
+- **Response prefix:** `𝐌` (Unicode bold M)
+- **Input area:** Borderless (no `│` sides) for easy copy, auto-grows to ~20 lines / 50% screen
+- **Status bar:** `user@server://formation` URI notation + keyboard hints (dimmed)
 
 ### Implementation Approach: Hybrid TUI
 

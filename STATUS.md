@@ -1,7 +1,7 @@
 # MUXI CLI - Current Status
 
 **Last Updated:** 2025-12-08
-**Version:** 0.4.0-dev
+**Version:** 0.20251208.0
 **Status:** ✅ Ready for Formation API Implementation
 
 ---
