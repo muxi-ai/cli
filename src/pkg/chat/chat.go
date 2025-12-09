@@ -553,64 +553,65 @@ func (m Model) renderHeader() string {
 	gold := goldStyle.Render
 	dim := dimmedStyle.Render
 
-	// Fixed box width for centered layout
-	boxWidth := 48
+	// Fixed width box (65 chars)
+	boxWidth := 65
 
-	// Calculate centering padding
-	centerPad := (m.width - boxWidth) / 2
-	if centerPad < 0 {
-		centerPad = 0
-	}
-	indent := strings.Repeat(" ", centerPad)
-
-	// M logo lines (11 chars each)
+	// M logo lines (11 chars visual width each)
 	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")
 	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║")
 	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║")
 	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
 	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
 
-	// Right content (each padded to 28 chars)
-	rightContents := []string{
-		"Chatting with:              ",
-		fmt.Sprintf(" ⌬ Formation: %-13s", m.config.FormationID),
-		fmt.Sprintf(" ⏍ Server: %-16s", m.config.ServerID),
-		fmt.Sprintf(" ♛ User: %-18s", m.config.UserID),
-		"                            ",
+	// Right content - pad to fill remaining space (65 - 1 - 2 - 11 - 2 - 1 - 1 = 47 chars)
+	rightWidth := 47
+	pad := func(s string, w int) string {
+		if len(s) >= w {
+			return s[:w]
+		}
+		return s + strings.Repeat(" ", w-len(s))
 	}
 
 	var b strings.Builder
 
-	// Top border with centered title: ╭─────── MUXI Chat ───────╮
-	titleText := " MUXI Chat "
-	leftDashes := (boxWidth - 2 - len(titleText)) / 2
-	rightDashes := boxWidth - 2 - len(titleText) - leftDashes
-	b.WriteString(indent)
-	b.WriteString(dim("╭" + strings.Repeat("─", leftDashes)) + gold(titleText) + dim(strings.Repeat("─", rightDashes) + "╮"))
+	// Top border: ╭── MUXI Chat ─────...─╮
+	titleText := "── " + gold("MUXI Chat") + " "
+	dashesNeeded := boxWidth - 15 - 2 // 15 = "── MUXI Chat " visual, 2 = corners
+	b.WriteString(dim("╭") + dim("── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", dashesNeeded) + "╮"))
 	b.WriteString("\n")
+	_ = titleText
 
-	// Content lines: │ <logo> <info> │
+	// Line 1: empty
+	b.WriteString(dim("│") + "  " + "           " + "  " + dim("│") + pad("", rightWidth) + dim("│") + "\n")
+
+	// Lines 2-6: logo + content
 	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
+	rightContents := []string{
+		"Chatting with:",
+		" ⌬ Formation: " + m.config.FormationID,
+		" ⏍ Server: " + m.config.ServerID,
+		" ♛ User: " + m.config.UserID,
+		"",
+	}
+
 	for i, mLine := range mLines {
-		b.WriteString(indent)
-		b.WriteString(dim("│") + " ")
+		b.WriteString(dim("│") + "  ")
 		b.WriteString(mLine)
-		b.WriteString(" ")
+		b.WriteString("  " + dim("│"))
+		content := rightContents[i]
 		if i == 0 {
-			b.WriteString(dim(rightContents[i]))
+			b.WriteString(dim(pad(content, rightWidth)))
 		} else {
-			b.WriteString(rightContents[i])
+			b.WriteString(pad(content, rightWidth))
 		}
-		b.WriteString(dim("│"))
-		b.WriteString("\n")
+		b.WriteString(dim("│") + "\n")
 	}
 
 	// Bottom border
-	b.WriteString(indent)
 	b.WriteString(dim("╰" + strings.Repeat("─", boxWidth-2) + "╯"))
 	b.WriteString("\n")
 
-	// Hint text (centered)
+	// Hint text (centered relative to screen width)
 	hint := "ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"
 	hintPad := (m.width - len(hint)) / 2
 	if hintPad < 0 {
