@@ -552,18 +552,18 @@ func (m Model) renderHeader() string {
 	gold := goldStyle.Render
 	dim := dimmedStyle.Render
 
-	// Fixed width box (65 chars)
-	boxWidth := 65
+	// Fixed 64-char box
+	// Left: │ + 2 + logo(11) + 2 + │ = 17 chars
+	// Right: 64 - 17 - 1 = 46 chars
+	rightWidth := 46
 
-	// M logo lines (11 chars visual width each)
+	// M logo lines (11 chars each)
 	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")
 	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║")
 	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║")
 	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
 	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
 
-	// Right content - pad to fill remaining space (65 - 1 - 2 - 11 - 2 - 1 - 1 = 47 chars)
-	rightWidth := 47
 	pad := func(s string, w int) string {
 		if len(s) >= w {
 			return s[:w]
@@ -573,23 +573,20 @@ func (m Model) renderHeader() string {
 
 	var b strings.Builder
 
-	// Top border: ╭── MUXI Chat ─────...─╮
-	titleText := "── " + gold("MUXI Chat") + " "
-	dashesNeeded := boxWidth - 15 - 2 // 15 = "── MUXI Chat " visual, 2 = corners
-	b.WriteString(dim("╭") + dim("── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", dashesNeeded) + "╮"))
+	// Top border: ╭─── MUXI Chat ─────...─╮ (64 chars)
+	b.WriteString(dim("╭─── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", 48) + "╮"))
 	b.WriteString("\n")
-	_ = titleText
 
-	// Line 1: empty
-	b.WriteString(dim("│") + "  " + "           " + "  " + dim("│") + pad("", rightWidth) + dim("│") + "\n")
+	// Line 1: empty (64 chars)
+	b.WriteString(dim("│") + "               " + dim("│") + strings.Repeat(" ", 46) + dim("│") + "\n")
 
 	// Lines 2-6: logo + content
 	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
 	rightContents := []string{
-		" Chatting with:",
-		"  ⌬ Formation: " + m.config.FormationID,
-		"  ⏍ Server: " + m.config.ServerID,
-		"  ♛ User: " + m.config.UserID,
+		"  Chatting with:",
+		"    ⌬ Formation: " + m.config.FormationID,
+		"    ⏍ Server: " + m.config.ServerID,
+		"    ♛ User: " + m.config.UserID,
 		"",
 	}
 
@@ -606,8 +603,8 @@ func (m Model) renderHeader() string {
 		b.WriteString(dim("│") + "\n")
 	}
 
-	// Bottom border
-	b.WriteString(dim("╰" + strings.Repeat("─", boxWidth-2) + "╯"))
+	// Bottom border (64 chars)
+	b.WriteString(dim("╰" + strings.Repeat("─", 62) + "╯"))
 	b.WriteString("\n")
 
 	// Hint text (left-aligned)
