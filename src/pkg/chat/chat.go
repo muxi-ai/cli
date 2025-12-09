@@ -191,6 +191,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					Timestamp: time.Now(),
 				})
 				m.viewport.SetContent(m.renderMessages())
+				m.viewport.GotoBottom()
 				m.textarea.Reset()
 				m.textarea.SetHeight(1)
 
@@ -205,26 +206,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		headerHeight := 11 // ASCII header + hint text
-		fixedSpacing := 6  // Fixed spacing below hint
-		statusHeight := 5  // Status bar + dividers + footer padding
-		inputHeight := 5   // Input area
-		maxChatHeight := 30 // Max lines for messages
+		inputAreaHeight := 6 // Input + dividers + status + footer padding
 
 		m.textarea.SetWidth(msg.Width - 4)
 
-		// Calculate available space for messages
-		chatHeight := msg.Height - headerHeight - fixedSpacing - statusHeight - inputHeight
-		if chatHeight > maxChatHeight {
-			chatHeight = maxChatHeight
-		}
-		if chatHeight < 3 {
-			chatHeight = 3
+		// Viewport gets all space except input area
+		chatHeight := msg.Height - inputAreaHeight
+		if chatHeight < 5 {
+			chatHeight = 5
 		}
 
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width, chatHeight)
 			m.viewport.SetContent(m.renderMessages())
+			m.viewport.GotoBottom()
 			m.ready = true
 		} else {
 			m.viewport.Width = msg.Width
@@ -252,6 +247,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Timestamp: time.Now(),
 		})
 		m.viewport.SetContent(m.renderMessages())
+		m.viewport.GotoBottom()
 		return m, nil
 
 	case tickMsg:
@@ -287,28 +283,7 @@ func (m Model) View() string {
 	margin := " " // Left margin for entire chat
 	var b strings.Builder
 
-	// Calculate UI height to push content to bottom
-	// Header: 8 lines + 2 blank + 1 hint = 11
-	// Viewport: m.viewport.Height
-	// Input area: ~4 lines (divider + input + divider + status)
-	headerHeight := 11
-	inputAreaHeight := 4 + len(strings.Split(m.textarea.View(), "\n"))
-	uiHeight := headerHeight + m.viewport.Height + inputAreaHeight
-	
-	// Add blank lines to push to bottom
-	topPadding := m.height - uiHeight
-	if topPadding > 0 {
-		b.WriteString(strings.Repeat("\n", topPadding))
-	}
-
-	// Header
-	b.WriteString(m.renderHeader())
-	b.WriteString("\n")
-
-	// Fixed spacing below hint (always visible, not scrolled)
-	b.WriteString(strings.Repeat("\n", 6))
-
-	// Messages viewport
+	// Everything in viewport - scrolls naturally like terminal
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
 
@@ -471,6 +446,13 @@ func (m Model) renderHeader() string {
 func (m Model) renderMessages() string {
 	var b strings.Builder
 	margin := " "
+
+	// Header (scrolls with content)
+	b.WriteString(m.renderHeader())
+	b.WriteString("\n")
+
+	// Spacing below header
+	b.WriteString(strings.Repeat("\n", 5))
 
 	for i, msg := range m.messages {
 		// Add 2 line breaks between messages (not before first)
