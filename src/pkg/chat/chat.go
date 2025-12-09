@@ -187,6 +187,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					Content:   input,
 					Timestamp: time.Now(),
 				})
+				m.viewport.SetContent(m.renderMessages())
+				m.viewport.GotoBottom()
 				m.textarea.Reset()
 				m.textarea.SetHeight(1)
 
@@ -464,20 +466,29 @@ func (m Model) renderMessages() string {
 	var b strings.Builder
 	margin := " "
 
-	for _, msg := range m.messages {
+	// Add initial spacing before first message
+	if len(m.messages) > 0 {
+		b.WriteString(strings.Repeat("\n", 6))
+	}
+
+	for i, msg := range m.messages {
+		// Add 2 line breaks between messages (not before first)
+		if i > 0 {
+			b.WriteString("\n\n")
+		}
+
 		if msg.Role == "user" {
 			// Add margin to each line of user message
 			lines := strings.Split(msg.Content, "\n")
-			for i, line := range lines {
+			for j, line := range lines {
 				b.WriteString(margin)
-				if i == 0 {
+				if j == 0 {
 					b.WriteString(userStyle.Render(">  " + line))
 				} else {
 					b.WriteString(userStyle.Render("   " + line))
 				}
 				b.WriteString("\n")
 			}
-			b.WriteString("\n")
 		} else {
 			// Render markdown for assistant messages
 			rendered, err := m.renderer.Render(msg.Content)
@@ -486,9 +497,9 @@ func (m Model) renderMessages() string {
 			}
 			// Add margin to each line
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
-			for i, line := range lines {
+			for j, line := range lines {
 				b.WriteString(margin)
-				if i == 0 {
+				if j == 0 {
 					b.WriteString(goldStyle.Render("𝐌  "))
 				} else {
 					b.WriteString("   ")
@@ -496,7 +507,6 @@ func (m Model) renderMessages() string {
 				b.WriteString(assistantStyle.Render(line))
 				b.WriteString("\n")
 			}
-			b.WriteString("\n")
 		}
 	}
 
