@@ -359,14 +359,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showHelp = false
 				m.thinking = []ThinkingStep{}
 
-				// Add user message
+				// Print user message to stdout (stays in scrollback)
+				printUserMessage(input)
 				m.messages = append(m.messages, Message{
 					Role:      "user",
 					Content:   input,
 					Timestamp: time.Now(),
 				})
-				m.viewport.SetContent(m.renderMessages())
-				m.viewport.GotoBottom()
 				m.textarea.Reset()
 				m.textarea.SetHeight(1)
 
@@ -380,25 +379,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-
-		inputAreaHeight := 6 // Input + dividers + status + footer padding
-
 		m.textarea.SetWidth(msg.Width - 4)
-
-		// Viewport gets all space except input area
-		chatHeight := msg.Height - inputAreaHeight
-		if chatHeight < 5 {
-			chatHeight = 5
-		}
-
 		if !m.ready {
-			m.viewport = viewport.New(msg.Width, chatHeight)
-			m.viewport.SetContent(m.renderMessages())
-			m.viewport.GotoBottom()
 			m.ready = true
-		} else {
-			m.viewport.Width = msg.Width
-			m.viewport.Height = chatHeight
 		}
 
 	case thinkingMsg:
@@ -406,27 +389,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Text:      string(msg),
 			Completed: false,
 		})
-		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
 		return m, m.simulateNextThinking(len(m.thinking))
 
 	case thinkingCompleteMsg:
 		if int(msg) < len(m.thinking) {
 			m.thinking[msg].Completed = true
 		}
-		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
 		return m, nil
 
 	case responseMsg:
 		m.isThinking = false
+		m.thinking = []ThinkingStep{} // Clear thinking indicators
+		// Print assistant response to stdout (stays in scrollback)
+		printAssistantMessage(string(msg))
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   string(msg),
 			Timestamp: time.Now(),
 		})
-		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
 		return m, nil
 
 	case tickMsg:
@@ -486,7 +466,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View implements tea.Model
+// View implements tea.Model - inline mode, just shows input area
 func (m Model) View() string {
 	if m.quitting {
 		return ""
@@ -496,22 +476,23 @@ func (m Model) View() string {
 		return "Initializing..."
 	}
 
-	margin := " " // Left margin for entire chat
+	margin := " "
 	var b strings.Builder
 
-	// Everything in viewport - scrolls naturally like terminal
-	b.WriteString(m.viewport.View())
-	b.WriteString("\n")
-
-	// Command menu or submenu (above input) - only one at a time
+	// Command menu or submenu (above input)
 	if m.showSubmenu {
 		b.WriteString(m.renderSubmenu())
 	} else if m.showCommands {
 		b.WriteString(m.renderCommands())
 	}
 
+	// Show thinking indicator if active
+	if m.isThinking || len(m.thinking) > 0 {
+		b.WriteString(m.renderThinking())
+	}
+
 	// Input divider
-	dividerWidth := m.width - 4 // Account for margins
+	dividerWidth := m.width - 4
 	if dividerWidth < 20 {
 		dividerWidth = 20
 	}
@@ -519,7 +500,7 @@ func (m Model) View() string {
 	b.WriteString(dividerStyle.Render(strings.Repeat("─", dividerWidth)))
 	b.WriteString("\n")
 
-	// Input area - add margin to continuation lines
+	// Input area
 	inputLines := strings.Split(m.textarea.View(), "\n")
 	for i, line := range inputLines {
 		b.WriteString(margin)
@@ -527,7 +508,7 @@ func (m Model) View() string {
 			b.WriteString(goldStyle.Render(">"))
 			b.WriteString("  ")
 		} else {
-			b.WriteString("   ") // Align with first line (same width as ">  ")
+			b.WriteString("   ")
 		}
 		b.WriteString(line)
 		if i < len(inputLines)-1 {
@@ -536,7 +517,7 @@ func (m Model) View() string {
 	}
 	b.WriteString("\n")
 
-	// Bottom divider and status bar on same line
+	// Status bar
 	b.WriteString(margin)
 	b.WriteString(dividerStyle.Render(strings.Repeat("─", dividerWidth)))
 	b.WriteString("\n")
@@ -544,6 +525,18 @@ func (m Model) View() string {
 	b.WriteString(m.renderStatusBar())
 
 	return b.String()
+}
+
+// printUserMessage prints user message to stdout (stays in scrollback)
+func printUserMessage(content string) {
+	fmt.Println()
+	fmt.Println(goldStyle.Render(">") + "  " + userStyle.Render(content))
+}
+
+// printAssistantMessage prints assistant message to stdout (stays in scrollback)  
+func printAssistantMessage(content string) {
+	fmt.Println()
+	fmt.Println(" " + goldStyle.Render("𝐌") + " " + content)
 }
 
 func (m Model) renderHeader() string {
@@ -925,12 +918,12 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 - ESC - Cancel current response
 - Ctrl+C - Exit
 - Ctrl+L - Clear screen`
+		printAssistantMessage(helpText)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   helpText,
 			Timestamp: time.Now(),
 		})
-		m.viewport.SetContent(m.renderMessages())
 		m.textarea.Reset()
 		m.textarea.SetHeight(1)
 
@@ -940,22 +933,23 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 - weather-agent (specialist) - Weather information
 - code-helper (specialist) - Code assistance  
 - general-assistant (generalist) - General queries`
+		printAssistantMessage(agentList)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   agentList,
 			Timestamp: time.Now(),
 		})
-		m.viewport.SetContent(m.renderMessages())
 		m.textarea.Reset()
 		m.textarea.SetHeight(1)
 
 	default:
+		errMsg := fmt.Sprintf("Unknown command: `/%s`. Type `/help` for available commands.", parts[0])
+		printAssistantMessage(errMsg)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
-			Content:   fmt.Sprintf("Unknown command: `/%s`. Type `/help` for available commands.", parts[0]),
+			Content:   errMsg,
 			Timestamp: time.Now(),
 		})
-		m.viewport.SetContent(m.renderMessages())
 		m.textarea.Reset()
 		m.textarea.SetHeight(1)
 	}
@@ -1059,11 +1053,33 @@ func main() {
 
 // Run starts the chat UI
 func Run(cfg Config) error {
+	// Print header once at startup (stays in scrollback)
+	printHeader(cfg)
+	
 	p := tea.NewProgram(
 		New(cfg),
-		tea.WithAltScreen(),
+		// No WithAltScreen() - use normal terminal buffer for scrollback
 	)
 
 	_, err := p.Run()
 	return err
+}
+
+// printHeader prints the welcome header to stdout (before TUI takes over)
+func printHeader(cfg Config) {
+	gold := goldStyle.Render
+	dim := dimmedStyle.Render
+	
+	fmt.Println()
+	fmt.Println(dim("╭─── ") + gold("MUXI Chat") + dim(" ────────────────────────────────────────────────╮"))
+	fmt.Println(dim("│") + "               " + dim("│") + "                                              " + dim("│"))
+	fmt.Println(dim("│") + "  " + gold("███") + dim("╗") + "   " + gold("███") + dim("╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│"))
+	fmt.Println(dim("│") + "  " + gold("████") + dim("╗") + " " + gold("████") + dim("║") + "  " + dim("│") + "     ⌬ Formation: " + cfg.FormationID + strings.Repeat(" ", 27-len(cfg.FormationID)) + dim("│"))
+	fmt.Println(dim("│") + "  " + gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") + "  " + dim("│") + "     ⏍ Server: " + cfg.ServerID + strings.Repeat(" ", 30-len(cfg.ServerID)) + dim("│"))
+	fmt.Println(dim("│") + "  " + gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") + "  " + dim("│") + "     ♛ User: " + cfg.UserID + strings.Repeat(" ", 32-len(cfg.UserID)) + dim("│"))
+	fmt.Println(dim("│") + "  " + dim("╚═╝") + "     " + dim("╚═╝") + "  " + dim("│") + "                                              " + dim("│"))
+	fmt.Println(dim("╰──────────────────────────────────────────────────────────────╯"))
+	fmt.Println()
+	fmt.Println(dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"))
+	fmt.Println()
 }
