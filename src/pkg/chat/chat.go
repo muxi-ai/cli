@@ -586,13 +586,24 @@ func printUserMessageAbove(content string) tea.Cmd {
 }
 
 func printAssistantMessageAbove(content string) tea.Cmd {
+	// Render markdown
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(80),
+	)
+	rendered := content
+	if err == nil {
+		if r, err := renderer.Render(content); err == nil {
+			rendered = strings.TrimSpace(r)
+		}
+	}
 	// Empty line before, message, empty line after
-	return tea.Println("\n " + goldStyle.Render("𝐌") + " " + content + "\n")
+	return tea.Println("\n " + goldStyle.Render("𝐌") + " " + rendered + "\n")
 }
 
 // printThinkingStepAbove prints a completed thinking step to history
 func printThinkingStepAbove(text string) tea.Cmd {
-	return tea.Println(" " + completedStyle.Render("⏺  "+text))
+	return tea.Println(" " + completedStyle.Render("⏺  "+text) + "\n")
 }
 
 func (m Model) renderHeader() string {
