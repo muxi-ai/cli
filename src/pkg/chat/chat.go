@@ -564,13 +564,6 @@ func (m Model) renderHeader() string {
 	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
 	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
 
-	pad := func(s string, w int) string {
-		if len(s) >= w {
-			return s[:w]
-		}
-		return s + strings.Repeat(" ", w-len(s))
-	}
-
 	var b strings.Builder
 
 	// Top border: ╭─── MUXI Chat ─────...─╮ (64 chars)
@@ -581,24 +574,37 @@ func (m Model) renderHeader() string {
 	b.WriteString(dim("│") + "               " + dim("│") + strings.Repeat(" ", 46) + dim("│") + "\n")
 
 	// Lines 2-6: logo + content
+	// Build right content with explicit padding (46 chars each)
+	// Use rune count for visual width (Unicode symbols are 1 visual char)
+	runeLen := func(s string) int {
+		return len([]rune(s))
+	}
+	fmtLine := func(prefix, label, value string, totalWidth int) string {
+		content := prefix + label + value
+		visualLen := runeLen(content)
+		if visualLen < totalWidth {
+			return content + strings.Repeat(" ", totalWidth-visualLen)
+		}
+		return string([]rune(content)[:totalWidth])
+	}
+
 	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
 	rightContents := []string{
-		"  Chatting with:",
-		"    ⌬ Formation: " + m.config.FormationID,
-		"    ⏍ Server: " + m.config.ServerID,
-		"    ♛ User: " + m.config.UserID,
-		"",
+		fmtLine("  ", "Chatting with:", "", rightWidth),
+		fmtLine("    ", "⌬ Formation: ", m.config.FormationID, rightWidth),
+		fmtLine("    ", "⏍ Server: ", m.config.ServerID, rightWidth),
+		fmtLine("    ", "♛ User: ", m.config.UserID, rightWidth),
+		strings.Repeat(" ", rightWidth),
 	}
 
 	for i, mLine := range mLines {
 		b.WriteString(dim("│") + "  ")
 		b.WriteString(mLine)
 		b.WriteString("  " + dim("│"))
-		content := rightContents[i]
 		if i == 0 {
-			b.WriteString(dim(pad(content, rightWidth)))
+			b.WriteString(dim(rightContents[i]))
 		} else {
-			b.WriteString(pad(content, rightWidth))
+			b.WriteString(rightContents[i])
 		}
 		b.WriteString(dim("│") + "\n")
 	}
@@ -1057,7 +1063,7 @@ func main() {
 func Run(cfg Config) error {
 	p := tea.NewProgram(
 		New(cfg),
-		tea.WithAltScreen(),
+		// tea.WithAltScreen(), // Disabled for better scrollback in iTerm2/Terminal
 	)
 
 	_, err := p.Run()
