@@ -256,10 +256,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.isThinking {
 				m.isThinking = false
-				m.thinking = append(m.thinking, ThinkingStep{
-					Text:      "Cancelled by user",
-					Completed: true,
-				})
+				m.thinking = []ThinkingStep{} // Clear thinking steps
+				// Print abort message in red
+				return m, printAbortMessage()
 			}
 			return m, nil
 
@@ -484,8 +483,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, printAssistantMessageAbove(string(msg))
 
 	case tickMsg:
-		// Check if exit hint should be cleared (after 5 seconds)
-		if m.showExitHint && time.Since(m.exitHintStart) > 5*time.Second {
+		// Check if exit hint should be cleared (after 3 seconds)
+		if m.showExitHint && time.Since(m.exitHintStart) > 3*time.Second {
 			m.showExitHint = false
 			m.textarea.Placeholder = "Type your message..."
 		}
@@ -630,9 +629,12 @@ func (m Model) renderThinkingLive() string {
 	elapsed := time.Since(m.thinkingStart)
 	frame := frames[int(elapsed.Milliseconds()/100)%len(frames)]
 
-	// Show current thinking with spinner
+	// Show current thinking with spinner and ESC hint
+	escHint := dimmedStyle.Render("(ESC to cancel)")
 	b.WriteString(margin)
 	b.WriteString(thinkingStyle.Render(fmt.Sprintf("%s  Thinking... %.1fs", frame, elapsed.Seconds())))
+	b.WriteString("  ")
+	b.WriteString(escHint)
 	b.WriteString("\n")
 
 	return b.String()
@@ -663,6 +665,12 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 // printThinkingStepAbove prints a completed thinking step to history (no trailing space)
 func printThinkingStepAbove(text string) tea.Cmd {
 	return tea.Println(" " + completedStyle.Render("⏺  "+text))
+}
+
+// printAbortMessage prints the abort message in red
+func printAbortMessage() tea.Cmd {
+	redStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ff5555"))
+	return tea.Println("\n " + redStyle.Render("✕  Request aborted by user") + "\n")
 }
 
 func (m Model) renderHeader() string {
