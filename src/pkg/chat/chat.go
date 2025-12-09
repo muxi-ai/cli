@@ -49,6 +49,10 @@ type Model struct {
 	showHelp        bool
 	showCommands    bool
 	commandSelected int
+	showSubmenu     bool
+	submenuSelected int
+	submenuParent   string
+	asyncMode       bool // A/S indicator
 	err             error
 }
 
@@ -56,18 +60,29 @@ type Model struct {
 type Command struct {
 	Name        string
 	Description string
+	Submenu     []SubItem
+}
+
+// SubItem represents a submenu option
+type SubItem struct {
+	Name        string
+	Description string
 }
 
 // Available commands
 var commands = []Command{
-	{"/clear", "Start a new session (clears context)"},
-	{"/config", "Show current configuration"},
-	{"/cost", "Show token usage for the session"},
-	{"/exit", "Exit the chat"},
-	{"/help", "Show help information"},
-	{"/history", "Show conversation history"},
-	{"/model", "Show or change the current model"},
-	{"/session", "Show session information"},
+	{"/async", "Toggle async mode", []SubItem{
+		{"on", "Enable async mode"},
+		{"off", "Disable async mode"},
+	}},
+	{"/clear", "Start a new session (clears context)", nil},
+	{"/config", "Show current configuration", nil},
+	{"/cost", "Show token usage for the session", nil},
+	{"/exit", "Exit the chat", nil},
+	{"/help", "Show help information", nil},
+	{"/history", "Show conversation history", nil},
+	{"/model", "Show or change the current model", nil},
+	{"/session", "Show session information", nil},
 }
 
 // Styles
@@ -167,6 +182,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyEsc:
+			if m.showSubmenu {
+				m.showSubmenu = false
+				m.submenuSelected = 0
+				m.textarea.Reset()
+				return m, nil
+			}
 			if m.showCommands {
 				m.showCommands = false
 				m.commandSelected = 0
@@ -189,6 +210,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case tea.KeyUp:
+			if m.showSubmenu {
+				cmd := m.getCommandByName(m.submenuParent)
+				if cmd != nil {
+					if m.submenuSelected > 0 {
+						m.submenuSelected--
+					} else {
+						m.submenuSelected = len(cmd.Submenu) - 1
+					}
+				}
+				return m, nil
+			}
 			if m.showCommands {
 				filtered := m.filterCommands(m.textarea.Value())
 				if m.commandSelected > 0 {
@@ -200,6 +232,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case tea.KeyDown:
+			if m.showSubmenu {
+				cmd := m.getCommandByName(m.submenuParent)
+				if cmd != nil {
+					if m.submenuSelected < len(cmd.Submenu)-1 {
+						m.submenuSelected++
+					} else {
+						m.submenuSelected = 0
+					}
+				}
+				return m, nil
+			}
 			if m.showCommands {
 				filtered := m.filterCommands(m.textarea.Value())
 				if m.commandSelected < len(filtered)-1 {
@@ -211,13 +254,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case tea.KeyTab:
+			if m.showSubmenu {
+				// Select submenu item
+				cmd := m.getCommandByName(m.submenuParent)
+				if cmd != nil && m.submenuSelected < len(cmd.Submenu) {
+					m.handleSubmenuSelection(cmd, m.submenuSelected)
+				}
+				m.showSubmenu = false
+				m.showCommands = false
+				m.submenuSelected = 0
+				m.textarea.Reset()
+				return m, nil
+			}
 			if m.showCommands {
 				filtered := m.filterCommands(m.textarea.Value())
 				if len(filtered) > 0 && m.commandSelected < len(filtered) {
-					// Select the command
-					m.textarea.SetValue(filtered[m.commandSelected].Name + " ")
-					m.showCommands = false
-					m.commandSelected = 0
+					selected := filtered[m.commandSelected]
+					// Check if command has submenu
+					if len(selected.Submenu) > 0 {
+						m.showSubmenu = true
+						m.submenuParent = selected.Name
+						m.submenuSelected = 0
+						m.showCommands = false
+					} else {
+						// Select the command
+						m.textarea.SetValue(selected.Name + " ")
+						m.showCommands = false
+						m.commandSelected = 0
+					}
 				}
 				return m, nil
 			}
@@ -397,6 +461,11 @@ func (m Model) View() string {
 	if m.showCommands {
 		b.WriteString(m.renderCommands())
 	}
+	
+	// Submenu (above input)
+	if m.showSubmenu {
+		b.WriteString(m.renderSubmenu())
+	}
 
 	// Input divider
 	dividerWidth := m.width - 4 // Account for margins
@@ -409,15 +478,32 @@ func (m Model) View() string {
 
 	// Input area - add margin to continuation lines
 	inputLines := strings.Split(m.textarea.View(), "\n")
+	
+	// A/S indicator on right side
+	indicator := ""
+	if m.asyncMode {
+		indicator = goldStyle.Render("A")
+	} else {
+		indicator = dimmedStyle.Render("S")
+	}
+	
 	for i, line := range inputLines {
 		b.WriteString(margin)
 		if i == 0 {
 			b.WriteString(goldStyle.Render(">"))
 			b.WriteString("  ")
+			b.WriteString(line)
+			// Add indicator on right side of first line
+			lineLen := len(line) + 4 // "> " + "  "
+			padding := m.width - lineLen - 4 // 4 for margin and indicator
+			if padding > 0 {
+				b.WriteString(strings.Repeat(" ", padding))
+			}
+			b.WriteString(indicator)
 		} else {
 			b.WriteString("   ") // Align with first line (same width as ">  ")
+			b.WriteString(line)
 		}
-		b.WriteString(line)
 		if i < len(inputLines)-1 {
 			b.WriteString("\n")
 		}
@@ -690,6 +776,55 @@ func (m Model) renderCommands() string {
 	}
 	
 	b.WriteString(dim("╰──────────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
+	
+	return b.String()
+}
+
+func (m Model) getCommandByName(name string) *Command {
+	for i := range commands {
+		if commands[i].Name == name {
+			return &commands[i]
+		}
+	}
+	return nil
+}
+
+func (m *Model) handleSubmenuSelection(cmd *Command, idx int) {
+	if cmd.Name == "/async" && idx < len(cmd.Submenu) {
+		m.asyncMode = cmd.Submenu[idx].Name == "on"
+	}
+}
+
+func (m Model) renderSubmenu() string {
+	dim := dimmedStyle.Render
+	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45")).Bold(true).Render
+	
+	cmd := m.getCommandByName(m.submenuParent)
+	if cmd == nil || len(cmd.Submenu) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString(dim("╭────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("│  ") + cmd.Name + dim(strings.Repeat(" ", 32-len(cmd.Name))) + dim("│") + "\n")
+	b.WriteString(dim("├────────────────────────────────────┤") + "\n")
+	
+	for i, item := range cmd.Submenu {
+		prefix := "  "
+		if i == m.submenuSelected {
+			prefix = "> "
+		}
+		
+		line := fmt.Sprintf("%-10s  %-20s", item.Name, item.Description)
+		if i == m.submenuSelected {
+			b.WriteString(dim("│ ") + sel(prefix+line) + dim("  │") + "\n")
+		} else {
+			b.WriteString(dim("│ "+prefix) + item.Name + dim(fmt.Sprintf("  %-20s", item.Description)) + dim("  │") + "\n")
+		}
+	}
+	
+	b.WriteString(dim("╰────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
