@@ -847,11 +847,11 @@ func (m Model) renderSubmenu() string {
 			prefix = "> "
 		}
 		
-		content := fmt.Sprintf("%-10s %-27s", item.Name, item.Description)
+		content := fmt.Sprintf("%-10s %-26s", item.Name, item.Description)
 		if i == m.submenuSelected {
-			b.WriteString(dim("│ ") + sel(prefix+content) + dim("│") + "\n")
+			b.WriteString(dim("│ ") + sel(prefix+content) + dim(" │") + "\n")
 		} else {
-			b.WriteString(dim("│ "+prefix+content+"│") + "\n")
+			b.WriteString(dim("│ "+prefix+content+" │") + "\n")
 		}
 	}
 	
