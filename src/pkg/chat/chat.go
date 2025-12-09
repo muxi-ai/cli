@@ -231,12 +231,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Text:      string(msg),
 			Completed: false,
 		})
+		m.viewport.SetContent(m.renderMessages())
+		m.viewport.GotoBottom()
 		return m, m.simulateNextThinking(len(m.thinking))
 
 	case thinkingCompleteMsg:
 		if int(msg) < len(m.thinking) {
 			m.thinking[msg].Completed = true
 		}
+		m.viewport.SetContent(m.renderMessages())
+		m.viewport.GotoBottom()
 		return m, nil
 
 	case responseMsg:
