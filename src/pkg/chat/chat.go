@@ -180,10 +180,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyCtrlD:
+			// Clear input first, quit on second press
+			if strings.TrimSpace(m.textarea.Value()) != "" {
+				m.textarea.Reset()
+				return m, nil
+			}
 			m.quitting = true
 			return m, tea.Quit
 
 		case tea.KeyEsc:
+			// Clear input first if not empty
+			if strings.TrimSpace(m.textarea.Value()) != "" && !m.showCommands && !m.showSubmenu && !m.showHelp {
+				m.textarea.Reset()
+				return m, nil
+			}
 			if m.showSubmenu {
 				m.showSubmenu = false
 				m.submenuSelected = 0
