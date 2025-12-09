@@ -433,6 +433,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.historyIndex = -1
 				m.currentInput = ""
+				m.requestAborted = false // Reset abort flag for new request
 
 				// Add user message and print above TUI (persists in scrollback)
 				m.messages = append(m.messages, Message{
