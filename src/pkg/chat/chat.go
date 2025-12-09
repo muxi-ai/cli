@@ -185,7 +185,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showSubmenu {
 				m.showSubmenu = false
 				m.submenuSelected = 0
-				m.textarea.Reset()
+				m.showCommands = true // Go back to main menu
+				m.textarea.SetValue("/")
 				return m, nil
 			}
 			if m.showCommands {
@@ -258,7 +259,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Select submenu item
 				cmd := m.getCommandByName(m.submenuParent)
 				if cmd != nil && m.submenuSelected < len(cmd.Submenu) {
-					m.handleSubmenuSelection(cmd, m.submenuSelected)
+					m.asyncMode = m.handleSubmenuSelection(cmd, m.submenuSelected)
 				}
 				m.showSubmenu = false
 				m.showCommands = false
@@ -301,7 +302,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showSubmenu {
 				cmd := m.getCommandByName(m.submenuParent)
 				if cmd != nil && m.submenuSelected < len(cmd.Submenu) {
-					m.handleSubmenuSelection(cmd, m.submenuSelected)
+					m.asyncMode = m.handleSubmenuSelection(cmd, m.submenuSelected)
 				}
 				m.showSubmenu = false
 				m.showCommands = false
@@ -427,7 +428,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Check for / command menu
 	val := m.textarea.Value()
-	if strings.HasPrefix(val, "/") && !m.isThinking {
+	if strings.HasPrefix(val, "/") && !m.isThinking && !m.showSubmenu {
 		filtered := m.filterCommands(val)
 		if len(filtered) > 0 {
 			m.showCommands = true
@@ -440,7 +441,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// No matching commands - hide menu
 			m.showCommands = false
 		}
-	} else {
+	} else if !m.showSubmenu {
 		m.showCommands = false
 		m.commandSelected = 0
 	}
@@ -799,10 +800,11 @@ func (m Model) getCommandByName(name string) *Command {
 	return nil
 }
 
-func (m *Model) handleSubmenuSelection(cmd *Command, idx int) {
+func (m Model) handleSubmenuSelection(cmd *Command, idx int) bool {
 	if cmd.Name == "/async" && idx < len(cmd.Submenu) {
-		m.asyncMode = cmd.Submenu[idx].Name == "on"
+		return cmd.Submenu[idx].Name == "on"
 	}
+	return m.asyncMode
 }
 
 func (m Model) renderSubmenu() string {
@@ -815,10 +817,10 @@ func (m Model) renderSubmenu() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(dim("╭─────────────────────────────────────────╮") + "\n")
-	title := fmt.Sprintf("  %-37s", cmd.Name)
+	b.WriteString(dim("╭───────────────────────────────────────────╮") + "\n")
+	title := fmt.Sprintf("  %-39s", cmd.Name)
 	b.WriteString(dim("│") + title + dim("│") + "\n")
-	b.WriteString(dim("├─────────────────────────────────────────┤") + "\n")
+	b.WriteString(dim("├───────────────────────────────────────────┤") + "\n")
 	
 	for i, item := range cmd.Submenu {
 		prefix := "  "
@@ -826,15 +828,15 @@ func (m Model) renderSubmenu() string {
 			prefix = "> "
 		}
 		
-		line := fmt.Sprintf("%-8s  %-27s", item.Name, item.Description)
+		line := fmt.Sprintf("%-8s  %-29s", item.Name, item.Description)
 		if i == m.submenuSelected {
 			b.WriteString(dim("│ ") + sel(prefix+line) + dim(" │") + "\n")
 		} else {
-			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-8s", item.Name) + dim(fmt.Sprintf("  %-27s", item.Description)) + dim(" │") + "\n")
+			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-8s", item.Name) + dim(fmt.Sprintf("  %-29s", item.Description)) + dim(" │") + "\n")
 		}
 	}
 	
-	b.WriteString(dim("╰─────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╰───────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
