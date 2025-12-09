@@ -238,8 +238,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.showHelp {
 				m.showHelp = false
-				m.viewport.SetContent(m.renderMessages())
-				m.viewport.GotoBottom()
 				return m, nil
 			}
 			if m.isThinking {
@@ -456,13 +454,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.showHelp = true
 		m.showCommands = false
 		m.textarea.Reset()
-		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
 	} else if m.showHelp && m.textarea.Value() != "" {
 		// Clear help when user starts typing something else
 		m.showHelp = false
-		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
 	}
 
 	// Check for / command menu
@@ -510,6 +504,12 @@ func (m Model) View() string {
 
 	// 2 line-spaces before input area
 	b.WriteString("\n\n")
+
+	// Help screen (shown above input when ? is pressed)
+	if m.showHelp {
+		b.WriteString(m.renderHelp())
+		b.WriteString("\n")
+	}
 
 	// Thinking indicators (if active) - shown in real-time, printed to history when complete
 	if m.isThinking {
@@ -586,9 +586,9 @@ func printUserMessageAbove(content string) tea.Cmd {
 }
 
 func printAssistantMessageAbove(content string) tea.Cmd {
-	// Render markdown
+	// Render markdown with dark style (avoid terminal color query that causes escape sequence leak)
 	renderer, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStylePath("dark"),
 		glamour.WithWordWrap(80),
 	)
 	rendered := content
