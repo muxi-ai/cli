@@ -551,6 +551,7 @@ func (m Model) View() string {
 	b.WriteString("\n")
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
+	b.WriteString("\n") // Space after input footer
 
 	return b.String()
 }
@@ -590,8 +591,8 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 			rendered = strings.TrimSpace(r)
 		}
 	}
-	// Empty line before, message, empty line after
-	return tea.Println("\n " + goldStyle.Render("𝐌") + rendered + "\n")
+	// Empty line before, message, TWO empty lines after (space before input)
+	return tea.Println("\n " + goldStyle.Render("𝐌") + rendered + "\n\n")
 }
 
 // printThinkingStepAbove prints a completed thinking step to history (no trailing space)
