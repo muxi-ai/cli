@@ -584,9 +584,9 @@ func (m Model) renderHeader() string {
 	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
 	rightContents := []string{
 		"  Chatting with:",
-		"     ⌬ Formation: " + m.config.FormationID,
-		"     ⏍ Server: " + m.config.ServerID,
-		"     ♛ User: " + m.config.UserID,
+		"    ⌬ Formation: " + m.config.FormationID,
+		"    ⏍ Server: " + m.config.ServerID,
+		"    ♛ User: " + m.config.UserID,
 		"",
 	}
 
