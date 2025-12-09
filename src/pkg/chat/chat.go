@@ -63,10 +63,10 @@ var (
 			Foreground(lipgloss.Color("252"))
 
 	thinkingStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#555555")) // Dimmer for thinking updates
+			Foreground(lipgloss.Color("#808080")) // Same as footer
 
 	completedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#555555")) // Dimmer for completed steps
+			Foreground(lipgloss.Color("#808080")) // Same as footer
 
 	statusBarStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240"))
@@ -487,14 +487,13 @@ func (m Model) renderMessages() string {
 				rendered = msg.Content
 			}
 			// Add M prefix on first line, then align rest
-			b.WriteString(margin)
 			b.WriteString(goldStyle.Render("𝐌"))
 			b.WriteString(" ")
 			
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
 			for j, line := range lines {
 				if j > 0 {
-					b.WriteString(margin + "  ")
+					b.WriteString(" ")
 				}
 				b.WriteString(strings.TrimLeft(line, " "))
 				b.WriteString("\n")
