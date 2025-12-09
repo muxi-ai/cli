@@ -90,17 +90,27 @@ func New(cfg Config) Model {
 	ta.SetWidth(80)
 	ta.SetHeight(1)
 	ta.ShowLineNumbers = false
-	ta.KeyMap.InsertNewline.SetEnabled(false) // Enter sends, Shift+Enter for newline
 
-	// Remove border and background for clean look
+	// Remove all borders and backgrounds for clean look
 	ta.FocusedStyle.Base = lipgloss.NewStyle()
 	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
+	ta.FocusedStyle.CursorLineNumber = lipgloss.NewStyle()
+	ta.FocusedStyle.EndOfBuffer = lipgloss.NewStyle()
+	ta.FocusedStyle.LineNumber = lipgloss.NewStyle()
 	ta.FocusedStyle.Placeholder = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	ta.FocusedStyle.Prompt = lipgloss.NewStyle()
 	ta.FocusedStyle.Text = lipgloss.NewStyle()
 	ta.BlurredStyle.Base = lipgloss.NewStyle()
 	ta.BlurredStyle.CursorLine = lipgloss.NewStyle()
+	ta.BlurredStyle.CursorLineNumber = lipgloss.NewStyle()
+	ta.BlurredStyle.EndOfBuffer = lipgloss.NewStyle()
+	ta.BlurredStyle.LineNumber = lipgloss.NewStyle()
 	ta.BlurredStyle.Placeholder = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	ta.BlurredStyle.Prompt = lipgloss.NewStyle()
 	ta.BlurredStyle.Text = lipgloss.NewStyle()
+
+	// Clear the prompt character (removes left border)
+	ta.Prompt = ""
 
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
@@ -143,6 +153,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case tea.KeyEnter:
+			// Check for Shift+Enter or Alt+Enter to add newline
+			// Note: Shift+Enter detection varies by terminal
+			if msg.Alt || msg.String() == "shift+enter" {
+				m.textarea.InsertString("\n")
+				// Grow textarea height as needed
+				lines := strings.Count(m.textarea.Value(), "\n") + 1
+				if lines > m.textarea.Height() && lines <= 10 {
+					m.textarea.SetHeight(lines)
+				}
+				return m, nil
+			}
 			if !m.isThinking && strings.TrimSpace(m.textarea.Value()) != "" {
 				input := m.textarea.Value()
 				
@@ -158,6 +179,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					Timestamp: time.Now(),
 				})
 				m.textarea.Reset()
+				m.textarea.SetHeight(1)
 
 				// Start dummy thinking (TODO: replace with actual API call)
 				m.isThinking = true
@@ -374,6 +396,7 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 		m.messages = []Message{}
 		m.viewport.SetContent("")
 		m.textarea.Reset()
+		m.textarea.SetHeight(1)
 
 	case "help", "?":
 		helpText := `**Available Commands:**
@@ -396,6 +419,7 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 		})
 		m.viewport.SetContent(m.renderMessages())
 		m.textarea.Reset()
+		m.textarea.SetHeight(1)
 
 	case "agents":
 		// TODO: Fetch from API
@@ -410,6 +434,7 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 		})
 		m.viewport.SetContent(m.renderMessages())
 		m.textarea.Reset()
+		m.textarea.SetHeight(1)
 
 	default:
 		m.messages = append(m.messages, Message{
@@ -419,6 +444,7 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 		})
 		m.viewport.SetContent(m.renderMessages())
 		m.textarea.Reset()
+		m.textarea.SetHeight(1)
 	}
 
 	return m, nil
