@@ -685,7 +685,7 @@ func (m Model) renderCommands() string {
 		if i == m.commandSelected {
 			b.WriteString(dim("│ ") + sel(prefix+line))
 		} else {
-			b.WriteString(dim("│ "+prefix+line))
+			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-12s", name) + dim("  "+desc))
 		}
 		// Pad to box width
 		padding := 58 - len(prefix) - len(line)
