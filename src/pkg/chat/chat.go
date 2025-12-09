@@ -703,6 +703,18 @@ func (m Model) renderThinkingLive() string {
 		}
 	}
 
+	// Add line space before spinner if there are completed steps above
+	hasCompleted := false
+	for _, step := range m.thinking {
+		if step.Completed {
+			hasCompleted = true
+			break
+		}
+	}
+	if hasCompleted {
+		b.WriteString("\n")
+	}
+
 	// Show spinner with elapsed time
 	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	elapsed := time.Since(m.thinkingStart)
