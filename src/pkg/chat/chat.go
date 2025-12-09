@@ -544,6 +544,7 @@ func (m Model) View() string {
 	// Status bar
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
+	b.WriteString("\n")
 
 	return b.String()
 }
@@ -1063,7 +1064,7 @@ func main() {
 func Run(cfg Config) error {
 	p := tea.NewProgram(
 		New(cfg),
-		// tea.WithAltScreen(), // Disabled for better scrollback in iTerm2/Terminal
+		tea.WithAltScreen(),
 	)
 
 	_, err := p.Run()
