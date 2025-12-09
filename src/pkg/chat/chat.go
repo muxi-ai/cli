@@ -57,7 +57,7 @@ var (
 			Padding(0, 1)
 
 	userStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
+			Foreground(lipgloss.Color("#c98b45")) // Dimmed orange for user messages
 
 	assistantStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252"))
