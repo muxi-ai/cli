@@ -163,7 +163,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.insertNewline()
 				return m, nil
 			}
-			if !m.isThinking && strings.TrimSpace(m.textarea.Value()) != "" {
+			// Backslash + Enter = line continuation (like bash)
+			val := m.textarea.Value()
+			if strings.HasSuffix(val, "\\") {
+				m.textarea.SetValue(strings.TrimSuffix(val, "\\"))
+				m.insertNewline()
+				return m, nil
+			}
+			if !m.isThinking && strings.TrimSpace(val) != "" {
 				input := m.textarea.Value()
 				
 				// Handle slash commands
