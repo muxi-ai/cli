@@ -502,13 +502,12 @@ func (m Model) View() string {
 	var b strings.Builder
 	margin := " "
 
-	// 2 line-spaces before input area
-	b.WriteString("\n\n")
+	// Clear from cursor to end of screen (prevents leftover lines when view shrinks)
+	b.WriteString("\033[J")
 
 	// Help screen (shown above input when ? is pressed)
 	if m.showHelp {
 		b.WriteString(m.renderHelp())
-		b.WriteString("\n")
 	}
 
 	// Thinking indicators (if active) - shown in real-time, printed to history when complete
@@ -555,9 +554,6 @@ func (m Model) View() string {
 	b.WriteString("\n")
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
-
-	// 1 line-space after
-	b.WriteString("\n")
 
 	return b.String()
 }
