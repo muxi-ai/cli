@@ -181,6 +181,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m.handleCommand(input)
 				}
 
+				// Clear previous thinking steps
+				m.thinking = []ThinkingStep{}
+
 				// Add user message
 				m.messages = append(m.messages, Message{
 					Role:      "user",
@@ -195,7 +198,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Start dummy thinking (TODO: replace with actual API call)
 				m.isThinking = true
 				m.thinkingStart = time.Now()
-				m.thinking = []ThinkingStep{}
 				return m, m.simulateThinking()
 			}
 		}
@@ -307,8 +309,8 @@ func (m Model) View() string {
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
 
-	// Thinking status
-	if m.isThinking {
+	// Thinking status (show completed steps even after response)
+	if m.isThinking || len(m.thinking) > 0 {
 		b.WriteString(m.renderThinking())
 	}
 
@@ -531,8 +533,8 @@ func (m Model) renderThinking() string {
 		b.WriteString("\n")
 	}
 
-	// Current thinking with elapsed time
-	if len(m.thinking) == 0 || m.thinking[len(m.thinking)-1].Completed {
+	// Current thinking with elapsed time (only when actively thinking)
+	if m.isThinking && (len(m.thinking) == 0 || m.thinking[len(m.thinking)-1].Completed) {
 		b.WriteString(margin)
 		b.WriteString(thinkingStyle.Render(fmt.Sprintf("%s  Thinking... %.1fs  (ESC to stop)", frame, elapsed.Seconds())))
 		b.WriteString("\n")
