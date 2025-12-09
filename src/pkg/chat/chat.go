@@ -785,7 +785,6 @@ func Run(cfg Config) error {
 	p := tea.NewProgram(
 		New(cfg),
 		tea.WithAltScreen(),
-		tea.WithMouseCellMotion(),
 	)
 
 	_, err := p.Run()
