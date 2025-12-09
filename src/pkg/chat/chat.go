@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -11,6 +12,26 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// setScrollRegion sets the terminal scroll region using DECSTBM escape sequence.
+// This tells the terminal which lines can scroll, leaving the rest as a "status bar".
+// iTerm2 uses this to determine what to save to scrollback buffer.
+func setScrollRegion(top, bottom int) tea.Cmd {
+	return func() tea.Msg {
+		// DECSTBM: ESC [ top ; bottom r
+		fmt.Fprintf(os.Stdout, "\x1b[%d;%dr", top, bottom)
+		return nil
+	}
+}
+
+// resetScrollRegion resets the scroll region to the full terminal.
+func resetScrollRegion() tea.Cmd {
+	return func() tea.Msg {
+		// Reset scroll region: ESC [ r (no parameters = full screen)
+		fmt.Fprintf(os.Stdout, "\x1b[r")
+		return nil
+	}
+}
 
 // Config holds chat session configuration
 type Config struct {
@@ -186,7 +207,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.quitting = true
-			return m, tea.Quit
+			// Reset scroll region before quitting
+			return m, tea.Batch(resetScrollRegion(), tea.Quit)
 
 		case tea.KeyEsc:
 			// Clear input first if not empty
@@ -400,6 +422,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.Width = msg.Width
 			m.viewport.Height = chatHeight
 		}
+
+		// Set scroll region to exclude footer area (tells iTerm2 what's a "status bar")
+		// This enables "Save lines to scrollback when an app status bar is present"
+		scrollBottom := msg.Height - inputAreaHeight
+		if scrollBottom < 1 {
+			scrollBottom = 1
+		}
+		return m, setScrollRegion(1, scrollBottom)
 
 	case thinkingMsg:
 		m.thinking = append(m.thinking, ThinkingStep{
