@@ -268,6 +268,7 @@ func (m Model) View() string {
 		return "Initializing..."
 	}
 
+	margin := "  " // Left margin for entire chat
 	var b strings.Builder
 
 	// Header
@@ -284,19 +285,37 @@ func (m Model) View() string {
 	}
 
 	// Input divider
-	b.WriteString(dividerStyle.Render(strings.Repeat("─", m.width)))
+	dividerWidth := m.width - 4 // Account for margins
+	if dividerWidth < 20 {
+		dividerWidth = 20
+	}
+	b.WriteString(margin)
+	b.WriteString(dividerStyle.Render(strings.Repeat("─", dividerWidth)))
 	b.WriteString("\n")
 
-	// Input area
-	b.WriteString(">  ")
-	b.WriteString(m.textarea.View())
+	// Input area - add margin to continuation lines
+	inputLines := strings.Split(m.textarea.View(), "\n")
+	for i, line := range inputLines {
+		b.WriteString(margin)
+		if i == 0 {
+			b.WriteString(">  ")
+		} else {
+			b.WriteString("   ") // Align with first line (same width as ">  ")
+		}
+		b.WriteString(line)
+		if i < len(inputLines)-1 {
+			b.WriteString("\n")
+		}
+	}
 	b.WriteString("\n")
 
 	// Bottom divider
-	b.WriteString(dividerStyle.Render(strings.Repeat("─", m.width)))
+	b.WriteString(margin)
+	b.WriteString(dividerStyle.Render(strings.Repeat("─", dividerWidth)))
 	b.WriteString("\n")
 
 	// Status bar
+	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
 
 	return b.String()
@@ -304,40 +323,67 @@ func (m Model) View() string {
 
 func (m Model) renderHeader() string {
 	gold := goldStyle.Render
+	margin := "  "
 
-	header := fmt.Sprintf(`╭── %s ────────────────────────────────────────────────╮
-│               │                                             │
-│  ███╗   ███╗  │ Chatting with:                              │
-│  ████╗ ████║  │  ⌬ Formation: %-30s│
-│  ██║╚██╔╝██║  │  ⏍ Server: %-33s│
-│  ██║ ╚═╝ ██║  │  ♕ User: %-35s│
-│  ╚═╝     ╚═╝  │                                             │
-╰─────────────────────────────────────────────────────────────╯`,
-		gold("MUXI Chat"),
-		m.config.FormationID,
-		m.config.ServerID,
-		m.config.UserID,
-	)
+	lines := []string{
+		fmt.Sprintf("╭── %s ────────────────────────────────────────────────╮", gold("MUXI Chat")),
+		"│               │                                             │",
+		"│  ███╗   ███╗  │ Chatting with:                              │",
+		fmt.Sprintf("│  ████╗ ████║  │  ⌬ Formation: %-30s│", m.config.FormationID),
+		fmt.Sprintf("│  ██║╚██╔╝██║  │  ⏍ Server: %-33s│", m.config.ServerID),
+		fmt.Sprintf("│  ██║ ╚═╝ ██║  │  ♕ User: %-35s│", m.config.UserID),
+		"│  ╚═╝     ╚═╝  │                                             │",
+		"╰─────────────────────────────────────────────────────────────╯",
+	}
 
-	return header
+	var b strings.Builder
+	for i, line := range lines {
+		b.WriteString(margin)
+		b.WriteString(line)
+		if i < len(lines)-1 {
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
 }
 
 func (m Model) renderMessages() string {
 	var b strings.Builder
+	margin := "  "
 
 	for _, msg := range m.messages {
 		if msg.Role == "user" {
-			b.WriteString(userStyle.Render(">  " + msg.Content))
-			b.WriteString("\n\n")
+			// Add margin to each line of user message
+			lines := strings.Split(msg.Content, "\n")
+			for i, line := range lines {
+				b.WriteString(margin)
+				if i == 0 {
+					b.WriteString(userStyle.Render(">  " + line))
+				} else {
+					b.WriteString(userStyle.Render("   " + line))
+				}
+				b.WriteString("\n")
+			}
+			b.WriteString("\n")
 		} else {
 			// Render markdown for assistant messages
 			rendered, err := m.renderer.Render(msg.Content)
 			if err != nil {
 				rendered = msg.Content
 			}
-			b.WriteString(goldStyle.Render("𝐌  "))
-			b.WriteString(assistantStyle.Render(strings.TrimSpace(rendered)))
-			b.WriteString("\n\n")
+			// Add margin to each line
+			lines := strings.Split(strings.TrimSpace(rendered), "\n")
+			for i, line := range lines {
+				b.WriteString(margin)
+				if i == 0 {
+					b.WriteString(goldStyle.Render("𝐌  "))
+				} else {
+					b.WriteString("   ")
+				}
+				b.WriteString(assistantStyle.Render(line))
+				b.WriteString("\n")
+			}
+			b.WriteString("\n")
 		}
 	}
 
@@ -346,12 +392,14 @@ func (m Model) renderMessages() string {
 
 func (m Model) renderThinking() string {
 	var b strings.Builder
+	margin := "  "
 	
 	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	elapsed := time.Since(m.thinkingStart)
 	frame := frames[int(elapsed.Milliseconds()/100)%len(frames)]
 
 	for _, step := range m.thinking {
+		b.WriteString(margin)
 		if step.Completed {
 			b.WriteString(completedStyle.Render("⏺  " + step.Text))
 		} else {
@@ -362,6 +410,7 @@ func (m Model) renderThinking() string {
 
 	// Current thinking with elapsed time
 	if len(m.thinking) == 0 || m.thinking[len(m.thinking)-1].Completed {
+		b.WriteString(margin)
 		b.WriteString(thinkingStyle.Render(fmt.Sprintf("%s  Thinking... %.1fs  (ESC to stop)", frame, elapsed.Seconds())))
 		b.WriteString("\n")
 	}
