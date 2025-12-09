@@ -169,7 +169,36 @@ func New(cfg Config) Model {
 
 // Init implements tea.Model
 func (m Model) Init() tea.Cmd {
-	return textarea.Blink
+	return tea.Batch(
+		textarea.Blink,
+		m.printHeaderAbove(),
+	)
+}
+
+// printHeaderAbove prints the header above the TUI (persists in scrollback)
+func (m Model) printHeaderAbove() tea.Cmd {
+	gold := goldStyle.Render
+	dim := dimmedStyle.Render
+
+	header := "\n" +
+		dim("╭─── ") + gold("MUXI Chat") + dim(" ────────────────────────────────────────────────╮") + "\n" +
+		dim("│") + "               " + dim("│") + "                                              " + dim("│") + "\n" +
+		dim("│") + "  " + gold("███") + dim("╗") + "   " + gold("███") + dim("╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│") + "\n" +
+		dim("│") + "  " + gold("████") + dim("╗") + " " + gold("████") + dim("║") + "  " + dim("│") + "     ⌬ Formation: " + m.config.FormationID + strings.Repeat(" ", max(0, 27-len(m.config.FormationID))) + dim("│") + "\n" +
+		dim("│") + "  " + gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") + "  " + dim("│") + "     ⏍ Server: " + m.config.ServerID + strings.Repeat(" ", max(0, 30-len(m.config.ServerID))) + dim("│") + "\n" +
+		dim("│") + "  " + gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") + "  " + dim("│") + "     ♛ User: " + m.config.UserID + strings.Repeat(" ", max(0, 32-len(m.config.UserID))) + dim("│") + "\n" +
+		dim("│") + "  " + dim("╚═╝") + "     " + dim("╚═╝") + "  " + dim("│") + "                                              " + dim("│") + "\n" +
+		dim("╰──────────────────────────────────────────────────────────────╯") + "\n\n" +
+		dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit") + "\n"
+
+	return tea.Println(header)
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // Update implements tea.Model
@@ -359,7 +388,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showHelp = false
 				m.thinking = []ThinkingStep{}
 
-				// Add user message (will be rendered in View)
+				// Add user message and print above TUI (persists in scrollback)
 				m.messages = append(m.messages, Message{
 					Role:      "user",
 					Content:   input,
@@ -371,7 +400,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Start dummy thinking (TODO: replace with actual API call)
 				m.isThinking = true
 				m.thinkingStart = time.Now()
-				return m, m.simulateThinking()
+				return m, tea.Batch(printUserMessageAbove(input), m.simulateThinking())
 			}
 		}
 
@@ -399,13 +428,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case responseMsg:
 		m.isThinking = false
 		m.thinking = []ThinkingStep{} // Clear thinking indicators
-		// Add assistant message (will be rendered in View)
+		// Add assistant message and print above TUI (persists in scrollback)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   string(msg),
 			Timestamp: time.Now(),
 		})
-		return m, nil
+		return m, printAssistantMessageAbove(string(msg))
 
 	case tickMsg:
 		if m.isThinking {
@@ -464,46 +493,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View implements tea.Model - inline mode, renders EVERYTHING in one buffer
+// View implements tea.Model - only renders input area (messages printed above via tea.Println)
 func (m Model) View() string {
 	if m.quitting {
-		// On quit, return final state so it stays in scrollback
-		return m.renderFullView()
+		return ""
 	}
 
 	if !m.ready {
 		return "Initializing..."
 	}
 
-	return m.renderFullView()
-}
-
-// renderFullView renders the complete chat view (header + messages + thinking + input)
-func (m Model) renderFullView() string {
 	var b strings.Builder
 	margin := " "
-
-	// Header
-	b.WriteString(m.renderHeader())
-	b.WriteString("\n\n")
-
-	// All messages
-	for _, msg := range m.messages {
-		if msg.Role == "user" {
-			b.WriteString(margin)
-			b.WriteString(goldStyle.Render(">"))
-			b.WriteString("  ")
-			b.WriteString(userStyle.Render(msg.Content))
-			b.WriteString("\n\n")
-		} else {
-			b.WriteString(margin)
-			b.WriteString(" ")
-			b.WriteString(goldStyle.Render("𝐌"))
-			b.WriteString(" ")
-			b.WriteString(msg.Content)
-			b.WriteString("\n\n")
-		}
-	}
 
 	// Thinking indicators (if active)
 	if m.isThinking || len(m.thinking) > 0 {
@@ -551,6 +552,15 @@ func (m Model) renderFullView() string {
 	b.WriteString(m.renderStatusBar())
 
 	return b.String()
+}
+
+// printMessageAbove returns a command to print a message above the TUI (persists in scrollback)
+func printUserMessageAbove(content string) tea.Cmd {
+	return tea.Println(goldStyle.Render(">") + "  " + userStyle.Render(content))
+}
+
+func printAssistantMessageAbove(content string) tea.Cmd {
+	return tea.Println(" " + goldStyle.Render("𝐌") + " " + content)
 }
 
 func (m Model) renderHeader() string {
