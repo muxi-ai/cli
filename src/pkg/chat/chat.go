@@ -182,12 +182,12 @@ func (m Model) printHeaderAbove() tea.Cmd {
 
 	header := "\n" +
 		dim("╭── ") + gold("MUXI Chat") + dim(" ────────────────────────────────────────────────╮") + "\n" +
-		dim("│ ") + "             " + dim("│") + "                                             " + dim("│") + "\n" +
-		dim("│ ") + " " + gold("███") + dim("╗") + "   " + gold("███") + dim("╗") + " " + dim("│") + "  " + dim("Chatting with:") + "                             " + dim("│") + "\n" +
-		dim("│") + "  " + gold("████") + dim("╗") + " " + gold("████") + dim("║") + "  " + dim("│") + "     ⌬ Formation: " + m.config.FormationID + strings.Repeat(" ", max(0, 27-len(m.config.FormationID))) + dim("│") + "\n" +
-		dim("│") + "  " + gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") + "  " + dim("│") + "     ⏍ Server: " + m.config.ServerID + strings.Repeat(" ", max(0, 30-len(m.config.ServerID))) + dim("│") + "\n" +
-		dim("│") + "  " + gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") + "  " + dim("│") + "     ♛ User: " + m.config.UserID + strings.Repeat(" ", max(0, 32-len(m.config.UserID))) + dim("│") + "\n" +
-		dim("│ ") + " " + dim("╚═╝") + "     " + dim("╚═╝") + " " + dim("│") + "                                             " + dim("│") + "\n" +
+		dim("│") + "               " + dim("│") + "                                             " + dim("│") + "\n" +
+		dim("│") + "  " + gold("███") + dim("╗") + "   " + gold("███") + dim("╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                             " + dim("│") + "\n" +
+		dim("│") + "  " + gold("████") + dim("╗") + " " + gold("████") + dim("║") + "  " + dim("│") + "   ⌬  Formation: " + m.config.FormationID + strings.Repeat(" ", max(0, 26-len(m.config.FormationID))) + dim("│") + "\n" +
+		dim("│") + "  " + gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") + "  " + dim("│") + "   ⏍  Server: " + m.config.ServerID + strings.Repeat(" ", max(0, 29-len(m.config.ServerID))) + dim("│") + "\n" +
+		dim("│") + "  " + gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") + "  " + dim("│") + "   ♛  User: " + m.config.UserID + strings.Repeat(" ", max(0, 31-len(m.config.UserID))) + dim("│") + "\n" +
+		dim("│") + "  " + dim("╚═╝") + "     " + dim("╚═╝") + "  " + dim("│") + "                                             " + dim("│") + "\n" +
 		dim("╰─────────────────────────────────────────────────────────────╯") + "\n\n" +
 		dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit") + "\n"
 
