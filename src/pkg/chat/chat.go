@@ -79,6 +79,9 @@ var (
 
 	cyanStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("86"))
+
+	dimmedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240"))
 )
 
 // New creates a new chat model
@@ -298,7 +301,8 @@ func (m Model) View() string {
 	for i, line := range inputLines {
 		b.WriteString(margin)
 		if i == 0 {
-			b.WriteString(">  ")
+			b.WriteString(goldStyle.Render(">"))
+			b.WriteString("  ")
 		} else {
 			b.WriteString("   ") // Align with first line (same width as ">  ")
 		}
@@ -323,17 +327,25 @@ func (m Model) View() string {
 
 func (m Model) renderHeader() string {
 	gold := goldStyle.Render
+	dim := dimmedStyle.Render
 	margin := " "
 
+	// M logo: gold for blocks (███), dimmed for shadow (╗╔╝╚║═)
+	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")
+	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║")
+	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║")
+	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
+	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
+
 	lines := []string{
-		fmt.Sprintf("╭── %s ────────────────────────────────────────────────╮", gold("MUXI Chat")),
-		"│               │                                             │",
-		"│  ███╗   ███╗  │ Chatting with:                              │",
-		fmt.Sprintf("│  ████╗ ████║  │  ⌬ Formation: %-30s│", m.config.FormationID),
-		fmt.Sprintf("│  ██║╚██╔╝██║  │  ⏍ Server: %-33s│", m.config.ServerID),
-		fmt.Sprintf("│  ██║ ╚═╝ ██║  │  ♕ User: %-35s│", m.config.UserID),
-		"│  ╚═╝     ╚═╝  │                                             │",
-		"╰─────────────────────────────────────────────────────────────╯",
+		dim("╭── ") + gold("MUXI Chat") + dim(" ────────────────────────────────────────────────╮"),
+		dim("│") + "  " + "             " + dim("│") + "                                             " + dim("│"),
+		dim("│") + "  " + mLine1 + "  " + dim("│") + " Chatting with:                              " + dim("│"),
+		dim("│") + "  " + mLine2 + "  " + dim("│") + fmt.Sprintf("  ⌬ Formation: %-30s", m.config.FormationID) + dim("│"),
+		dim("│") + "  " + mLine3 + "  " + dim("│") + fmt.Sprintf("  ⏍ Server: %-33s", m.config.ServerID) + dim("│"),
+		dim("│") + "  " + mLine4 + "  " + dim("│") + fmt.Sprintf("  ♕ User: %-35s", m.config.UserID) + dim("│"),
+		dim("│") + "  " + mLine5 + "  " + dim("│") + "                                             " + dim("│"),
+		dim("╰─────────────────────────────────────────────────────────────╯"),
 	}
 
 	var b strings.Builder
