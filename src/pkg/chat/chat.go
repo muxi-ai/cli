@@ -46,6 +46,7 @@ type Model struct {
 	height        int
 	ready         bool
 	quitting      bool
+	showHelp      bool
 	err           error
 }
 
@@ -176,12 +177,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !m.isThinking && strings.TrimSpace(val) != "" {
 				input := m.textarea.Value()
 				
+				// Handle ? for help (temporary, clears on next message)
+				if strings.TrimSpace(input) == "?" {
+					m.showHelp = true
+					m.textarea.Reset()
+					m.viewport.SetContent(m.renderMessages())
+					m.viewport.GotoBottom()
+					return m, nil
+				}
+				
 				// Handle slash commands
 				if strings.HasPrefix(input, "/") {
 					return m.handleCommand(input)
 				}
 
-				// Clear previous thinking steps
+				// Clear help and previous thinking steps
+				m.showHelp = false
 				m.thinking = []ThinkingStep{}
 
 				// Add user message
@@ -501,7 +512,38 @@ func (m Model) renderMessages() string {
 		}
 	}
 
+	// Show help screen (temporary, clears on next message)
+	if m.showHelp {
+		b.WriteString("\n")
+		b.WriteString(m.renderHelp())
+	}
+
 	return b.String()
+}
+
+func (m Model) renderHelp() string {
+	dim := dimmedStyle.Render
+	
+	help := `
+╭───────────────────────────────────────────────────────────╮
+│  Basics                                                   │
+│  Send                                              Enter  │
+│  New line                                      \ + Enter  │
+│  Cancel request                                      Esc  │
+│  History or line navigation                          ↑/↓  │
+╰───────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────╮
+│  Commands                                              /  │
+│  Exit chat                                        Ctrl+C  │
+╰───────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────╮
+│  Navigation                                               │
+│  Jump to line start/end                        Cmd + ←/→  │
+│  Delete word                             Option + Delete  │
+│  Delete line                                Cmd + Delete  │
+╰───────────────────────────────────────────────────────────╯
+`
+	return dim(help)
 }
 
 func (m Model) renderThinking() string {
