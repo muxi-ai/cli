@@ -52,7 +52,7 @@ type Model struct {
 	showSubmenu     bool
 	submenuSelected int
 	submenuParent   string
-	asyncMode       bool // A/S indicator
+	asyncMode       string // "auto", "on", "off" - shown as ⚡/A/S indicator
 	err             error
 }
 
@@ -72,6 +72,7 @@ type SubItem struct {
 // Available commands
 var commands = []Command{
 	{"/async", "Toggle async mode", []SubItem{
+		{"auto", "Let formation decide"},
 		{"on", "Enable async mode"},
 		{"off", "Disable async mode"},
 	}},
@@ -157,11 +158,12 @@ func New(cfg Config) Model {
 	)
 
 	return Model{
-		config:   cfg,
-		textarea: ta,
-		renderer: renderer,
-		messages: []Message{},
-		thinking: []ThinkingStep{},
+		config:    cfg,
+		textarea:  ta,
+		renderer:  renderer,
+		messages:  []Message{},
+		thinking:  []ThinkingStep{},
+		asyncMode: "auto",
 	}
 }
 
@@ -508,11 +510,14 @@ func (m Model) View() string {
 	// Input area - add margin to continuation lines
 	inputLines := strings.Split(m.textarea.View(), "\n")
 	
-	// A/S indicator on right side
+	// Auto/Async/Sync indicator on right side
 	indicator := ""
-	if m.asyncMode {
+	switch m.asyncMode {
+	case "on":
 		indicator = goldStyle.Render("A")
-	} else {
+	case "auto":
+		indicator = goldStyle.Render("⚡")
+	default:
 		indicator = dimmedStyle.Render("S")
 	}
 	
@@ -819,9 +824,9 @@ func (m Model) getCommandByName(name string) *Command {
 	return nil
 }
 
-func (m Model) handleSubmenuSelection(cmd *Command, idx int) bool {
+func (m Model) handleSubmenuSelection(cmd *Command, idx int) string {
 	if cmd.Name == "/async" && idx < len(cmd.Submenu) {
-		return cmd.Submenu[idx].Name == "on"
+		return cmd.Submenu[idx].Name
 	}
 	return m.asyncMode
 }
