@@ -147,6 +147,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyEsc:
+			if m.showHelp {
+				m.showHelp = false
+				m.viewport.SetContent(m.renderMessages())
+				m.viewport.GotoBottom()
+				return m, nil
+			}
 			if m.isThinking {
 				m.isThinking = false
 				m.thinking = append(m.thinking, ThinkingStep{
