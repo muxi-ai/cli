@@ -1,3 +1,51 @@
+// Package chat implements the MUXI Chat TUI using Bubble Tea.
+//
+// # Architecture Decision: No Alt Screen (Inline Mode)
+//
+// This implementation uses Bubble Tea WITHOUT tea.WithAltScreen() to enable
+// terminal scrollback. Messages are printed above the TUI using tea.Println()
+// which persists them in the terminal's scrollback buffer.
+//
+// Key patterns:
+//   - tea.Println() prints persistent content above the TUI (stays in scrollback)
+//   - View() only renders the input area (small, fixed height)
+//   - Header is printed once at startup via tea.Println()
+//   - Messages/thinking steps are printed via tea.Println() as they arrive
+//
+// Trade-off: Input area moves when menus (?, /) open/close. This is acceptable
+// and matches behavior of other CLI tools like Droid/Claude Code.
+//
+// # Message Formats
+//
+// User messages:
+//
+//	>  message content
+//
+// Assistant messages (with markdown rendering via glamour):
+//
+//	𝐌 response content
+//
+// Thinking steps (printed as they complete):
+//
+//	⏺  Analyzing request...
+//	⏺  Routing to agent...
+//
+// Request aborted (red, when user presses ESC during thinking):
+//
+//	✕  Request aborted by user
+//
+// Server error (yellow/warning):
+//
+//	⚠  Server returned an error:
+//	   (error details)
+//
+// # UX Features
+//
+//   - Input history: ↑/↓ arrows navigate previous inputs
+//   - Ctrl+C: First press clears input (shows "Press Ctrl+C again to exit" for 3s)
+//   - ESC during thinking: Aborts request, shows red abort message
+//   - ? key: Shows help screen
+//   - / key: Shows command menu with submenus
 package chat
 
 import (
@@ -688,6 +736,12 @@ func printThinkingStepAbove(text string) tea.Cmd {
 func printAbortMessage() tea.Cmd {
 	redStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ff5555"))
 	return tea.Println("\n " + redStyle.Render("✕  Request aborted by user") + "\n")
+}
+
+// printServerError prints a server error message in yellow/warning style
+func printServerError(err string) tea.Cmd {
+	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ffaa00"))
+	return tea.Println("\n " + warnStyle.Render("⚠  Server returned an error:") + "\n    " + err + "\n")
 }
 
 func (m Model) renderHeader() string {
