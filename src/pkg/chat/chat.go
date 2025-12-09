@@ -544,7 +544,6 @@ func (m Model) View() string {
 	// Status bar
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
-	b.WriteString("\n") // Padding from terminal edge
 
 	return b.String()
 }
@@ -563,8 +562,8 @@ func (m Model) renderHeader() string {
 	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
 	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
 
-	// Right content - pad to fill remaining space (65 - 1 - 2 - 11 - 2 - 1 - 1 = 47 chars)
-	rightWidth := 47
+	// Right content - pad to fill remaining space (65 - 1 - 1 - 11 - 1 - 1 - 1 = 49 chars)
+	rightWidth := 49
 	pad := func(s string, w int) string {
 		if len(s) >= w {
 			return s[:w]
@@ -582,7 +581,7 @@ func (m Model) renderHeader() string {
 	_ = titleText
 
 	// Line 1: empty
-	b.WriteString(dim("│") + "  " + "           " + "  " + dim("│") + pad("", rightWidth) + dim("│") + "\n")
+	b.WriteString(dim("│") + " " + "           " + " " + dim("│") + pad("", rightWidth) + dim("│") + "\n")
 
 	// Lines 2-6: logo + content
 	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
@@ -595,9 +594,9 @@ func (m Model) renderHeader() string {
 	}
 
 	for i, mLine := range mLines {
-		b.WriteString(dim("│") + "  ")
+		b.WriteString(dim("│") + " ")
 		b.WriteString(mLine)
-		b.WriteString("  " + dim("│"))
+		b.WriteString(" " + dim("│"))
 		content := rightContents[i]
 		if i == 0 {
 			b.WriteString(dim(pad(content, rightWidth)))
@@ -611,14 +610,10 @@ func (m Model) renderHeader() string {
 	b.WriteString(dim("╰" + strings.Repeat("─", boxWidth-2) + "╯"))
 	b.WriteString("\n")
 
-	// Hint text (centered relative to screen width)
+	// Hint text (left-aligned)
 	hint := "ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"
-	hintPad := (m.width - len(hint)) / 2
-	if hintPad < 0 {
-		hintPad = 0
-	}
 	b.WriteString("\n")
-	b.WriteString(dim(strings.Repeat(" ", hintPad) + hint))
+	b.WriteString(dim("   " + hint))
 
 	return b.String()
 }
