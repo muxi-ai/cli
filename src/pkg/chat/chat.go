@@ -516,12 +516,10 @@ func (m Model) View() string {
 		if i == 0 {
 			b.WriteString(goldStyle.Render(">"))
 			b.WriteString("  ")
-			b.WriteString(line)
-			b.WriteString("\n")
 		} else {
 			b.WriteString("   ") // Align with first line (same width as ">  ")
-			b.WriteString(line)
 		}
+		b.WriteString(line)
 		if i < len(inputLines)-1 {
 			b.WriteString("\n")
 		}
