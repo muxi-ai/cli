@@ -287,8 +287,8 @@ func (m Model) View() string {
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
 
-	// Thinking status (only while actively thinking)
-	if m.isThinking {
+	// Thinking status (show while thinking, keep completed steps visible)
+	if m.isThinking || len(m.thinking) > 0 {
 		b.WriteString(m.renderThinking())
 	}
 
@@ -478,14 +478,14 @@ func (m Model) renderMessages() string {
 			if err != nil {
 				rendered = msg.Content
 			}
-			// Add M prefix on first line, then indent rest
+			// Add M prefix on first line, then indent rest to align
 			b.WriteString(margin)
-			b.WriteString(goldStyle.Render("𝐌  "))
+			b.WriteString(goldStyle.Render("𝐌 "))
 			
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
 			for j, line := range lines {
 				if j > 0 {
-					b.WriteString(margin + "   ")
+					b.WriteString(margin + " ")
 				}
 				b.WriteString(line)
 				b.WriteString("\n")
@@ -669,7 +669,50 @@ func (m Model) simulateNextThinking(step int) tea.Cmd {
 				return thinkingCompleteMsg(2)
 			}),
 			tea.Tick(1100*time.Millisecond, func(t time.Time) tea.Msg {
-				return responseMsg("This is a **dummy response** from the formation.\n\nIt supports:\n- Markdown formatting\n- Code blocks\n- Lists\n\n```go\nfmt.Println(\"Hello, MUXI!\")\n```\n\n*Replace this with actual API integration.*")
+				return responseMsg(`This is a **dummy response** from the formation.
+
+## Features Supported
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Markdown | ✓ | Full support |
+| Code blocks | ✓ | With syntax highlighting |
+| Tables | ✓ | GitHub-flavored |
+| Lists | ✓ | Ordered and unordered |
+
+### Code Example
+
+` + "```" + `go
+package main
+
+import "fmt"
+
+func main() {
+    message := "Hello, MUXI!"
+    fmt.Println(message)
+    
+    for i := 0; i < 3; i++ {
+        fmt.Printf("Count: %d\n", i)
+    }
+}
+` + "```" + `
+
+### Lists
+
+**Unordered:**
+- First item
+- Second item
+  - Nested item
+- Third item
+
+**Ordered:**
+1. Step one
+2. Step two
+3. Step three
+
+> **Note:** This is a blockquote for important information.
+
+*Replace this with actual API integration.*`)
 			}),
 		)
 	}
