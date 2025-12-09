@@ -54,9 +54,11 @@ type Model struct {
 	submenuParent   string
 	asyncMode       string // "auto", "on", "off" - shown as ⚡/A/S indicator
 	err             error
-	inputHistory    []string // History of user inputs
-	historyIndex    int      // Current position in history (-1 = new input)
-	currentInput    string   // Saved current input when navigating history
+	inputHistory    []string  // History of user inputs
+	historyIndex    int       // Current position in history (-1 = new input)
+	currentInput    string    // Saved current input when navigating history
+	showExitHint    bool      // Show "Ctrl+C again to exit" hint
+	exitHintStart   time.Time // When the exit hint was shown
 }
 
 // Command represents a slash command
@@ -217,8 +219,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Clear input first, quit on second press
 			if strings.TrimSpace(m.textarea.Value()) != "" {
 				m.textarea.Reset()
-				return m, nil
+				m.showExitHint = true
+				m.exitHintStart = time.Now()
+				m.textarea.Placeholder = "Press Ctrl+C again to exit"
+				// Start tick to clear the hint after 5 seconds
+				return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
+					return tickMsg{}
+				})
 			}
+			// If hint is showing or input is empty, quit
 			m.quitting = true
 			return m, tea.Quit
 
@@ -475,7 +484,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, printAssistantMessageAbove(string(msg))
 
 	case tickMsg:
-		if m.isThinking {
+		// Check if exit hint should be cleared (after 5 seconds)
+		if m.showExitHint && time.Since(m.exitHintStart) > 5*time.Second {
+			m.showExitHint = false
+			m.textarea.Placeholder = "Type your message..."
+		}
+
+		// Continue ticking if thinking or showing exit hint
+		if m.isThinking || m.showExitHint {
 			return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
 				return tickMsg{}
 			})
@@ -486,6 +502,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.textarea, cmd = m.textarea.Update(msg)
 	cmds = append(cmds, cmd)
+
+	// Clear exit hint when user starts typing
+	if m.showExitHint && m.textarea.Value() != "" {
+		m.showExitHint = false
+		m.textarea.Placeholder = "Type your message..."
+	}
 
 	// Check for ? as first/only character - show help immediately (not during streaming)
 	if m.textarea.Value() == "?" && !m.isThinking {
