@@ -92,6 +92,16 @@ func New(cfg Config) Model {
 	ta.ShowLineNumbers = false
 	ta.KeyMap.InsertNewline.SetEnabled(false) // Enter sends, Shift+Enter for newline
 
+	// Remove border and background for clean look
+	ta.FocusedStyle.Base = lipgloss.NewStyle()
+	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
+	ta.FocusedStyle.Placeholder = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	ta.FocusedStyle.Text = lipgloss.NewStyle()
+	ta.BlurredStyle.Base = lipgloss.NewStyle()
+	ta.BlurredStyle.CursorLine = lipgloss.NewStyle()
+	ta.BlurredStyle.Placeholder = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	ta.BlurredStyle.Text = lipgloss.NewStyle()
+
 	renderer, _ := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(80),
