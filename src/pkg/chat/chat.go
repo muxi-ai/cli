@@ -742,12 +742,18 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 	// Render markdown with dark style (avoid terminal color query that causes escape sequence leak)
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithStylePath("dark"),
-		glamour.WithWordWrap(80),
+		glamour.WithWordWrap(76), // Reduced to account for indentation
 	)
 	rendered := content
 	if err == nil {
 		if r, err := renderer.Render(content); err == nil {
 			rendered = strings.TrimSpace(r)
+			// Indent each line to align with other content
+			lines := strings.Split(rendered, "\n")
+			for i, line := range lines {
+				lines[i] = "   " + line // 3 spaces to align with "> " and "⏺ "
+			}
+			rendered = strings.Join(lines, "\n")
 		}
 	}
 	// Empty line before, message, TWO empty lines after (space before input)
