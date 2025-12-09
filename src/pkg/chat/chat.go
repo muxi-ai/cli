@@ -359,8 +359,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showHelp = false
 				m.thinking = []ThinkingStep{}
 
-				// Print user message to stdout (stays in scrollback)
-				printUserMessage(input)
+				// Add user message (will be rendered in View)
 				m.messages = append(m.messages, Message{
 					Role:      "user",
 					Content:   input,
@@ -400,8 +399,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case responseMsg:
 		m.isThinking = false
 		m.thinking = []ThinkingStep{} // Clear thinking indicators
-		// Print assistant response to stdout (stays in scrollback)
-		printAssistantMessage(string(msg))
+		// Add assistant message (will be rendered in View)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   string(msg),
@@ -466,29 +464,57 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// View implements tea.Model - inline mode, just shows input area
+// View implements tea.Model - inline mode, renders EVERYTHING in one buffer
 func (m Model) View() string {
 	if m.quitting {
-		return ""
+		// On quit, return final state so it stays in scrollback
+		return m.renderFullView()
 	}
 
 	if !m.ready {
 		return "Initializing..."
 	}
 
-	margin := " "
+	return m.renderFullView()
+}
+
+// renderFullView renders the complete chat view (header + messages + thinking + input)
+func (m Model) renderFullView() string {
 	var b strings.Builder
+	margin := " "
+
+	// Header
+	b.WriteString(m.renderHeader())
+	b.WriteString("\n\n")
+
+	// All messages
+	for _, msg := range m.messages {
+		if msg.Role == "user" {
+			b.WriteString(margin)
+			b.WriteString(goldStyle.Render(">"))
+			b.WriteString("  ")
+			b.WriteString(userStyle.Render(msg.Content))
+			b.WriteString("\n\n")
+		} else {
+			b.WriteString(margin)
+			b.WriteString(" ")
+			b.WriteString(goldStyle.Render("𝐌"))
+			b.WriteString(" ")
+			b.WriteString(msg.Content)
+			b.WriteString("\n\n")
+		}
+	}
+
+	// Thinking indicators (if active)
+	if m.isThinking || len(m.thinking) > 0 {
+		b.WriteString(m.renderThinking())
+	}
 
 	// Command menu or submenu (above input)
 	if m.showSubmenu {
 		b.WriteString(m.renderSubmenu())
 	} else if m.showCommands {
 		b.WriteString(m.renderCommands())
-	}
-
-	// Show thinking indicator if active
-	if m.isThinking || len(m.thinking) > 0 {
-		b.WriteString(m.renderThinking())
 	}
 
 	// Input divider
@@ -525,18 +551,6 @@ func (m Model) View() string {
 	b.WriteString(m.renderStatusBar())
 
 	return b.String()
-}
-
-// printUserMessage prints user message to stdout (stays in scrollback)
-func printUserMessage(content string) {
-	fmt.Println()
-	fmt.Println(goldStyle.Render(">") + "  " + userStyle.Render(content))
-}
-
-// printAssistantMessage prints assistant message to stdout (stays in scrollback)  
-func printAssistantMessage(content string) {
-	fmt.Println()
-	fmt.Println(" " + goldStyle.Render("𝐌") + " " + content)
 }
 
 func (m Model) renderHeader() string {
@@ -918,7 +932,6 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 - ESC - Cancel current response
 - Ctrl+C - Exit
 - Ctrl+L - Clear screen`
-		printAssistantMessage(helpText)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   helpText,
@@ -933,7 +946,6 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 - weather-agent (specialist) - Weather information
 - code-helper (specialist) - Code assistance  
 - general-assistant (generalist) - General queries`
-		printAssistantMessage(agentList)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   agentList,
@@ -944,7 +956,6 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 
 	default:
 		errMsg := fmt.Sprintf("Unknown command: `/%s`. Type `/help` for available commands.", parts[0])
-		printAssistantMessage(errMsg)
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   errMsg,
@@ -1053,33 +1064,11 @@ func main() {
 
 // Run starts the chat UI
 func Run(cfg Config) error {
-	// Print header once at startup (stays in scrollback)
-	printHeader(cfg)
-	
 	p := tea.NewProgram(
 		New(cfg),
-		// No WithAltScreen() - use normal terminal buffer for scrollback
+		// No WithAltScreen() - renders everything in main buffer for scrollback
 	)
 
 	_, err := p.Run()
 	return err
-}
-
-// printHeader prints the welcome header to stdout (before TUI takes over)
-func printHeader(cfg Config) {
-	gold := goldStyle.Render
-	dim := dimmedStyle.Render
-	
-	fmt.Println()
-	fmt.Println(dim("╭─── ") + gold("MUXI Chat") + dim(" ────────────────────────────────────────────────╮"))
-	fmt.Println(dim("│") + "               " + dim("│") + "                                              " + dim("│"))
-	fmt.Println(dim("│") + "  " + gold("███") + dim("╗") + "   " + gold("███") + dim("╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│"))
-	fmt.Println(dim("│") + "  " + gold("████") + dim("╗") + " " + gold("████") + dim("║") + "  " + dim("│") + "     ⌬ Formation: " + cfg.FormationID + strings.Repeat(" ", 27-len(cfg.FormationID)) + dim("│"))
-	fmt.Println(dim("│") + "  " + gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") + "  " + dim("│") + "     ⏍ Server: " + cfg.ServerID + strings.Repeat(" ", 30-len(cfg.ServerID)) + dim("│"))
-	fmt.Println(dim("│") + "  " + gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") + "  " + dim("│") + "     ♛ User: " + cfg.UserID + strings.Repeat(" ", 32-len(cfg.UserID)) + dim("│"))
-	fmt.Println(dim("│") + "  " + dim("╚═╝") + "     " + dim("╚═╝") + "  " + dim("│") + "                                              " + dim("│"))
-	fmt.Println(dim("╰──────────────────────────────────────────────────────────────╯"))
-	fmt.Println()
-	fmt.Println(dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"))
-	fmt.Println()
 }
