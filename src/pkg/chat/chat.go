@@ -544,7 +544,7 @@ func (m Model) View() string {
 	// Status bar
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
-	b.WriteString("\n\n") // Padding from terminal edge
+	b.WriteString("\n") // Padding from terminal edge
 
 	return b.String()
 }
@@ -664,6 +664,9 @@ func (m Model) renderHeader() string {
 func (m Model) renderMessages() string {
 	var b strings.Builder
 	margin := " "
+
+	// Initial padding to push header down (12 lines from input area)
+	b.WriteString(strings.Repeat("\n", 12))
 
 	// Header (scrolls with content)
 	b.WriteString(m.renderHeader())
