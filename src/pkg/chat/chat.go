@@ -582,7 +582,7 @@ func (m Model) renderThinkingLive() string {
 // printMessageAbove returns a command to print a message above the TUI (persists in scrollback)
 func printUserMessageAbove(content string) tea.Cmd {
 	// Empty line before, message, empty line after
-	return tea.Println("\n" + goldStyle.Render(">") + "  " + userStyle.Render(content) + "\n")
+	return tea.Println("\n " + goldStyle.Render(">") + "  " + userStyle.Render(content) + "\n")
 }
 
 func printAssistantMessageAbove(content string) tea.Cmd {
@@ -598,7 +598,7 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 		}
 	}
 	// Empty line before, message, empty line after
-	return tea.Println("\n " + goldStyle.Render("𝐌") + " " + rendered + "\n")
+	return tea.Println("\n " + goldStyle.Render("𝐌") + rendered + "\n")
 }
 
 // printThinkingStepAbove prints a completed thinking step to history (no trailing space)
