@@ -268,7 +268,7 @@ func (m Model) View() string {
 		return "Initializing..."
 	}
 
-	margin := "  " // Left margin for entire chat
+	margin := " " // Left margin for entire chat
 	var b strings.Builder
 
 	// Header
@@ -323,7 +323,7 @@ func (m Model) View() string {
 
 func (m Model) renderHeader() string {
 	gold := goldStyle.Render
-	margin := "  "
+	margin := " "
 
 	lines := []string{
 		fmt.Sprintf("╭── %s ────────────────────────────────────────────────╮", gold("MUXI Chat")),
@@ -349,7 +349,7 @@ func (m Model) renderHeader() string {
 
 func (m Model) renderMessages() string {
 	var b strings.Builder
-	margin := "  "
+	margin := " "
 
 	for _, msg := range m.messages {
 		if msg.Role == "user" {
@@ -392,7 +392,7 @@ func (m Model) renderMessages() string {
 
 func (m Model) renderThinking() string {
 	var b strings.Builder
-	margin := "  "
+	margin := " "
 	
 	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	elapsed := time.Since(m.thinkingStart)
