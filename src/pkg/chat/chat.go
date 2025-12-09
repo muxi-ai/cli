@@ -153,16 +153,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case tea.KeyCtrlJ:
-			// Shift+Enter sends ctrl+j in most terminals (iTerm2, Warp, etc.)
-			m.textarea.InsertString("\n")
-			// Grow textarea height as needed
-			lines := strings.Count(m.textarea.Value(), "\n") + 1
-			if lines > m.textarea.Height() && lines <= 10 {
-				m.textarea.SetHeight(lines)
-			}
+			// Shift+Enter sends ctrl+j in iTerm2
+			m.insertNewline()
 			return m, nil
 
 		case tea.KeyEnter:
+			// Alt+Enter (Option+Enter) adds newline - works in all terminals
+			if msg.Alt {
+				m.insertNewline()
+				return m, nil
+			}
 			if !m.isThinking && strings.TrimSpace(m.textarea.Value()) != "" {
 				input := m.textarea.Value()
 				
@@ -377,6 +377,15 @@ func (m Model) renderStatusBar() string {
 	}
 
 	return statusBarStyle.Render(left + strings.Repeat(" ", gap) + right)
+}
+
+func (m *Model) insertNewline() {
+	m.textarea.InsertString("\n")
+	// Grow textarea height as needed (max 10 lines)
+	lines := strings.Count(m.textarea.Value(), "\n") + 1
+	if lines > m.textarea.Height() && lines <= 10 {
+		m.textarea.SetHeight(lines)
+	}
 }
 
 func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
