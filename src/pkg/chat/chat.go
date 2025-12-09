@@ -656,7 +656,7 @@ func (m Model) filterCommands(input string) []Command {
 
 func (m Model) renderCommands() string {
 	dim := dimmedStyle.Render
-	key := userStyle.Render
+	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45")).Bold(true).Render
 	
 	filtered := m.filterCommands(m.textarea.Value())
 	if len(filtered) == 0 {
@@ -664,7 +664,7 @@ func (m Model) renderCommands() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(dim("╭───────────────────────────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("╭────────────────────────────────────────────────────────────╮") + "\n")
 	
 	for i, cmd := range filtered {
 		prefix := "  "
@@ -683,19 +683,19 @@ func (m Model) renderCommands() string {
 		
 		line := fmt.Sprintf("%-12s  %s", name, desc)
 		if i == m.commandSelected {
-			b.WriteString(dim("│ ") + key(prefix+line))
+			b.WriteString(dim("│ ") + sel(prefix+line))
 		} else {
 			b.WriteString(dim("│ "+prefix+line))
 		}
 		// Pad to box width
-		padding := 57 - len(prefix) - len(line)
+		padding := 58 - len(prefix) - len(line)
 		if padding > 0 {
 			b.WriteString(dim(strings.Repeat(" ", padding)))
 		}
 		b.WriteString(dim("│") + "\n")
 	}
 	
-	b.WriteString(dim("╰───────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╰────────────────────────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
