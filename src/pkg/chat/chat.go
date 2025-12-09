@@ -72,16 +72,16 @@ var (
 			Foreground(lipgloss.Color("240"))
 
 	dividerStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
+			Foreground(lipgloss.Color("#666666")) // Explicit gray for all terminals
 
 	goldStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("214"))
+			Foreground(lipgloss.Color("208")) // Orange (matches muxi brand)
 
 	cyanStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("86"))
 
 	dimmedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
+			Foreground(lipgloss.Color("#666666")) // Explicit gray for all terminals
 )
 
 // New creates a new chat model
