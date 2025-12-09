@@ -394,7 +394,7 @@ func (m Model) renderHeader() string {
 	// Content lines
 	rightContents := []string{
 		"",
-		dim(" Chatting with:"),
+		" Chatting with:", // dimmed later
 		fmt.Sprintf("  ⌬ Formation: %s", m.config.FormationID),
 		fmt.Sprintf("  ⏍ Server: %s", m.config.ServerID),
 		fmt.Sprintf("  ♛ User: %s", m.config.UserID),
@@ -418,7 +418,12 @@ func (m Model) renderHeader() string {
 			b.WriteString(mLine)
 		}
 		b.WriteString("  " + dim("│"))
-		b.WriteString(pad(rightContents[i], rightWidth))
+		// Pad first, then apply dimming to "Chatting with:" line
+		padded := pad(rightContents[i], rightWidth)
+		if i == 1 {
+			padded = dim(padded)
+		}
+		b.WriteString(padded)
 		b.WriteString(dim("│"))
 		b.WriteString("\n")
 	}
