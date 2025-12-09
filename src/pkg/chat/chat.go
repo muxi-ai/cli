@@ -191,7 +191,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					Timestamp: time.Now(),
 				})
 				m.viewport.SetContent(m.renderMessages())
-				m.viewport.GotoBottom()
 				m.textarea.Reset()
 				m.textarea.SetHeight(1)
 
@@ -207,21 +206,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 		headerHeight := 11 // ASCII header + hint text
+		fixedSpacing := 6  // Fixed spacing below hint
 		statusHeight := 5  // Status bar + dividers + footer padding
 		inputHeight := 5   // Input area
-		fixedSpacing := 6  // Fixed spacing below hint
-		maxChatHeight := 20 // Max lines for messages
+		maxChatHeight := 30 // Max lines for messages
 
 		m.textarea.SetWidth(msg.Width - 4)
 
-		chatHeight := msg.Height - headerHeight - statusHeight - inputHeight - fixedSpacing
+		// Calculate available space for messages
+		chatHeight := msg.Height - headerHeight - fixedSpacing - statusHeight - inputHeight
 		if chatHeight > maxChatHeight {
 			chatHeight = maxChatHeight
 		}
-		if chatHeight < 1 {
-			chatHeight = 1
+		if chatHeight < 3 {
+			chatHeight = 3
 		}
-		_ = fixedSpacing // used in View()
 
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width, chatHeight)
@@ -253,7 +252,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Timestamp: time.Now(),
 		})
 		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
 		return m, nil
 
 	case tickMsg:
