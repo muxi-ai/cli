@@ -54,6 +54,9 @@ type Model struct {
 	submenuParent   string
 	asyncMode       string // "auto", "on", "off" - shown as ⚡/A/S indicator
 	err             error
+	inputHistory    []string // History of user inputs
+	historyIndex    int      // Current position in history (-1 = new input)
+	currentInput    string   // Saved current input when navigating history
 }
 
 // Command represents a slash command
@@ -158,12 +161,14 @@ func New(cfg Config) Model {
 	)
 
 	return Model{
-		config:    cfg,
-		textarea:  ta,
-		renderer:  renderer,
-		messages:  []Message{},
-		thinking:  []ThinkingStep{},
-		asyncMode: "auto",
+		config:       cfg,
+		textarea:     ta,
+		renderer:     renderer,
+		messages:     []Message{},
+		thinking:     []ThinkingStep{},
+		asyncMode:    "auto",
+		inputHistory: []string{},
+		historyIndex: -1,
 	}
 }
 
@@ -270,6 +275,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			}
+			// Input history navigation (up = older)
+			if len(m.inputHistory) > 0 {
+				if m.historyIndex == -1 {
+					// Save current input before navigating
+					m.currentInput = m.textarea.Value()
+					m.historyIndex = len(m.inputHistory) - 1
+				} else if m.historyIndex > 0 {
+					m.historyIndex--
+				}
+				m.textarea.SetValue(m.inputHistory[m.historyIndex])
+				m.textarea.CursorEnd()
+				return m, nil
+			}
 
 		case tea.KeyDown:
 			if m.showSubmenu {
@@ -290,6 +308,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.commandSelected = 0 // Wrap to top
 				}
+				return m, nil
+			}
+			// Input history navigation (down = newer)
+			if m.historyIndex >= 0 {
+				if m.historyIndex < len(m.inputHistory)-1 {
+					m.historyIndex++
+					m.textarea.SetValue(m.inputHistory[m.historyIndex])
+				} else {
+					// Back to current input
+					m.historyIndex = -1
+					m.textarea.SetValue(m.currentInput)
+				}
+				m.textarea.CursorEnd()
 				return m, nil
 			}
 
@@ -385,6 +416,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Clear help and previous thinking steps
 				m.showHelp = false
 				m.thinking = []ThinkingStep{}
+
+				// Add to input history (avoid duplicates of last entry)
+				if len(m.inputHistory) == 0 || m.inputHistory[len(m.inputHistory)-1] != input {
+					m.inputHistory = append(m.inputHistory, input)
+				}
+				m.historyIndex = -1
+				m.currentInput = ""
 
 				// Add user message and print above TUI (persists in scrollback)
 				m.messages = append(m.messages, Message{
