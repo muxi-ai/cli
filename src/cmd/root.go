@@ -51,10 +51,10 @@ func init() {
 
 // customHelp provides a beautifully formatted help output
 func customHelp(cmd *cobra.Command, args []string) {
-	// If help is requested for a subcommand, use default help
+	// If help is requested for a subcommand, use default Cobra help
 	if cmd != rootCmd {
-		cmd.SetHelpFunc(nil)
-		cmd.Help()
+		// Generate default help template
+		cmd.Println(cmd.UsageString())
 		return
 	}
 
