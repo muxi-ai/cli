@@ -664,7 +664,7 @@ func (m Model) renderCommands() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(dim("╭────────────────────────────────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("╭──────────────────────────────────────────────────────────────╮") + "\n")
 	
 	for i, cmd := range filtered {
 		prefix := "  "
@@ -689,7 +689,7 @@ func (m Model) renderCommands() string {
 		}
 	}
 	
-	b.WriteString(dim("╰────────────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╰──────────────────────────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
