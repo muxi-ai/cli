@@ -518,20 +518,25 @@ func (m Model) renderThinking() string {
 }
 
 func (m Model) renderStatusBar() string {
+	dim := dimmedStyle.Render
+	bold := lipgloss.NewStyle().Bold(true).Render
+
 	left := fmt.Sprintf("%s@%s://%s",
 		m.config.UserID,
 		m.config.ServerID,
 		m.config.FormationID,
 	)
 
-	right := "? help  / commands  ESC stop"
+	// Visual length of right side (without ANSI codes)
+	rightVisual := "? for help • / for commands"
+	right := bold("?") + dim(" for help • ") + bold("/") + dim(" for commands")
 
-	gap := m.width - len(left) - len(right) - 2
+	gap := m.width - len(left) - len(rightVisual) - 2
 	if gap < 0 {
 		gap = 1
 	}
 
-	return statusBarStyle.Render(left + strings.Repeat(" ", gap) + right)
+	return dim(left) + strings.Repeat(" ", gap) + right
 }
 
 func (m *Model) insertNewline() {
