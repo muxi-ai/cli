@@ -1067,6 +1067,23 @@ func Run(cfg Config) error {
 		tea.WithAltScreen(),
 	)
 
-	_, err := p.Run()
+	finalModel, err := p.Run()
+	
+	// Print conversation history to terminal after exiting alt screen
+	// This preserves the chat in scrollback buffer
+	if m, ok := finalModel.(Model); ok && len(m.messages) > 0 {
+		fmt.Println() // Empty line before history
+		fmt.Println(dimmedStyle.Render("─── Session History ───"))
+		fmt.Println()
+		for _, msg := range m.messages {
+			if msg.Role == "user" {
+				fmt.Printf("%s %s\n", goldStyle.Render(">"), userStyle.Render(msg.Content))
+			} else {
+				fmt.Printf("%s %s\n", goldStyle.Render("𝐌"), msg.Content)
+			}
+			fmt.Println()
+		}
+	}
+	
 	return err
 }
