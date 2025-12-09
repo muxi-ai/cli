@@ -681,18 +681,12 @@ func (m Model) renderCommands() string {
 			desc = desc[:maxDesc-3] + "..."
 		}
 		
-		line := fmt.Sprintf("%-12s  %s", name, desc)
+		line := fmt.Sprintf("%-12s  %-42s", name, desc)
 		if i == m.commandSelected {
-			b.WriteString(dim("│ ") + sel(prefix+line))
+			b.WriteString(dim("│ ") + sel(prefix+line) + dim(" │") + "\n")
 		} else {
-			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-12s", name) + dim("  "+desc))
+			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-12s", name) + dim("  "+fmt.Sprintf("%-42s", desc)) + dim(" │") + "\n")
 		}
-		// Pad to box width
-		padding := 60 - len(prefix) - len(line)
-		if padding > 0 {
-			b.WriteString(dim(strings.Repeat(" ", padding)))
-		}
-		b.WriteString(dim("│") + "\n")
 	}
 	
 	b.WriteString(dim("╰──────────────────────────────────────────────────────────────╯") + "\n")
