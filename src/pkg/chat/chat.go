@@ -283,6 +283,20 @@ func (m Model) View() string {
 	margin := " " // Left margin for entire chat
 	var b strings.Builder
 
+	// Calculate UI height to push content to bottom
+	// Header: 8 lines + 2 blank + 1 hint = 11
+	// Viewport: m.viewport.Height
+	// Input area: ~4 lines (divider + input + divider + status)
+	headerHeight := 11
+	inputAreaHeight := 4 + len(strings.Split(m.textarea.View(), "\n"))
+	uiHeight := headerHeight + m.viewport.Height + inputAreaHeight
+	
+	// Add blank lines to push to bottom
+	topPadding := m.height - uiHeight
+	if topPadding > 0 {
+		b.WriteString(strings.Repeat("\n", topPadding))
+	}
+
 	// Header
 	b.WriteString(m.renderHeader())
 	b.WriteString("\n")
