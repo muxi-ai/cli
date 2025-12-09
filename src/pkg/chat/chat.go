@@ -664,7 +664,7 @@ func (m Model) renderCommands() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(dim("╭──────────────────────────────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("╭────────────────────────────────────────────────────────────────╮") + "\n")
 	
 	for i, cmd := range filtered {
 		prefix := "  "
@@ -683,13 +683,13 @@ func (m Model) renderCommands() string {
 		
 		line := fmt.Sprintf("%-12s  %-42s", name, desc)
 		if i == m.commandSelected {
-			b.WriteString(dim("│ ") + sel(prefix+line) + dim(" │") + "\n")
+			b.WriteString(dim("│ ") + sel(prefix+line) + dim("   │") + "\n")
 		} else {
-			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-12s", name) + dim("  "+fmt.Sprintf("%-42s", desc)) + dim(" │") + "\n")
+			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-12s", name) + dim("  "+fmt.Sprintf("%-42s", desc)) + dim("   │") + "\n")
 		}
 	}
 	
-	b.WriteString(dim("╰──────────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╰────────────────────────────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
