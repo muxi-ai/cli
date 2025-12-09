@@ -523,27 +523,28 @@ func (m Model) renderMessages() string {
 
 func (m Model) renderHelp() string {
 	dim := dimmedStyle.Render
+	key := userStyle.Render // #c98b45 for keys
 	
-	help := `
-╭───────────────────────────────────────────────────────────╮
-│  Basics                                                   │
-│  Send                                              Enter  │
-│  New line                                      \ + Enter  │
-│  Cancel request                                      Esc  │
-│  History or line navigation                          ↑/↓  │
-╰───────────────────────────────────────────────────────────╯
-╭───────────────────────────────────────────────────────────╮
-│  Commands                                              /  │
-│  Exit chat                                        Ctrl+C  │
-╰───────────────────────────────────────────────────────────╯
-╭───────────────────────────────────────────────────────────╮
-│  Navigation                                               │
-│  Jump to line start/end                        Cmd + ←/→  │
-│  Delete word                             Option + Delete  │
-│  Delete line                                Cmd + Delete  │
-╰───────────────────────────────────────────────────────────╯
-`
-	return dim(help)
+	var b strings.Builder
+	b.WriteString(dim("╭───────────────────────────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("│  Basics                                                   │") + "\n")
+	b.WriteString(dim("│  Send                                              ") + key("Enter") + dim("  │") + "\n")
+	b.WriteString(dim("│  New line                                      ") + key("\\ + Enter") + dim("  │") + "\n")
+	b.WriteString(dim("│  Cancel request                                      ") + key("Esc") + dim("  │") + "\n")
+	b.WriteString(dim("│  History or line navigation                          ") + key("↑/↓") + dim("  │") + "\n")
+	b.WriteString(dim("╰───────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╭───────────────────────────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("│  Commands                                              ") + key("/") + dim("  │") + "\n")
+	b.WriteString(dim("│  Exit chat                                        ") + key("Ctrl+C") + dim("  │") + "\n")
+	b.WriteString(dim("╰───────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╭───────────────────────────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("│  Navigation                                               │") + "\n")
+	b.WriteString(dim("│  Jump to line start/end                        ") + key("Cmd + ←/→") + dim("  │") + "\n")
+	b.WriteString(dim("│  Delete word                             ") + key("Option + Delete") + dim("  │") + "\n")
+	b.WriteString(dim("│  Delete line                                ") + key("Cmd + Delete") + dim("  │") + "\n")
+	b.WriteString(dim("╰───────────────────────────────────────────────────────────╯") + "\n")
+	
+	return b.String()
 }
 
 func (m Model) renderThinking() string {
