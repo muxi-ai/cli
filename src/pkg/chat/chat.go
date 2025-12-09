@@ -544,7 +544,6 @@ func (m Model) View() string {
 	// Status bar
 	b.WriteString(margin)
 	b.WriteString(m.renderStatusBar())
-	b.WriteString("\n")
 
 	return b.String()
 }
@@ -670,6 +669,7 @@ func (m Model) renderMessages() string {
 				rendered = msg.Content
 			}
 			// Add M prefix on first line, then align rest
+			b.WriteString(" ")
 			b.WriteString(goldStyle.Render("𝐌"))
 			b.WriteString(" ")
 			
@@ -1067,23 +1067,6 @@ func Run(cfg Config) error {
 		tea.WithAltScreen(),
 	)
 
-	finalModel, err := p.Run()
-	
-	// Print conversation history to terminal after exiting alt screen
-	// This preserves the chat in scrollback buffer
-	if m, ok := finalModel.(Model); ok && len(m.messages) > 0 {
-		fmt.Println() // Empty line before history
-		fmt.Println(dimmedStyle.Render("─── Session History ───"))
-		fmt.Println()
-		for _, msg := range m.messages {
-			if msg.Role == "user" {
-				fmt.Printf("%s %s\n", goldStyle.Render(">"), userStyle.Render(msg.Content))
-			} else {
-				fmt.Printf("%s %s\n", goldStyle.Render("𝐌"), msg.Content)
-			}
-			fmt.Println()
-		}
-	}
-	
+	_, err := p.Run()
 	return err
 }
