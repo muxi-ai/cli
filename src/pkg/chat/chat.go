@@ -54,7 +54,6 @@ type Model struct {
 	submenuParent   string
 	asyncMode       string // "auto", "on", "off" - shown as ⚡/A/S indicator
 	err             error
-	maxViewHeight   int // Track max height to maintain consistent view size
 }
 
 // Command represents a slash command
@@ -229,9 +228,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.submenuSelected = 0
 				m.showCommands = true // Go back to main menu
 				m.textarea.SetValue("/")
-				if m.maxViewHeight < 10 {
-					m.maxViewHeight = 10
-				}
 				return m, nil
 			}
 			if m.showCommands {
@@ -458,10 +454,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.showHelp = true
 		m.showCommands = false
 		m.textarea.Reset()
-		// Help screen is ~17 lines - set max height to maintain consistent view
-		if m.maxViewHeight < 17 {
-			m.maxViewHeight = 17
-		}
 	} else if m.showHelp && m.textarea.Value() != "" {
 		// Clear help when user starts typing something else
 		m.showHelp = false
@@ -474,10 +466,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(filtered) > 0 {
 			m.showCommands = true
 			m.showHelp = false
-			// Command menu is ~10 lines - set max height
-			if m.maxViewHeight < 10 {
-				m.maxViewHeight = 10
-			}
 			// Keep selection in bounds
 			if m.commandSelected >= len(filtered) {
 				m.commandSelected = len(filtered) - 1
@@ -513,39 +501,22 @@ func (m Model) View() string {
 
 	var b strings.Builder
 	margin := " "
-	contentLines := 0
 
 	// Help screen (shown above input when ? is pressed)
 	if m.showHelp {
-		helpContent := m.renderHelp()
-		b.WriteString(helpContent)
-		contentLines = strings.Count(helpContent, "\n")
+		b.WriteString(m.renderHelp())
 	}
 
 	// Thinking indicators (if active) - shown in real-time, printed to history when complete
 	if m.isThinking {
 		b.WriteString(m.renderThinkingLive())
-		contentLines++
 	}
 
 	// Command menu or submenu (above input)
 	if m.showSubmenu {
-		menuContent := m.renderSubmenu()
-		b.WriteString(menuContent)
-		contentLines = strings.Count(menuContent, "\n")
+		b.WriteString(m.renderSubmenu())
 	} else if m.showCommands {
-		menuContent := m.renderCommands()
-		b.WriteString(menuContent)
-		contentLines = strings.Count(menuContent, "\n")
-	}
-
-	// Pad to maintain consistent view height (prevents input from jumping when menus close)
-	// Once a menu has been shown, always pad to that height
-	if m.maxViewHeight > 0 && contentLines < m.maxViewHeight {
-		padding := m.maxViewHeight - contentLines
-		for i := 0; i < padding; i++ {
-			b.WriteString("\n")
-		}
+		b.WriteString(m.renderCommands())
 	}
 
 	// Input divider
