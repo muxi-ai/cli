@@ -601,9 +601,9 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 	return tea.Println("\n " + goldStyle.Render("𝐌") + " " + rendered + "\n")
 }
 
-// printThinkingStepAbove prints a completed thinking step to history
+// printThinkingStepAbove prints a completed thinking step to history (no trailing space)
 func printThinkingStepAbove(text string) tea.Cmd {
-	return tea.Println(" " + completedStyle.Render("⏺  "+text) + "\n")
+	return tea.Println(" " + completedStyle.Render("⏺  "+text))
 }
 
 func (m Model) renderHeader() string {
