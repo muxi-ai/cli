@@ -664,7 +664,7 @@ func (m Model) renderCommands() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(dim("╭────────────────────────────────────────────────────────────╮") + "\n")
+	b.WriteString(dim("╭──────────────────────────────────────────────────────────────╮") + "\n")
 	
 	for i, cmd := range filtered {
 		prefix := "  "
@@ -688,14 +688,14 @@ func (m Model) renderCommands() string {
 			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-12s", name) + dim("  "+desc))
 		}
 		// Pad to box width
-		padding := 58 - len(prefix) - len(line)
+		padding := 60 - len(prefix) - len(line)
 		if padding > 0 {
 			b.WriteString(dim(strings.Repeat(" ", padding)))
 		}
 		b.WriteString(dim("│") + "\n")
 	}
 	
-	b.WriteString(dim("╰────────────────────────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╰──────────────────────────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
