@@ -751,7 +751,12 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 			// Indent each line to align with other content
 			lines := strings.Split(rendered, "\n")
 			for i, line := range lines {
-				lines[i] = "   " + line // 3 spaces to align with "> " and "⏺ "
+				if i == 0 {
+					// First line: no extra indent (follows 𝐌 directly)
+					lines[i] = line
+				} else {
+					lines[i] = "  " + line // 2 spaces for subsequent lines
+				}
 			}
 			rendered = strings.Join(lines, "\n")
 		}
