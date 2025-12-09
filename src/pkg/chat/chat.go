@@ -467,33 +467,35 @@ func (m Model) renderMessages() string {
 				}
 				b.WriteString("\n")
 			}
+			
+			// Show thinking after user message (before response)
+			// Check if next message is assistant or if we're still thinking
+			isLastMsg := i == len(m.messages)-1
+			nextIsAssistant := !isLastMsg && m.messages[i+1].Role == "assistant"
+			if (isLastMsg || nextIsAssistant) && (m.isThinking || len(m.thinking) > 0) {
+				b.WriteString("\n")
+				b.WriteString(m.renderThinking())
+			}
 		} else {
 			// Render markdown for assistant messages
 			rendered, err := m.renderer.Render(msg.Content)
 			if err != nil {
 				rendered = msg.Content
 			}
-			// Add M prefix on first line, then indent rest to align
+			// Add M prefix on first line, then align rest
 			b.WriteString(margin)
 			b.WriteString(goldStyle.Render("𝐌"))
+			b.WriteString(" ")
 			
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
 			for j, line := range lines {
 				if j > 0 {
 					b.WriteString(margin + "  ")
-				} else {
-					b.WriteString(" ") // Single space after M
 				}
-				b.WriteString(strings.TrimLeft(line, " ")) // Remove leading whitespace
+				b.WriteString(strings.TrimLeft(line, " "))
 				b.WriteString("\n")
 			}
 		}
-	}
-
-	// Thinking status (part of scrollable content)
-	if m.isThinking || len(m.thinking) > 0 {
-		b.WriteString("\n")
-		b.WriteString(m.renderThinking())
 	}
 
 	return b.String()
