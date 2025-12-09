@@ -75,7 +75,7 @@ var (
 			Foreground(lipgloss.Color("#808080")) // Explicit gray for all terminals
 
 	goldStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("208")) // Orange (matches muxi brand)
+			Foreground(lipgloss.Color("#e48d20")) // Orange (matches muxi brand)
 
 	cyanStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("86"))
@@ -330,6 +330,25 @@ func (m Model) renderHeader() string {
 	dim := dimmedStyle.Render
 	margin := " "
 
+	// Calculate widths - account for margin
+	width := m.width - 2
+	if width < 60 {
+		width = 60
+	}
+	
+	// Left side: logo area (16 chars including borders and padding)
+	// Right side: info area (remaining width)
+	leftWidth := 16
+	rightWidth := width - leftWidth - 1 // -1 for right border
+
+	// Helper to pad right side content
+	padRight := func(s string, w int) string {
+		if len(s) >= w {
+			return s[:w]
+		}
+		return s + strings.Repeat(" ", w-len(s))
+	}
+
 	// M logo: gold for blocks (███), dimmed for shadow (╗╔╝╚║═)
 	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")
 	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║")
@@ -337,15 +356,19 @@ func (m Model) renderHeader() string {
 	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
 	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
 
+	// Build header lines
+	topBorder := dim("╭── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", width-15) + "╮")
+	botBorder := dim("╰" + strings.Repeat("─", width-1) + "╯")
+
 	lines := []string{
-		dim("╭── ") + gold("MUXI Chat") + dim(" ────────────────────────────────────────────────╮"),
-		dim("│") + "  " + "             " + dim("│") + "                                             " + dim("│"),
-		dim("│") + "  " + mLine1 + "  " + dim("│") + " Chatting with:                              " + dim("│"),
-		dim("│") + "  " + mLine2 + "  " + dim("│") + fmt.Sprintf("  ⌬ Formation: %-30s", m.config.FormationID) + dim("│"),
-		dim("│") + "  " + mLine3 + "  " + dim("│") + fmt.Sprintf("  ⏍ Server: %-33s", m.config.ServerID) + dim("│"),
-		dim("│") + "  " + mLine4 + "  " + dim("│") + fmt.Sprintf("  ♕ User: %-35s", m.config.UserID) + dim("│"),
-		dim("│") + "  " + mLine5 + "  " + dim("│") + "                                             " + dim("│"),
-		dim("╰─────────────────────────────────────────────────────────────╯"),
+		topBorder,
+		dim("│") + "  " + "             " + dim("│") + padRight("", rightWidth-1) + dim("│"),
+		dim("│") + "  " + mLine1 + "  " + dim("│") + padRight(" Chatting with:", rightWidth-1) + dim("│"),
+		dim("│") + "  " + mLine2 + "  " + dim("│") + padRight(fmt.Sprintf("  ⌬ Formation: %s", m.config.FormationID), rightWidth-1) + dim("│"),
+		dim("│") + "  " + mLine3 + "  " + dim("│") + padRight(fmt.Sprintf("  ⏍ Server: %s", m.config.ServerID), rightWidth-1) + dim("│"),
+		dim("│") + "  " + mLine4 + "  " + dim("│") + padRight(fmt.Sprintf("  ♕ User: %s", m.config.UserID), rightWidth-1) + dim("│"),
+		dim("│") + "  " + mLine5 + "  " + dim("│") + padRight("", rightWidth-1) + dim("│"),
+		botBorder,
 	}
 
 	var b strings.Builder
