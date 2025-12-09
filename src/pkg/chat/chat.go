@@ -59,6 +59,7 @@ type Model struct {
 	currentInput    string    // Saved current input when navigating history
 	showExitHint    bool      // Show "Ctrl+C again to exit" hint
 	exitHintStart   time.Time // When the exit hint was shown
+	requestAborted  bool      // Flag to ignore response after abort
 }
 
 // Command represents a slash command
@@ -257,6 +258,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.isThinking {
 				m.isThinking = false
 				m.thinking = []ThinkingStep{} // Clear thinking steps
+				m.requestAborted = true       // Flag to ignore incoming response
 				// Print abort message in red
 				return m, printAbortMessage()
 			}
@@ -457,6 +459,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case thinkingMsg:
+		// Ignore if request was aborted
+		if m.requestAborted {
+			return m, nil
+		}
 		m.thinking = append(m.thinking, ThinkingStep{
 			Text:      string(msg),
 			Completed: false,
@@ -464,6 +470,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.simulateNextThinking(len(m.thinking))
 
 	case thinkingCompleteMsg:
+		// Ignore if request was aborted
+		if m.requestAborted {
+			return m, nil
+		}
 		if int(msg) < len(m.thinking) {
 			m.thinking[msg].Completed = true
 			// Print completed thinking step to history
@@ -472,6 +482,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case responseMsg:
+		// Ignore response if request was aborted
+		if m.requestAborted {
+			m.requestAborted = false
+			return m, nil
+		}
 		m.isThinking = false
 		m.thinking = []ThinkingStep{} // Clear for next request
 		// Add assistant message and print above TUI (persists in scrollback)
@@ -629,8 +644,9 @@ func (m Model) renderThinkingLive() string {
 	elapsed := time.Since(m.thinkingStart)
 	frame := frames[int(elapsed.Milliseconds()/100)%len(frames)]
 
-	// Show current thinking with spinner and ESC hint
-	escHint := dimmedStyle.Render("(ESC to cancel)")
+	// Show current thinking with spinner and ESC hint (very dim)
+	veryDimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
+	escHint := veryDimStyle.Render("(ESC to cancel)")
 	b.WriteString(margin)
 	b.WriteString(thinkingStyle.Render(fmt.Sprintf("%s  Thinking... %.1fs", frame, elapsed.Seconds())))
 	b.WriteString("  ")
