@@ -330,55 +330,94 @@ func (m Model) renderHeader() string {
 	dim := dimmedStyle.Render
 	margin := " "
 
-	// Calculate widths - account for margin
+	// Calculate width - account for margin
 	width := m.width - 2
-	if width < 60 {
-		width = 60
+	if width < 65 {
+		width = 65
 	}
+
+	// Layout: │  <M logo 12 chars>  │ <right content> │
+	// Left section: 1 (│) + 2 (spaces) + 12 (logo) + 2 (spaces) + 1 (│) = 18 visual chars
+	// Right section: remaining width - 18 - 1 (final │)
+	logoWidth := 12
+	leftSection := 18 // │ + 2 spaces + logo + 2 spaces + │
+	rightWidth := width - leftSection - 1
+
+	// Helper to pad content to exact visual width
+	pad := func(s string, w int) string {
+		// Count visual width (runes, not bytes)
+		visualLen := 0
+		for range s {
+			visualLen++
+		}
+		if visualLen >= w {
+			return s
+		}
+		return s + strings.Repeat(" ", w-visualLen)
+	}
+
+	// M logo lines (each is exactly 12 visual chars)
+	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")  // 3+1+3+3+1 = 11... need 12
+	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║") // 4+1+1+4+1 = 11
+	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") // 2+2+2+2+2+1 = 11
+	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") // 2+1+1+3+1+2+1 = 11
+	mLine5 := dim("╚═╝") + "     " + dim("╚═╝") // 3+5+3 = 11
 	
-	// Left side: logo area (16 chars including borders and padding)
-	// Right side: info area (remaining width)
-	leftWidth := 16
-	rightWidth := width - leftWidth - 1 // -1 for right border
+	// Adjust: the original logo is 12 chars wide, let me recalculate
+	// ███╗   ███╗ = 3+1+3+3+1 = 11 chars
+	// So logo is 11 chars, left section = 1+2+11+2+1 = 17
+	leftSection = 17
+	rightWidth = width - leftSection - 1
+	_ = logoWidth // unused now
 
-	// Helper to pad right side content
-	padRight := func(s string, w int) string {
-		if len(s) >= w {
-			return s[:w]
-		}
-		return s + strings.Repeat(" ", w-len(s))
-	}
-
-	// M logo: gold for blocks (███), dimmed for shadow (╗╔╝╚║═)
-	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")
-	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║")
-	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║")
-	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
-	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
-
-	// Build header lines
-	topBorder := dim("╭── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", width-15) + "╮")
-	botBorder := dim("╰" + strings.Repeat("─", width-1) + "╯")
-
-	lines := []string{
-		topBorder,
-		dim("│") + "  " + "             " + dim("│") + padRight("", rightWidth-1) + dim("│"),
-		dim("│") + "  " + mLine1 + "  " + dim("│") + padRight(" Chatting with:", rightWidth-1) + dim("│"),
-		dim("│") + "  " + mLine2 + "  " + dim("│") + padRight(fmt.Sprintf("  ⌬ Formation: %s", m.config.FormationID), rightWidth-1) + dim("│"),
-		dim("│") + "  " + mLine3 + "  " + dim("│") + padRight(fmt.Sprintf("  ⏍ Server: %s", m.config.ServerID), rightWidth-1) + dim("│"),
-		dim("│") + "  " + mLine4 + "  " + dim("│") + padRight(fmt.Sprintf("  ♕ User: %s", m.config.UserID), rightWidth-1) + dim("│"),
-		dim("│") + "  " + mLine5 + "  " + dim("│") + padRight("", rightWidth-1) + dim("│"),
-		botBorder,
-	}
-
+	// Build lines
 	var b strings.Builder
-	for i, line := range lines {
-		b.WriteString(margin)
-		b.WriteString(line)
-		if i < len(lines)-1 {
-			b.WriteString("\n")
-		}
+
+	// Top border: ╭── MUXI Chat ─────...─╮
+	titlePart := "── " + gold("MUXI Chat") + " "
+	titleVisualLen := 13 // "── MUXI Chat "
+	dashesNeeded := width - titleVisualLen - 2 // -2 for ╭ and ╮
+	b.WriteString(margin)
+	b.WriteString(dim("╭" + "── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", dashesNeeded) + "╮"))
+	b.WriteString("\n")
+	_ = titlePart
+
+	// Content lines
+	rightContents := []string{
+		"",
+		" Chatting with:",
+		fmt.Sprintf("  ⌬ Formation: %s", m.config.FormationID),
+		fmt.Sprintf("  ⏍ Server: %s", m.config.ServerID),
+		fmt.Sprintf("  ♕ User: %s", m.config.UserID),
+		"",
 	}
+	mLines := []string{
+		"           ", // empty line (11 spaces)
+		mLine1,
+		mLine2,
+		mLine3,
+		mLine4,
+		mLine5,
+	}
+
+	for i, mLine := range mLines {
+		b.WriteString(margin)
+		b.WriteString(dim("│") + "  ")
+		if i == 0 {
+			b.WriteString("           ") // 11 spaces for empty line
+		} else {
+			b.WriteString(mLine)
+		}
+		b.WriteString("  " + dim("│"))
+		b.WriteString(pad(rightContents[i], rightWidth))
+		b.WriteString(dim("│"))
+		b.WriteString("\n")
+	}
+
+	// Bottom border
+	b.WriteString(margin)
+	b.WriteString(dim("╰" + strings.Repeat("─", width-2) + "╯"))
+
 	return b.String()
 }
 
