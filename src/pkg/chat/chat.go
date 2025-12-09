@@ -177,15 +177,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !m.isThinking && strings.TrimSpace(val) != "" {
 				input := m.textarea.Value()
 				
-				// Handle ? for help (temporary, clears on next message)
-				if strings.TrimSpace(input) == "?" {
-					m.showHelp = true
-					m.textarea.Reset()
-					m.viewport.SetContent(m.renderMessages())
-					m.viewport.GotoBottom()
-					return m, nil
-				}
-				
 				// Handle slash commands
 				if strings.HasPrefix(input, "/") {
 					return m.handleCommand(input)
@@ -277,6 +268,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.textarea, cmd = m.textarea.Update(msg)
 	cmds = append(cmds, cmd)
+
+	// Check for ? as first/only character - show help immediately
+	if m.textarea.Value() == "?" {
+		m.showHelp = true
+		m.textarea.Reset()
+		m.viewport.SetContent(m.renderMessages())
+		m.viewport.GotoBottom()
+	} else if m.showHelp && m.textarea.Value() != "" {
+		// Clear help when user starts typing something else
+		m.showHelp = false
+		m.viewport.SetContent(m.renderMessages())
+		m.viewport.GotoBottom()
+	}
 
 	// Update viewport
 	m.viewport, cmd = m.viewport.Update(msg)
