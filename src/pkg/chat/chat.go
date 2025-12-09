@@ -459,12 +459,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// No matching commands - hide menu
 			m.showCommands = false
 		}
-	} else if !strings.HasPrefix(val, "/") {
-		// Clear both menus when / is deleted
+	} else if !strings.HasPrefix(val, "/") && !m.showSubmenu {
+		// Clear command menu when / is deleted (but not if submenu is active)
 		m.showCommands = false
-		m.showSubmenu = false
 		m.commandSelected = 0
-		m.submenuSelected = 0
 	}
 
 	// Update viewport
@@ -838,10 +836,10 @@ func (m Model) renderSubmenu() string {
 	}
 
 	var b strings.Builder
-	// Box width: 45 chars total (43 dashes + 2 corners)
-	b.WriteString(dim("╭───────────────────────────────────────────╮") + "\n")
+	// Box width: 44 chars total (42 dashes + 2 corners)
+	b.WriteString(dim("╭──────────────────────────────────────────╮") + "\n")
 	b.WriteString(dim("│") + fmt.Sprintf("  %-40s", cmd.Name) + dim("│") + "\n")
-	b.WriteString(dim("├───────────────────────────────────────────┤") + "\n")
+	b.WriteString(dim("├──────────────────────────────────────────┤") + "\n")
 	
 	for i, item := range cmd.Submenu {
 		prefix := "  "
@@ -849,16 +847,15 @@ func (m Model) renderSubmenu() string {
 			prefix = "> "
 		}
 		
-		// Inner width: 43 - 2 (for "│ " and " │") = 41, minus prefix(2) = 39 for content
-		content := fmt.Sprintf("%-10s %-28s", item.Name, item.Description)
+		content := fmt.Sprintf("%-10s %-27s", item.Name, item.Description)
 		if i == m.submenuSelected {
-			b.WriteString(dim("│ ") + sel(prefix+content) + dim(" │") + "\n")
+			b.WriteString(dim("│ ") + sel(prefix+content) + dim("│") + "\n")
 		} else {
-			b.WriteString(dim("│ "+prefix+content+" │") + "\n")
+			b.WriteString(dim("│ "+prefix+content+"│") + "\n")
 		}
 	}
 	
-	b.WriteString(dim("╰───────────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╰──────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
