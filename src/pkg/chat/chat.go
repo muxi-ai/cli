@@ -388,7 +388,7 @@ func (m Model) renderHeader() string {
 		" Chatting with:",
 		fmt.Sprintf("  ⌬ Formation: %s", m.config.FormationID),
 		fmt.Sprintf("  ⏍ Server: %s", m.config.ServerID),
-		fmt.Sprintf("  ♕ User: %s", m.config.UserID),
+		fmt.Sprintf("  ♛ User: %s", m.config.UserID),
 		"",
 	}
 	mLines := []string{
@@ -417,6 +417,17 @@ func (m Model) renderHeader() string {
 	// Bottom border
 	b.WriteString(margin)
 	b.WriteString(dim("╰" + strings.Repeat("─", width-2) + "╯"))
+	b.WriteString("\n")
+
+	// Hint text (centered)
+	hint := "ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"
+	hintPadding := (width - len(hint)) / 2
+	if hintPadding < 0 {
+		hintPadding = 0
+	}
+	b.WriteString("\n")
+	b.WriteString(margin)
+	b.WriteString(dim(strings.Repeat(" ", hintPadding) + hint))
 
 	return b.String()
 }
