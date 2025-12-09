@@ -297,6 +297,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.insertNewline()
 				return m, nil
 			}
+			// Handle submenu selection with Enter
+			if m.showSubmenu {
+				cmd := m.getCommandByName(m.submenuParent)
+				if cmd != nil && m.submenuSelected < len(cmd.Submenu) {
+					m.handleSubmenuSelection(cmd, m.submenuSelected)
+				}
+				m.showSubmenu = false
+				m.showCommands = false
+				m.submenuSelected = 0
+				m.textarea.Reset()
+				return m, nil
+			}
 			// Backslash + Enter = line continuation (like bash)
 			val := m.textarea.Value()
 			if strings.HasSuffix(val, "\\") {
@@ -457,14 +469,11 @@ func (m Model) View() string {
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
 
-	// Command menu (above input)
-	if m.showCommands {
-		b.WriteString(m.renderCommands())
-	}
-	
-	// Submenu (above input)
+	// Command menu or submenu (above input) - only one at a time
 	if m.showSubmenu {
 		b.WriteString(m.renderSubmenu())
+	} else if m.showCommands {
+		b.WriteString(m.renderCommands())
 	}
 
 	// Input divider
@@ -806,9 +815,10 @@ func (m Model) renderSubmenu() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(dim("╭────────────────────────────────────╮") + "\n")
-	b.WriteString(dim("│  ") + cmd.Name + dim(strings.Repeat(" ", 32-len(cmd.Name))) + dim("│") + "\n")
-	b.WriteString(dim("├────────────────────────────────────┤") + "\n")
+	b.WriteString(dim("╭─────────────────────────────────────────╮") + "\n")
+	title := fmt.Sprintf("  %-37s", cmd.Name)
+	b.WriteString(dim("│") + title + dim("│") + "\n")
+	b.WriteString(dim("├─────────────────────────────────────────┤") + "\n")
 	
 	for i, item := range cmd.Submenu {
 		prefix := "  "
@@ -816,15 +826,15 @@ func (m Model) renderSubmenu() string {
 			prefix = "> "
 		}
 		
-		line := fmt.Sprintf("%-10s  %-20s", item.Name, item.Description)
+		line := fmt.Sprintf("%-8s  %-27s", item.Name, item.Description)
 		if i == m.submenuSelected {
-			b.WriteString(dim("│ ") + sel(prefix+line) + dim("  │") + "\n")
+			b.WriteString(dim("│ ") + sel(prefix+line) + dim(" │") + "\n")
 		} else {
-			b.WriteString(dim("│ "+prefix) + item.Name + dim(fmt.Sprintf("  %-20s", item.Description)) + dim("  │") + "\n")
+			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-8s", item.Name) + dim(fmt.Sprintf("  %-27s", item.Description)) + dim(" │") + "\n")
 		}
 	}
 	
-	b.WriteString(dim("╰────────────────────────────────────╯") + "\n")
+	b.WriteString(dim("╰─────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
 	
 	return b.String()
