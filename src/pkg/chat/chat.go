@@ -918,7 +918,7 @@ func (m Model) renderStatusBar() string {
 	rightVisual := indicatorVisual + " • ? for help • / for commands"
 	right := indicator + dim(" • ") + bold("?") + dim(" for help • ") + bold("/") + dim(" for commands")
 
-	gap := m.width - len(left) - len(rightVisual) + 2
+	gap := m.width - len(left) - len(rightVisual) + 1
 	if gap < 0 {
 		gap = 1
 	}
