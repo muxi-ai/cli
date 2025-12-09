@@ -61,7 +61,7 @@ user_id: "dev-user"
 **Commands:**
 ```bash
 muxi set default server [name]     # Set default server
-muxi set default registry [name]   # Set default registry  
+muxi set default registry [name]   # Set default registry
 muxi set default user [user_id]    # Set default user ID
 
 # Flags
@@ -71,7 +71,7 @@ muxi set default user [user_id]    # Set default user ID
 
 **Behavior:**
 - Outside formation dir: always sets global (no prompt)
-- Inside formation dir: prompts "Local or Global?" 
+- Inside formation dir: prompts "Local or Global?"
 - `--local` / `--global` flags bypass prompt
 
 **Resolution order (for each setting):**
@@ -646,15 +646,15 @@ $ muxi chat
 
 ⠧  Thinking... 2.1s  (ESC to stop)
 
-𝐌  The weather in New York City is currently sunny with a 
-   temperature of 72°F (22°C). Expected high of 78°F today
-   with clear skies throughout the afternoon.
+𝐌  The weather in New York City is currently sunny with a
+    temperature of 72°F (22°C). Expected high of 78°F today
+    with clear skies throughout the afternoon.
 
 ────────────────────────────────────────────────────────────────
->  type your message here...                                    
+>  type your message here...
    (auto-grows from 1 line to 50% screen height)
 ────────────────────────────────────────────────────────────────
-alice@local://my-formation              ? help  / commands  ESC
+alice@local://my-formation               ? help  / commands  ESC
 ```
 
 **UI Elements:**
@@ -685,29 +685,57 @@ Uses Bubble Tea for input box only, streams responses to stdout above:
    - Message history (local cache)
    - Connection status
 
+### Thinking Updates
+
+The formation streams thinking updates (task decomposition, agent routing, MCP calls, etc.) as multiple blocks:
+
+```
+⠧  Decomposing task...
+⏺  Task decomposed into 3 steps
+⠧  Routing to weather-agent...
+⏺  Agent selected: weather-agent  
+⠧  Calling weather MCP...
+⏺  MCP response received
+⠧  Generating response...
+
+𝐌  The weather is sunny...
+```
+
+- **Spinner** (`⠧`) = in progress
+- **Filled circle** (`⏺`) = completed step
+- Multiple thinking blocks can stack as work progresses
+
 ### Slash Commands
 
 | Command | Description |
 |---------|-------------|
-| `/help` | Show available commands |
-| `/exit`, `/quit` | Exit chat |
+| `/help`, `/?` | Show commands + keyboard shortcuts + how to exit |
+| `/exit`, `/quit`, `/q` | Exit chat |
 | `/clear` | Clear screen |
+| `/async [on\|off]` | Toggle async mode (webhooks vs streaming) |
+| `/agent [id]` | Route directly to agent (bypasses overlord, good for testing) |
+| `/agents` | List available agents in formation |
 | `/session` | Show current session ID |
 | `/sessions` | List all sessions |
 | `/switch <id>` | Switch to different session |
 | `/new` | Start new session |
-| `/history` | Show recent messages |
+| `/history [n]` | Show last n messages (default: 10) |
+| `/retry` | Retry last message |
+| `/copy` | Copy last response to clipboard |
+| `/debug [on\|off]` | Toggle debug mode (show raw API responses) |
 
 ### Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
 | `Enter` | Send message |
-| `Shift+Enter` | New line |
-| `Up/Down` | Browse message history |
-| `Ctrl+C` | Cancel current response / Exit |
+| `Shift+Enter` | New line in input |
+| `Up/Down` | Browse input history |
+| `ESC` | Cancel current response |
+| `Ctrl+C` | Cancel response, or exit if idle |
 | `Ctrl+L` | Clear screen |
 | `Ctrl+D` | Exit (EOF) |
+| `Page Up/Down` | Scroll chat history |
 
 ### Flags
 
@@ -907,7 +935,7 @@ pkg/formation/
 **Track A - Introspection (Read-only, simple GETs)**
 ```
 muxi info      → GET /status, GET /config
-muxi triggers  → GET /triggers  
+muxi triggers  → GET /triggers
 muxi sops      → GET /sops, GET /sops/{name}
 ```
 - Simplest track, good starter task
