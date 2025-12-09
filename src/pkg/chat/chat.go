@@ -1172,7 +1172,7 @@ func (m Model) simulateThinking() tea.Cmd {
 			return tickMsg{}
 		}),
 		tea.Tick(500*time.Millisecond, func(t time.Time) tea.Msg {
-			return thinkingMsg("Analyzing request...")
+			return thinkingMsg("Routing to agent...")
 		}),
 	)
 }
@@ -1185,7 +1185,7 @@ func (m Model) simulateNextThinking(step int) tea.Cmd {
 				return thinkingCompleteMsg(0)
 			}),
 			tea.Tick(900*time.Millisecond, func(t time.Time) tea.Msg {
-				return thinkingMsg("Routing to agent...")
+				return thinkingMsg("Analyzing request...")
 			}),
 		)
 	case 2:
