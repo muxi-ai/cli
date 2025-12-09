@@ -562,8 +562,8 @@ func (m Model) renderHeader() string {
 	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
 	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
 
-	// Right content - pad to fill remaining space (65 - 1 - 1 - 11 - 1 - 1 - 1 = 49 chars)
-	rightWidth := 49
+	// Right content - pad to fill remaining space (65 - 1 - 2 - 11 - 2 - 1 - 1 = 47 chars)
+	rightWidth := 47
 	pad := func(s string, w int) string {
 		if len(s) >= w {
 			return s[:w]
@@ -581,22 +581,22 @@ func (m Model) renderHeader() string {
 	_ = titleText
 
 	// Line 1: empty
-	b.WriteString(dim("│") + " " + "           " + " " + dim("│") + pad("", rightWidth) + dim("│") + "\n")
+	b.WriteString(dim("│") + "  " + "           " + "  " + dim("│") + pad("", rightWidth) + dim("│") + "\n")
 
 	// Lines 2-6: logo + content
 	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
 	rightContents := []string{
-		"Chatting with:",
-		" ⌬ Formation: " + m.config.FormationID,
-		" ⏍ Server: " + m.config.ServerID,
-		" ♛ User: " + m.config.UserID,
+		" Chatting with:",
+		"  ⌬ Formation: " + m.config.FormationID,
+		"  ⏍ Server: " + m.config.ServerID,
+		"  ♛ User: " + m.config.UserID,
 		"",
 	}
 
 	for i, mLine := range mLines {
-		b.WriteString(dim("│") + " ")
+		b.WriteString(dim("│") + "  ")
 		b.WriteString(mLine)
-		b.WriteString(" " + dim("│"))
+		b.WriteString("  " + dim("│"))
 		content := rightContents[i]
 		if i == 0 {
 			b.WriteString(dim(pad(content, rightWidth)))
