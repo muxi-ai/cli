@@ -552,111 +552,72 @@ func (m Model) View() string {
 func (m Model) renderHeader() string {
 	gold := goldStyle.Render
 	dim := dimmedStyle.Render
-	margin := " "
 
-	// Calculate width - account for margin
-	width := m.width - 2
-	if width < 65 {
-		width = 65
+	// Fixed box width for centered layout
+	boxWidth := 48
+
+	// Calculate centering padding
+	centerPad := (m.width - boxWidth) / 2
+	if centerPad < 0 {
+		centerPad = 0
+	}
+	indent := strings.Repeat(" ", centerPad)
+
+	// M logo lines (11 chars each)
+	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")
+	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║")
+	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║")
+	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
+	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
+
+	// Right content (each padded to 28 chars)
+	rightContents := []string{
+		"Chatting with:              ",
+		fmt.Sprintf(" ⌬ Formation: %-13s", m.config.FormationID),
+		fmt.Sprintf(" ⏍ Server: %-16s", m.config.ServerID),
+		fmt.Sprintf(" ♛ User: %-18s", m.config.UserID),
+		"                            ",
 	}
 
-	// Layout: │  <M logo 12 chars>  │ <right content> │
-	// Left section: 1 (│) + 2 (spaces) + 12 (logo) + 2 (spaces) + 1 (│) = 18 visual chars
-	// Right section: remaining width - 18 - 1 (final │)
-	logoWidth := 12
-	leftSection := 18 // │ + 2 spaces + logo + 2 spaces + │
-	rightWidth := width - leftSection - 1
-
-	// Helper to pad content to exact visual width
-	pad := func(s string, w int) string {
-		// Count visual width (runes, not bytes)
-		visualLen := 0
-		for range s {
-			visualLen++
-		}
-		if visualLen >= w {
-			return s
-		}
-		return s + strings.Repeat(" ", w-visualLen)
-	}
-
-	// M logo lines (each is exactly 12 visual chars)
-	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")  // 3+1+3+3+1 = 11... need 12
-	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║") // 4+1+1+4+1 = 11
-	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") // 2+2+2+2+2+1 = 11
-	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") // 2+1+1+3+1+2+1 = 11
-	mLine5 := dim("╚═╝") + "     " + dim("╚═╝") // 3+5+3 = 11
-	
-	// Adjust: the original logo is 12 chars wide, let me recalculate
-	// ███╗   ███╗ = 3+1+3+3+1 = 11 chars
-	// So logo is 11 chars, left section = 1+2+11+2+1 = 17
-	leftSection = 17
-	rightWidth = width - leftSection - 1
-	_ = logoWidth // unused now
-
-	// Build lines
 	var b strings.Builder
 
-	// Top border: ╭── MUXI Chat ─────...─╮
-	titlePart := "── " + gold("MUXI Chat") + " "
-	titleVisualLen := 13 // "── MUXI Chat "
-	dashesNeeded := width - titleVisualLen - 2 // -2 for ╭ and ╮
-	b.WriteString(margin)
-	b.WriteString(dim("╭" + "── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", dashesNeeded) + "╮"))
+	// Top border with centered title: ╭─────── MUXI Chat ───────╮
+	titleText := " MUXI Chat "
+	leftDashes := (boxWidth - 2 - len(titleText)) / 2
+	rightDashes := boxWidth - 2 - len(titleText) - leftDashes
+	b.WriteString(indent)
+	b.WriteString(dim("╭" + strings.Repeat("─", leftDashes)) + gold(titleText) + dim(strings.Repeat("─", rightDashes) + "╮"))
 	b.WriteString("\n")
-	_ = titlePart
 
-	// Content lines
-	rightContents := []string{
-		"",
-		" Chatting with:", // dimmed later
-		fmt.Sprintf("  ⌬ Formation: %s", m.config.FormationID),
-		fmt.Sprintf("  ⏍ Server: %s", m.config.ServerID),
-		fmt.Sprintf("  ♛ User: %s", m.config.UserID),
-		"",
-	}
-	mLines := []string{
-		"           ", // empty line (11 spaces)
-		mLine1,
-		mLine2,
-		mLine3,
-		mLine4,
-		mLine5,
-	}
-
+	// Content lines: │ <logo> <info> │
+	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
 	for i, mLine := range mLines {
-		b.WriteString(margin)
-		b.WriteString(dim("│") + "  ")
+		b.WriteString(indent)
+		b.WriteString(dim("│") + " ")
+		b.WriteString(mLine)
+		b.WriteString(" ")
 		if i == 0 {
-			b.WriteString("           ") // 11 spaces for empty line
+			b.WriteString(dim(rightContents[i]))
 		} else {
-			b.WriteString(mLine)
+			b.WriteString(rightContents[i])
 		}
-		b.WriteString("  " + dim("│"))
-		// Pad first, then apply dimming to "Chatting with:" line
-		padded := pad(rightContents[i], rightWidth)
-		if i == 1 {
-			padded = dim(padded)
-		}
-		b.WriteString(padded)
 		b.WriteString(dim("│"))
 		b.WriteString("\n")
 	}
 
 	// Bottom border
-	b.WriteString(margin)
-	b.WriteString(dim("╰" + strings.Repeat("─", width-2) + "╯"))
+	b.WriteString(indent)
+	b.WriteString(dim("╰" + strings.Repeat("─", boxWidth-2) + "╯"))
 	b.WriteString("\n")
 
 	// Hint text (centered)
 	hint := "ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"
-	hintPadding := (width - len(hint)) / 2
-	if hintPadding < 0 {
-		hintPadding = 0
+	hintPad := (m.width - len(hint)) / 2
+	if hintPad < 0 {
+		hintPad = 0
 	}
 	b.WriteString("\n")
-	b.WriteString(margin)
-	b.WriteString(dim(strings.Repeat(" ", hintPadding) + hint))
+	b.WriteString(dim(strings.Repeat(" ", hintPad) + hint))
 
 	return b.String()
 }
