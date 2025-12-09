@@ -63,10 +63,10 @@ var (
 			Foreground(lipgloss.Color("252"))
 
 	thinkingStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
+			Foreground(lipgloss.Color("#555555")) // Dimmer for thinking updates
 
 	completedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
+			Foreground(lipgloss.Color("#555555")) // Dimmer for completed steps
 
 	statusBarStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240"))
@@ -287,11 +287,6 @@ func (m Model) View() string {
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
 
-	// Thinking status (show while thinking, keep completed steps visible)
-	if m.isThinking || len(m.thinking) > 0 {
-		b.WriteString(m.renderThinking())
-	}
-
 	// Input divider
 	dividerWidth := m.width - 4 // Account for margins
 	if dividerWidth < 20 {
@@ -480,17 +475,25 @@ func (m Model) renderMessages() string {
 			}
 			// Add M prefix on first line, then indent rest to align
 			b.WriteString(margin)
-			b.WriteString(goldStyle.Render("𝐌 "))
+			b.WriteString(goldStyle.Render("𝐌"))
 			
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
 			for j, line := range lines {
 				if j > 0 {
-					b.WriteString(margin + " ")
+					b.WriteString(margin + "  ")
+				} else {
+					b.WriteString(" ") // Single space after M
 				}
-				b.WriteString(line)
+				b.WriteString(strings.TrimLeft(line, " ")) // Remove leading whitespace
 				b.WriteString("\n")
 			}
 		}
+	}
+
+	// Thinking status (part of scrollable content)
+	if m.isThinking || len(m.thinking) > 0 {
+		b.WriteString("\n")
+		b.WriteString(m.renderThinking())
 	}
 
 	return b.String()
