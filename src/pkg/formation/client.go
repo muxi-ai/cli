@@ -270,6 +270,17 @@ func (c *Client) GetTriggers() (*TriggersListResponse, error) {
 	return parseResponse[TriggersListResponse](resp)
 }
 
+// GetTrigger gets details for a specific trigger
+func (c *Client) GetTrigger(name string) (*Trigger, error) {
+	resp, err := c.GetClient("/triggers/" + name)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[Trigger](resp)
+}
+
 // GetSOPs lists all SOPs
 func (c *Client) GetSOPs() (*SOPsListResponse, error) {
 	resp, err := c.GetClient("/sops")
