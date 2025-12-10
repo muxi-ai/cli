@@ -438,7 +438,7 @@ func formatServerStageMessage(p server.DeployProgressEvent) string {
 	case "health_check":
 		if p.Attempt > 0 && p.MaxAttempts > 0 {
 			remaining := p.MaxAttempts - p.Attempt
-			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
+			return prefix + fmt.Sprintf("Waiting for formation to start (timeout: %s)", formatTimeout(remaining))
 		}
 		return prefix + "Waiting for formation to start..."
 	case "swapping":
@@ -606,6 +606,13 @@ func shouldExclude(path string, isDir bool) bool {
 	}
 
 	return false
+}
+
+// formatTimeout formats seconds as m:ss for countdown display
+func formatTimeout(seconds int) string {
+	minutes := seconds / 60
+	secs := seconds % 60
+	return fmt.Sprintf("%d:%02d", minutes, secs)
 }
 
 // formatBytes formats bytes into human-readable format

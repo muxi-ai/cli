@@ -554,7 +554,7 @@ func formatStartStageMessage(p server.DeployProgressEvent) string {
 	case "health_check":
 		if p.Attempt > 0 && p.MaxAttempts > 0 {
 			remaining := p.MaxAttempts - p.Attempt
-			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
+			return prefix + fmt.Sprintf("Waiting for formation to start (timeout: %s)", formatTimeout(remaining))
 		}
 		return prefix + "Waiting for formation to start..."
 	default:
@@ -740,7 +740,7 @@ func formatRestartStageMessage(p server.DeployProgressEvent) string {
 	case "health_check":
 		if p.Attempt > 0 && p.MaxAttempts > 0 {
 			remaining := p.MaxAttempts - p.Attempt
-			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
+			return prefix + fmt.Sprintf("Waiting for formation to start (timeout: %s)", formatTimeout(remaining))
 		}
 		return prefix + "Waiting for formation to start..."
 	default:
@@ -921,7 +921,7 @@ func formatRollbackStageMessage(p server.DeployProgressEvent) string {
 	case "health_check":
 		if p.Attempt > 0 && p.MaxAttempts > 0 {
 			remaining := p.MaxAttempts - p.Attempt
-			return prefix + fmt.Sprintf("Waiting for formation to start (%d)", remaining)
+			return prefix + fmt.Sprintf("Waiting for formation to start (timeout: %s)", formatTimeout(remaining))
 		}
 		return prefix + "Waiting for formation to start..."
 	default:
@@ -1158,3 +1158,4 @@ func displayFormationDetails(f *server.FormationDetail, verbose bool, profile st
 
 	return nil
 }
+
