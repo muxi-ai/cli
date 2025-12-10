@@ -36,7 +36,13 @@ func runInfo(cmd *cobra.Command, args []string) error {
 
 	full, _ := cmd.Flags().GetBool("full")
 
-	// Get status
+	// Get health status first
+	health, err := client.Health()
+	if err != nil {
+		return fmt.Errorf("failed to get health: %w", err)
+	}
+
+	// Get detailed status
 	status, err := client.GetStatus()
 	if err != nil {
 		return fmt.Errorf("failed to get status: %w", err)
@@ -47,12 +53,16 @@ func runInfo(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Formation: %s\n", ui.BoldText(status.Formation.Name))
 	fmt.Println()
 
-	// Status line with colored indicator
+	// Status line with colored indicator based on health
 	statusColor := ui.GreenText("●")
-	statusText := "running"
-	if status.Server.UptimeSeconds == 0 {
+	statusText := health.Status
+	switch health.Status {
+	case "healthy":
+		statusColor = ui.GreenText("●")
+	case "degraded":
+		statusColor = ui.YellowText("●")
+	default: // unhealthy or unknown
 		statusColor = ui.RedText("●")
-		statusText = "stopped"
 	}
 	fmt.Printf("    Status:     %s %s\n", statusColor, statusText)
 	fmt.Printf("    Version:    %s\n", status.Formation.Version)
