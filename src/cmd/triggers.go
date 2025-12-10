@@ -24,7 +24,7 @@ Requires client API key (from secrets.enc or MUXI_CLIENT_KEY).`,
 }
 
 var triggersShowCmd = &cobra.Command{
-	Use:   "show <name>",
+	Use:   "show <id>",
 	Short: "Show trigger details",
 	Long: `Show detailed information about a specific trigger.
 

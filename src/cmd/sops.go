@@ -20,14 +20,14 @@ SOPs define workflows, templates, and guides for agents to follow.
 
 Commands:
   muxi sops              List all SOPs
-  muxi sops show <name>  Show SOP details
+  muxi sops show <id>    Show SOP details
 
 Requires client API key (from secrets.enc or MUXI_CLIENT_KEY).`,
 	RunE: runSopsList,
 }
 
 var sopsShowCmd = &cobra.Command{
-	Use:   "show <name>",
+	Use:   "show <id>",
 	Short: "Show SOP details",
 	Long:  `Show detailed information about a specific SOP including its content.`,
 	Args:  cobra.ExactArgs(1),
