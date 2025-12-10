@@ -21,61 +21,10 @@ var agentsListCmd = &cobra.Command{
 	RunE:  runAgentsList,
 }
 
-var agentsAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add an agent to the formation",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println()
-		ui.Dimmed("  Not implemented yet")
-		fmt.Println()
-		return nil
-	},
-}
-
-var agentsRemoveCmd = &cobra.Command{
-	Use:   "remove <id>",
-	Short: "Remove an agent from the formation",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println()
-		ui.Dimmed("  Not implemented yet")
-		fmt.Println()
-		return nil
-	},
-}
-
-var agentsEnableCmd = &cobra.Command{
-	Use:   "enable <id>",
-	Short: "Enable an agent",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println()
-		ui.Dimmed("  Not implemented yet")
-		fmt.Println()
-		return nil
-	},
-}
-
-var agentsDisableCmd = &cobra.Command{
-	Use:   "disable <id>",
-	Short: "Disable an agent",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println()
-		ui.Dimmed("  Not implemented yet")
-		fmt.Println()
-		return nil
-	},
-}
-
 func init() {
 	rootCmd.AddCommand(agentsCmd)
 
 	agentsCmd.AddCommand(agentsListCmd)
-	agentsCmd.AddCommand(agentsAddCmd)
-	agentsCmd.AddCommand(agentsRemoveCmd)
-	agentsCmd.AddCommand(agentsEnableCmd)
-	agentsCmd.AddCommand(agentsDisableCmd)
 
 	// Flags for list command
 	formation.AddCommonFlags(agentsListCmd)

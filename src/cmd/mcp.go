@@ -22,35 +22,10 @@ var mcpListCmd = &cobra.Command{
 	RunE:  runMCPList,
 }
 
-var mcpAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add an MCP server to the formation",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println()
-		ui.Dimmed("  Not implemented yet")
-		fmt.Println()
-		return nil
-	},
-}
-
-var mcpRemoveCmd = &cobra.Command{
-	Use:   "remove <id>",
-	Short: "Remove an MCP server from the formation",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println()
-		ui.Dimmed("  Not implemented yet")
-		fmt.Println()
-		return nil
-	},
-}
-
 func init() {
 	rootCmd.AddCommand(mcpCmd)
 
 	mcpCmd.AddCommand(mcpListCmd)
-	mcpCmd.AddCommand(mcpAddCmd)
-	mcpCmd.AddCommand(mcpRemoveCmd)
 
 	// Flags for list command
 	formation.AddCommonFlags(mcpListCmd)
