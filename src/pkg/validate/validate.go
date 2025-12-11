@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
+	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/secrets"
 	"gopkg.in/yaml.v3"
 )
@@ -36,21 +36,22 @@ func Formation(rootDir string) (*Result, error) {
 		Warnings: []Issue{},
 	}
 
-	// Check formation.yaml exists
-	formationPath := filepath.Join(rootDir, "formation.yaml")
-	if _, err := os.Stat(formationPath); os.IsNotExist(err) {
+	// Check formation.afs or formation.yaml exists
+	formationPath, found := context.FindFormationFile(rootDir)
+	if !found {
 		result.Errors = append(result.Errors, Issue{
-			File:    "formation.yaml",
-			Message: "formation.yaml not found",
+			File:    "formation.afs/formation.yaml",
+			Message: "formation config file not found (expected formation.afs or formation.yaml)",
 		})
 		return result, nil
 	}
+	formationFileName := filepath.Base(formationPath)
 
-	// Parse formation.yaml
+	// Parse formation file
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		result.Errors = append(result.Errors, Issue{
-			File:    "formation.yaml",
+			File:    formationFileName,
 			Message: fmt.Sprintf("failed to read: %v", err),
 		})
 		return result, nil
@@ -60,33 +61,33 @@ func Formation(rootDir string) (*Result, error) {
 	var root yaml.Node
 	if err := yaml.Unmarshal(data, &root); err != nil {
 		result.Errors = append(result.Errors, Issue{
-			File:    "formation.yaml",
+			File:    formationFileName,
 			Message: fmt.Sprintf("invalid YAML syntax: %v", err),
 		})
 		return result, nil
 	}
 
 	// Step 2: Check for structural issues (empty mappings that should have children)
-	validateYAMLStructure(&root, "formation.yaml", "", result)
+	validateYAMLStructure(&root, formationFileName, "", result)
 
 	// Step 3: Parse into map for semantic validation
 	var formation map[string]interface{}
 	if err := yaml.Unmarshal(data, &formation); err != nil {
 		result.Errors = append(result.Errors, Issue{
-			File:    "formation.yaml",
+			File:    formationFileName,
 			Message: fmt.Sprintf("invalid YAML: %v", err),
 		})
 		return result, nil
 	}
 
 	// Validate required fields
-	validateRequiredFields(formation, result)
+	validateRequiredFields(formation, formationFileName, result)
 
 	// Validate server config
-	validateServer(formation, result)
+	validateServer(formation, formationFileName, result)
 
 	// Validate LLM config
-	validateLLM(formation, result)
+	validateLLM(formation, formationFileName, result)
 
 	// Collect and validate secret references
 	secretRefs := collectSecretRefs(string(data))
@@ -102,13 +103,13 @@ func Formation(rootDir string) (*Result, error) {
 }
 
 // validateRequiredFields checks for required top-level fields
-func validateRequiredFields(formation map[string]interface{}, result *Result) {
+func validateRequiredFields(formation map[string]interface{}, fileName string, result *Result) {
 	required := []string{"schema", "id"}
 
 	for _, field := range required {
 		if _, ok := formation[field]; !ok {
 			result.Errors = append(result.Errors, Issue{
-				File:    "formation.yaml",
+				File:    fileName,
 				Field:   field,
 				Message: fmt.Sprintf("required field '%s' is missing", field),
 			})
@@ -119,7 +120,7 @@ func validateRequiredFields(formation map[string]interface{}, result *Result) {
 	if schema, ok := formation["schema"].(string); ok {
 		if schema != "1.0.0" {
 			result.Warnings = append(result.Warnings, Issue{
-				File:    "formation.yaml",
+				File:    fileName,
 				Field:   "schema",
 				Message: fmt.Sprintf("unknown schema version '%s', expected '1.0.0'", schema),
 			})
@@ -130,7 +131,7 @@ func validateRequiredFields(formation map[string]interface{}, result *Result) {
 	if id, ok := formation["id"].(string); ok {
 		if !isValidID(id) {
 			result.Errors = append(result.Errors, Issue{
-				File:    "formation.yaml",
+				File:    fileName,
 				Field:   "id",
 				Message: "id must be lowercase alphanumeric with hyphens (e.g., 'my-formation')",
 			})
@@ -139,11 +140,11 @@ func validateRequiredFields(formation map[string]interface{}, result *Result) {
 }
 
 // validateServer checks server configuration
-func validateServer(formation map[string]interface{}, result *Result) {
+func validateServer(formation map[string]interface{}, fileName string, result *Result) {
 	server, ok := formation["server"].(map[string]interface{})
 	if !ok {
 		result.Warnings = append(result.Warnings, Issue{
-			File:    "formation.yaml",
+			File:    fileName,
 			Field:   "server",
 			Message: "server configuration not found, using defaults",
 		})
@@ -154,7 +155,7 @@ func validateServer(formation map[string]interface{}, result *Result) {
 	if port, ok := server["port"].(int); ok {
 		if port < 1 || port > 65535 {
 			result.Errors = append(result.Errors, Issue{
-				File:    "formation.yaml",
+				File:    fileName,
 				Field:   "server.port",
 				Message: fmt.Sprintf("invalid port %d (must be 1-65535)", port),
 			})
@@ -165,14 +166,14 @@ func validateServer(formation map[string]interface{}, result *Result) {
 	apiKeys, ok := server["api_keys"].(map[string]interface{})
 	if !ok {
 		result.Warnings = append(result.Warnings, Issue{
-			File:    "formation.yaml",
+			File:    fileName,
 			Field:   "server.api_keys",
 			Message: "no API keys configured",
 		})
 	} else {
 		if _, ok := apiKeys["admin_key"]; !ok {
 			result.Warnings = append(result.Warnings, Issue{
-				File:    "formation.yaml",
+				File:    fileName,
 				Field:   "server.api_keys.admin_key",
 				Message: "admin_key not configured",
 			})
@@ -181,11 +182,11 @@ func validateServer(formation map[string]interface{}, result *Result) {
 }
 
 // validateLLM checks LLM configuration
-func validateLLM(formation map[string]interface{}, result *Result) {
+func validateLLM(formation map[string]interface{}, fileName string, result *Result) {
 	llm, ok := formation["llm"].(map[string]interface{})
 	if !ok {
 		result.Warnings = append(result.Warnings, Issue{
-			File:    "formation.yaml",
+			File:    fileName,
 			Field:   "llm",
 			Message: "LLM configuration not found",
 		})
@@ -206,7 +207,7 @@ func validateLLM(formation map[string]interface{}, result *Result) {
 
 	if !hasAPIKeys && !hasModels {
 		result.Warnings = append(result.Warnings, Issue{
-			File:    "formation.yaml",
+			File:    fileName,
 			Field:   "llm",
 			Message: "no API keys or models configured",
 		})
@@ -280,7 +281,7 @@ func validateAgents(rootDir string, result *Result) {
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+		if entry.IsDir() || !context.HasConfigExtension(entry.Name()) {
 			continue
 		}
 
@@ -339,7 +340,7 @@ func validateMCPs(rootDir string, result *Result) {
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+		if entry.IsDir() || !context.HasConfigExtension(entry.Name()) {
 			continue
 		}
 

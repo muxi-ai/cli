@@ -10,8 +10,9 @@ import (
 
 // Config is the structure of ~/.muxi/cli/defaults.yaml
 type Config struct {
-	Version string `yaml:"version"`
-	UserID  string `yaml:"user_id,omitempty"`
+	Version       string `yaml:"version"`
+	UserID        string `yaml:"user_id,omitempty"`
+	FileExtension string `yaml:"file_extension,omitempty"` // "afs" (default) or "yaml"
 }
 
 // configPath returns the path to defaults.yaml
@@ -95,4 +96,32 @@ func GetEffectiveUserID(formationUserID string) string {
 	}
 	// Fall back to global
 	return GetUserID()
+}
+
+// GetFileExtension returns the preferred file extension for new config files.
+// Returns "afs" (default) or "yaml" based on user preference.
+func GetFileExtension() string {
+	config, err := Load()
+	if err != nil {
+		return "afs"
+	}
+	if config.FileExtension == "yaml" {
+		return "yaml"
+	}
+	return "afs" // default
+}
+
+// SetFileExtension sets the preferred file extension
+func SetFileExtension(ext string) error {
+	config, err := Load()
+	if err != nil {
+		return err
+	}
+
+	if ext != "afs" && ext != "yaml" {
+		return fmt.Errorf("invalid extension: must be 'afs' or 'yaml'")
+	}
+
+	config.FileExtension = ext
+	return Save(config)
 }

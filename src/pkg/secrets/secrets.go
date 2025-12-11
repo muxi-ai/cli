@@ -444,9 +444,13 @@ func ScanFormationFiles(rootDir string) ([]string, error) {
 		dir     string
 		pattern string
 	}{
+		{"", "formation.afs"},
 		{"", "formation.yaml"},
+		{"agents", "*.afs"},
 		{"agents", "*.yaml"},
+		{"mcps", "*.afs"},
 		{"mcps", "*.yaml"},
+		{"a2a", "*.afs"},
 		{"a2a", "*.yaml"},
 		{"sops", "*.md"},
 		{"triggers", "*.md"},

@@ -37,12 +37,16 @@ var ExcludedPatterns = []string{
 
 // IncludedPatterns are patterns to include in bundles
 var IncludedPatterns = []string{
+	"formation.afs",
 	"formation.yaml",
 	"README.md",
 	"README",
 	"LICENSE",
+	"agents/*.afs",
 	"agents/*.yaml",
+	"mcps/*.afs",
 	"mcps/*.yaml",
+	"a2a/*.afs",
 	"a2a/*.yaml",
 	"sops/*.md",
 	"triggers/*.yaml",
@@ -242,18 +246,18 @@ func shouldInclude(path string) bool {
 	name := filepath.Base(path)
 
 	// Root files
-	rootIncludes := []string{"formation.yaml", "README.md", "README", "LICENSE", "secrets"}
+	rootIncludes := []string{"formation.afs", "formation.yaml", "README.md", "README", "LICENSE", "secrets"}
 	for _, include := range rootIncludes {
 		if path == include || name == include {
 			return true
 		}
 	}
 
-	// Directory patterns - include all yaml/md files in these dirs
+	// Directory patterns - include all afs/yaml/md files in these dirs
 	dirPatterns := map[string][]string{
-		"agents/":    {"*.yaml", "*.yml"},
-		"mcps/":      {"*.yaml", "*.yml"},
-		"a2a/":       {"*.yaml", "*.yml"},
+		"agents/":    {"*.afs", "*.yaml", "*.yml"},
+		"mcps/":      {"*.afs", "*.yaml", "*.yml"},
+		"a2a/":       {"*.afs", "*.yaml", "*.yml"},
 		"sops/":      {"*.md", "*.yaml", "*.yml"},
 		"triggers/":  {"*.yaml", "*.yml"},
 		"knowledge/": {"*.md", "*.txt", "*.yaml", "*.yml"},

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,7 +24,8 @@ type formationYAML struct {
 	Version string `yaml:"version"`
 }
 
-// DetectFormation walks up the directory tree to find a formation.yaml file
+// DetectFormation walks up the directory tree to find a formation config file
+// Checks for both formation.afs and formation.yaml (afs takes precedence)
 // Returns the formation context if found, error otherwise
 // Stops at home directory or root
 func DetectFormation() (*FormationContext, error) {
@@ -41,15 +43,15 @@ func DetectFormation() (*FormationContext, error) {
 	// Walk up the directory tree (max 5 levels)
 	searchDir := currentDir
 	for i := 0; i < 5; i++ {
-		// Check if formation.yaml exists in current directory
-		formationFile := filepath.Join(searchDir, "formation.yaml")
-		if _, err := os.Stat(formationFile); err == nil {
-			// Found it! Read the formation.yaml to get ID
+		// Check if formation.afs or formation.yaml exists
+		formationFile, found := FindFormationFile(searchDir)
+		if found {
+			// Found it! Read the formation file to get ID
 			ctx := &FormationContext{
 				RootDir: searchDir,
 			}
 
-			// Read and parse formation.yaml
+			// Read and parse formation file
 			data, err := os.ReadFile(formationFile)
 			if err == nil {
 				var f formationYAML
@@ -92,4 +94,44 @@ func MustDetectFormation() (*FormationContext, error) {
 		return nil, fmt.Errorf("not in a formation directory\n\nRun this command from inside a formation directory:\n  cd my-formation\n  muxi new agent weather\n\nOr create a new formation:\n  muxi new formation")
 	}
 	return ctx, nil
+}
+
+// FindFormationFile looks for formation.afs or formation.yaml in a directory
+// Returns the path and true if found, empty string and false otherwise
+// Checks .afs first, then .yaml
+func FindFormationFile(dir string) (string, bool) {
+	afs := filepath.Join(dir, "formation.afs")
+	if _, err := os.Stat(afs); err == nil {
+		return afs, true
+	}
+	yaml := filepath.Join(dir, "formation.yaml")
+	if _, err := os.Stat(yaml); err == nil {
+		return yaml, true
+	}
+	return "", false
+}
+
+// FindConfigFile looks for a config file with .afs or .yaml extension
+// baseName should not include extension (e.g., "weather" not "weather.yaml")
+// Returns the path and true if found, empty string and false otherwise
+func FindConfigFile(dir, baseName string) (string, bool) {
+	afs := filepath.Join(dir, baseName+".afs")
+	if _, err := os.Stat(afs); err == nil {
+		return afs, true
+	}
+	yaml := filepath.Join(dir, baseName+".yaml")
+	if _, err := os.Stat(yaml); err == nil {
+		return yaml, true
+	}
+	return "", false
+}
+
+// HasConfigExtension checks if a filename has .afs or .yaml extension
+func HasConfigExtension(name string) bool {
+	return strings.HasSuffix(name, ".afs") || strings.HasSuffix(name, ".yaml")
+}
+
+// ConfigExtensions returns the list of valid config file extensions
+func ConfigExtensions() []string {
+	return []string{".afs", ".yaml"}
 }
