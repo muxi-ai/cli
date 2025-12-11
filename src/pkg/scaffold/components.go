@@ -13,6 +13,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/defaults"
 	"github.com/muxi-ai/cli/pkg/secrets"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
@@ -207,15 +208,16 @@ func CreateAgent(name string, noWizard bool) error {
 		}
 	}
 
-	// Create agent file
-	agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
+	// Create agent file with preferred extension
+	ext := defaults.GetFileExtension()
+	agentFile := filepath.Join(ctx.RootDir, "agents", name+"."+ext)
 	content := agentTemplate(name, agentName, systemMessage, role, specialties, externalA2A)
 	if err := os.WriteFile(agentFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create agent file: %w", err)
 	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Created agents/%s.yaml", name))
+	ui.Success(fmt.Sprintf("Created agents/%s.%s", name, ext))
 
 	if !noWizard {
 		fmt.Println()
@@ -709,8 +711,9 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		// Formation-level MCP - create separate file
 		content := mcpTemplateNew(name, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader, envVars)
 
-		// Write MCP file
-		mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
+		// Write MCP file with preferred extension
+		mcpExt := defaults.GetFileExtension()
+		mcpFile := filepath.Join(ctx.RootDir, "mcps", name+"."+mcpExt)
 		if err := os.WriteFile(mcpFile, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to create MCP file: %w", err)
 		}
@@ -734,10 +737,11 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 	}
 
 	fmt.Println()
+	fileExt := defaults.GetFileExtension()
 	if agentID != "" {
 		ui.Success(fmt.Sprintf("Added MCP '%s' to agent '%s'", name, agentID))
 	} else {
-		ui.Success(fmt.Sprintf("Created mcps/%s.yaml", name))
+		ui.Success(fmt.Sprintf("Created mcps/%s.%s", name, fileExt))
 	}
 
 	if len(secretValues) > 0 {
@@ -752,9 +756,9 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		fmt.Println()
 		ui.Dimmed("Next steps:")
 		if agentID != "" {
-			ui.Dimmed(fmt.Sprintf("  • Edit MCP: agents/%s.yaml (under mcp_servers)", agentID))
+			ui.Dimmed(fmt.Sprintf("  • Edit MCP: agents/%s.%s (under mcp_servers)", agentID, fileExt))
 		} else {
-			ui.Dimmed(fmt.Sprintf("  • Edit MCP: mcps/%s.yaml", name))
+			ui.Dimmed(fmt.Sprintf("  • Edit MCP: mcps/%s.%s", name, fileExt))
 		}
 	}
 
@@ -1102,12 +1106,30 @@ func CreateA2A(name string, noWizard bool) error {
 		return fmt.Errorf("invalid name")
 	}
 
-	a2aFile := filepath.Join(ctx.RootDir, "a2a", name+".yaml")
+	a2aExt := defaults.GetFileExtension()
+	a2aFile := filepath.Join(ctx.RootDir, "a2a", name+"."+a2aExt)
+	// Also check for alternative extension
+	a2aFileAlt := filepath.Join(ctx.RootDir, "a2a", name+".yaml")
+	if a2aExt == "yaml" {
+		a2aFileAlt = filepath.Join(ctx.RootDir, "a2a", name+".afs")
+	}
 	if _, err := os.Stat(a2aFile); !os.IsNotExist(err) {
 		ui.ErrorBlock(
 			"A2A file exists",
-			fmt.Sprintf("File 'a2a/%s.yaml' already exists", name),
-			fmt.Sprintf("Choose a different name or remove:\n  rm a2a/%s.yaml", name),
+			fmt.Sprintf("File 'a2a/%s.%s' already exists", name, a2aExt),
+			fmt.Sprintf("Choose a different name or remove:\n  rm a2a/%s.%s", name, a2aExt),
+		)
+		return fmt.Errorf("file exists")
+	}
+	if _, err := os.Stat(a2aFileAlt); !os.IsNotExist(err) {
+		altExt := "yaml"
+		if a2aExt == "yaml" {
+			altExt = "afs"
+		}
+		ui.ErrorBlock(
+			"A2A file exists",
+			fmt.Sprintf("File 'a2a/%s.%s' already exists", name, altExt),
+			fmt.Sprintf("Choose a different name or remove:\n  rm a2a/%s.%s", name, altExt),
 		)
 		return fmt.Errorf("file exists")
 	}
@@ -1138,7 +1160,7 @@ func CreateA2A(name string, noWizard bool) error {
 	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Created a2a/%s.yaml", name))
+	ui.Success(fmt.Sprintf("Created a2a/%s.%s", name, a2aExt))
 
 	return nil
 }
@@ -3395,14 +3417,19 @@ func EditComponent(component, id string) error {
 
 	switch component {
 	case "formation":
-		filePath = filepath.Join(ctx.RootDir, "formation.yaml")
+		var found bool
+		filePath, found = context.FindFormationFile(ctx.RootDir)
+		if !found {
+			return fmt.Errorf("formation config file not found")
+		}
 
 	case "agent":
 		if id == "" {
 			return fmt.Errorf("agent ID required: muxi edit agent <id>")
 		}
-		filePath = filepath.Join(ctx.RootDir, "agents", id+".yaml")
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		var found bool
+		filePath, found = context.FindConfigFile(filepath.Join(ctx.RootDir, "agents"), id)
+		if !found {
 			ui.ErrorBlock(
 				"Agent not found",
 				fmt.Sprintf("Agent '%s' does not exist.", id),
@@ -3416,9 +3443,9 @@ func EditComponent(component, id string) error {
 			return fmt.Errorf("MCP ID required: muxi edit mcp <id>")
 		}
 
-		// Check formation-level first
-		formationMCPFile := filepath.Join(ctx.RootDir, "mcps", id+".yaml")
-		if _, err := os.Stat(formationMCPFile); err == nil {
+		// Check formation-level first (both .afs and .yaml)
+		formationMCPFile, found := context.FindConfigFile(filepath.Join(ctx.RootDir, "mcps"), id)
+		if found {
 			filePath = formationMCPFile
 		} else {
 			// Check if it's an agent-level MCP
@@ -3470,8 +3497,9 @@ func EditComponent(component, id string) error {
 		if id == "" {
 			return fmt.Errorf("A2A service ID required: muxi edit a2a-service <id>")
 		}
-		filePath = filepath.Join(ctx.RootDir, "a2a", id+".yaml")
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		var found bool
+		filePath, found = context.FindConfigFile(filepath.Join(ctx.RootDir, "a2a"), id)
+		if !found {
 			ui.ErrorBlock(
 				"A2A service not found",
 				fmt.Sprintf("A2A service '%s' does not exist.", id),
@@ -3520,7 +3548,7 @@ func findAgentWithMCP(rootDir, mcpID string) (string, bool) {
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+		if entry.IsDir() || !context.HasConfigExtension(entry.Name()) {
 			continue
 		}
 

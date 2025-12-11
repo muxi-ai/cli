@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/defaults"
 	"github.com/muxi-ai/cli/pkg/secrets"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
@@ -250,11 +251,13 @@ func CreateFormation(name string, noWizard bool) error {
 	_ = generateFormationKey("fmc")
 
 	// Create files with dynamic content based on config
+	// Use preferred file extension (.afs or .yaml)
+	formationFileName := "formation." + defaults.GetFileExtension()
 	files := map[string]string{
-		".gitignore":     gitignoreTemplate(),
-		".muxi":          muxiTemplate(),
-		"formation.yaml": generateFormationYAML(config),
-		"README.md":      readmeTemplate(config.Name, config.Description),
+		".gitignore":        gitignoreTemplate(),
+		".muxi":             muxiTemplate(),
+		formationFileName:   generateFormationYAML(config),
+		"README.md":         readmeTemplate(config.Name, config.Description),
 	}
 
 	for filename, content := range files {
@@ -298,7 +301,7 @@ func CreateFormation(name string, noWizard bool) error {
 		fmt.Println()
 		ui.Dimmed("Files created:")
 		fileList := []string{
-			".gitignore, .key, .muxi, formation.yaml",
+			".gitignore, .key, .muxi, " + formationFileName,
 			"secrets (template)",
 			"README.md",
 			"6 directories (agents/, mcps/, a2a/, sops/, triggers/, knowledge/)",
@@ -388,7 +391,7 @@ func promptLLMProvider(config *FormationConfig) error {
 		config.EnterpriseProvider = &provider
 
 		fmt.Println()
-		ui.Success(fmt.Sprintf("%s template added to formation.yaml", provider.Name))
+		ui.Success(fmt.Sprintf("%s template added to formation.%s", provider.Name, defaults.GetFileExtension()))
 		return nil
 	}
 
