@@ -32,7 +32,7 @@ Add API keys for LLM providers. The wizard:
 - Shows configured providers at the top with masked key preview
 - Detects environment variables (e.g., `OPENAI_API_KEY`, `GEMINI_API_KEY`) and offers to copy them
 - Saves keys to encrypted secrets store
-- Updates `formation.yaml` with secret references
+- Updates formation config with secret references
 
 ### 3. Global LLM Settings
 
@@ -97,7 +97,7 @@ settings:
 
 ## Example Output
 
-After running `muxi config llm`, your `formation.yaml` will include:
+After running `muxi config llm`, your `formation.afs` will include:
 
 ```yaml
 llm:
@@ -156,7 +156,7 @@ llm:
 
 ## Model Order
 
-Models are automatically ordered in formation.yaml:
+Models are automatically ordered in the formation config:
 1. Text
 2. Vision
 3. Audio

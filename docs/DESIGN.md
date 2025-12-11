@@ -27,11 +27,11 @@ Command-line tool for MUXI formation development and server management. Supports
 **Local File Generation** (Scaffolding)
 ```bash
 muxi new formation my-bot            # Creates my-bot/ directory
-muxi new agent weather               # Creates agents/weather.yaml
-muxi new mcp postgres                # Creates mcps/postgres.yaml
+muxi new agent weather               # Creates agents/weather.afs
+muxi new mcp postgres                # Creates mcps/postgres.afs
 muxi new sop onboarding              # Creates sops/onboarding.md
 muxi new trigger webhook             # Creates triggers/webhook.yaml
-muxi new a2a external-api            # Creates a2a/external-api.yaml
+muxi new a2a external-api            # Creates a2a/external-api.afs
 ```
 
 **Remote API Management**
@@ -61,8 +61,8 @@ muxi new mcp postgres
 muxi new sop customer-onboarding
 
 # 3. Edit files
-vim agents/weather.yaml
-vim mcps/postgres.yaml
+vim agents/weather.afs
+vim mcps/postgres.afs
 
 # 4. Configure secrets
 muxi secrets setup
@@ -307,7 +307,7 @@ muxi registry unset
 
 **Priority (highest to lowest):**
 1. `--formation` flag (explicit)
-2. Formation directory detection (if in formation.yaml dir)
+2. Formation directory detection (if in formation.afs dir)
 3. `$MUXI_FORMATION` env var (session context)
 4. Error with suggestion
 
@@ -521,8 +521,8 @@ muxi secrets delete OPENAI_API_KEY
 ✗ Cannot delete secret 'OPENAI_API_KEY'
 
   This secret is referenced in:
-    • formation.yaml (line 52)
-    • agents/research-agent.yaml (line 18)
+    • formation.afs (line 52)
+    • agents/research-agent.afs (line 18)
   
   Remove references first, then delete.
 ```

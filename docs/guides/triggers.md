@@ -25,7 +25,7 @@ muxi triggers
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--formation` | `-F` | Formation ID (default: from formation.yaml) |
+| `--formation` | `-F` | Formation ID (default: from formation.afs) |
 | `--profile` | `-p` | Server profile (default: from .muxi or global) |
 
 Requires **client API key** (from `secrets.enc` or `MUXI_CLIENT_KEY`).
@@ -346,7 +346,7 @@ Webhooks can require authentication:
 - HMAC signature verification
 - Bearer token
 
-Configure in `formation.yaml`:
+Configure in `formation.afs`:
 
 ```yaml
 triggers:

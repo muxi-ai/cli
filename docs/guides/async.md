@@ -80,7 +80,7 @@ muxi config async
 # Select: Disable async responses
 ```
 
-This removes the `async:` section from formation.yaml.
+This removes the `async:` section from your formation config.
 
 ---
 

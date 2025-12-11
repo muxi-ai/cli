@@ -98,10 +98,10 @@ muxi secrets sync --no-setup
 4. Runs `setup` to prompt for any empty values
 
 **Files scanned:**
-- `formation.yaml`
-- `agents/*.yaml`
-- `mcps/*.yaml`
-- `a2a/*.yaml`
+- `formation.afs` / `formation.yaml`
+- `agents/*.afs` / `agents/*.yaml`
+- `mcps/*.afs` / `mcps/*.yaml`
+- `a2a/*.afs` / `a2a/*.yaml`
 - `sops/*.md`
 - `triggers/*.md`
 
@@ -110,17 +110,17 @@ muxi secrets sync --no-setup
 Use the `${{ secrets.NAME }}` syntax in your YAML files:
 
 ```yaml
-# formation.yaml
+# formation.afs
 llm:
   provider: openai
   api_key: ${{ secrets.OPENAI_API_KEY }}
 
-# mcps/github.yaml
+# mcps/github.afs
 auth:
   type: bearer
   token: ${{ secrets.GITHUB_TOKEN }}
 
-# a2a/partner-service.yaml
+# a2a/partner-service.afs
 auth:
   type: api_key
   header: X-API-Key
@@ -238,7 +238,7 @@ Secrets (3):
 | Flag | Short | Description |
 |------|-------|-------------|
 | `--remote` | | Fetch secrets from Formation API |
-| `--formation` | `-F` | Formation ID (default: from `formation.yaml`) |
+| `--formation` | `-F` | Formation ID (default: from `formation.afs`) |
 | `--profile` | `-p` | Server profile (default: from `.muxi` or global) |
 
 ### Authentication

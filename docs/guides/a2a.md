@@ -27,7 +27,7 @@ The wizard guides you through:
 1. **Registry URLs** - Where to publish your agent catalog
 2. **Authentication** - How other formations authenticate
 
-### Configuration in formation.yaml
+### Configuration in formation.afs
 
 ```yaml
 a2a:
@@ -162,7 +162,7 @@ auth:
 
 ## Enabling Outbound A2A
 
-After creating services, enable outbound in formation.yaml:
+After creating services, enable outbound in your formation config:
 
 ```bash
 muxi config a2a --outbound
@@ -184,7 +184,7 @@ a2a:
 A formation with both inbound and outbound:
 
 ```yaml
-# formation.yaml
+# formation.afs
 a2a:
   inbound:
     enabled: true
@@ -248,7 +248,7 @@ Or in SOPs:
 When outbound is enabled, agents can discover available services:
 
 ```yaml
-# formation.yaml
+# formation.afs
 a2a:
   outbound:
     enabled: true

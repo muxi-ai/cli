@@ -42,22 +42,24 @@ Creates minimal scaffolding - configure manually or use `muxi config` commands.
 
 ```
 my-formation/
-├── formation.yaml      # Main configuration
+├── formation.afs       # Main configuration (Agent Formation Schema)
 ├── secrets             # Secret keys template
 ├── secrets.enc         # Encrypted secrets (after setup)
 ├── .key                # Encryption key (keep secure!)
 ├── .gitignore          # Git ignore rules
 ├── .muxi               # Project defaults
 ├── README.md           # Getting started guide
-├── agents/             # Agent configurations
-├── mcps/               # MCP server configs
-├── a2a/                # A2A service configs
+├── agents/             # Agent configurations (*.afs)
+├── mcps/               # MCP server configs (*.afs)
+├── a2a/                # A2A service configs (*.afs)
 ├── sops/               # Standard Operating Procedures
 ├── triggers/           # Webhook trigger templates
 └── knowledge/          # Knowledge base files
 ```
 
-## formation.yaml
+> **Note:** Both `.afs` and `.yaml` extensions are supported. New files use `.afs` by default.
+
+## formation.afs
 
 The main configuration file:
 

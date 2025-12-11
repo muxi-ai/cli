@@ -63,7 +63,7 @@ muxi scheduler list -F my-formation -p production
 **Flags:**
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--formation` | `-F` | Formation ID (default: from formation.yaml) |
+| `--formation` | `-F` | Formation ID (default: from formation.afs) |
 | `--profile` | `-p` | Server profile |
 
 ---

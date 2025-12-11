@@ -56,7 +56,7 @@ muxi sessions -F my-formation -u alice
 **Flags:**
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--formation` | `-F` | Formation ID (default: from formation.yaml) |
+| `--formation` | `-F` | Formation ID (default: from formation.afs) |
 | `--profile` | `-p` | Server profile |
 | `--user` | `-u` | User ID (required) |
 | `--active` | | Show only active sessions |

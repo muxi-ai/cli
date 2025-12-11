@@ -54,12 +54,12 @@ muxi push --registry <url>   # Use specific registry
 ```
 
 **What gets published:**
-- `formation.yaml`
+- `formation.afs`
 - `README.md`, `LICENSE`
 - `secrets` (template file, NOT secrets.enc)
-- `agents/*.yaml`
-- `mcps/*.yaml`
-- `a2a/*.yaml`
+- `agents/*.afs`
+- `mcps/*.afs`
+- `a2a/*.afs`
 - `sops/*.md`
 - `triggers/*.yaml`
 - `knowledge/*.md`
@@ -209,7 +209,7 @@ muxi secrets setup
 ### Update a Published Formation
 
 ```bash
-# Bump version in formation.yaml
+# Bump version in formation.afs
 # version: "1.0.0" -> "1.1.0"
 
 # Push the update
@@ -224,7 +224,7 @@ Run `muxi login` to authenticate.
 
 ### "Version already exists"
 
-Bump the version in `formation.yaml` before pushing.
+Bump the version in `formation.afs` before pushing.
 
 ### "Formation not found"
 

@@ -51,7 +51,7 @@ Adds detailed configuration including:
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--formation` | `-F` | Formation ID (default: from formation.yaml) |
+| `--formation` | `-F` | Formation ID (default: from formation.afs) |
 | `--profile` | `-p` | Server profile (default: from .muxi or global) |
 | `--full` | | Include detailed configuration |
 

@@ -81,10 +81,10 @@ The CLI automatically detects whether to create a new formation or update an exi
 
 ### Version Validation
 
-When updating, the version in `formation.yaml` must be higher than the server version:
+When updating, the version in your formation config must be higher than the server version:
 
 ```yaml
-# formation.yaml
+# formation.afs
 id: my-formation
 name: My Formation
 version: "1.1.0"  # Must be higher than server version
@@ -97,7 +97,7 @@ If you try to deploy the same or lower version, you'll see:
 Cannot update 'my-formation' to version 1.0.0
 Server already has version 1.0.0
 
-Bump the version in formation.yaml and try again.
+Bump the version in formation.afs and try again.
 ```
 
 ---
@@ -120,7 +120,7 @@ All long-running commands show real-time progress from the server:
 
 **Deploy/Update:**
 1. `extracting` - Extracting bundle
-2. `validating` - Validating formation.yaml
+2. `validating` - Validating formation config
 3. `resolving_runtime` - Resolving runtime version
 4. `downloading_sif` - Downloading SIF file (with %)
 5. `pulling_runner` - Pulling Docker image
@@ -227,7 +227,7 @@ muxi delete [-f]           # Delete current formation
 muxi logs [-n 100] [-f]    # View logs
 ```
 
-These commands automatically detect the formation ID from `formation.yaml`.
+These commands automatically detect the formation ID from the formation config.
 
 ---
 
