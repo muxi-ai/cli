@@ -3,7 +3,6 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -98,10 +97,13 @@ func ConfigureLLM() error {
 // configureProviderAPIKey handles Flow 1: Add/Update Provider API Key
 func configureProviderAPIKey(rootDir string) error {
 	// Read current formation to check existing keys
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, found := context.FindFormationFile(rootDir)
+	if !found {
+		return fmt.Errorf("formation config file not found")
+	}
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
-		return fmt.Errorf("failed to read formation.yaml: %w", err)
+		return fmt.Errorf("failed to read formation config: %w", err)
 	}
 	contentStr := string(content)
 
@@ -225,7 +227,7 @@ func configureProviderAPIKey(rootDir string) error {
 // configureModelCapability handles Flow 2: Configure Model Capability
 func configureModelCapability(rootDir string) error {
 	// Read current formation to show existing config
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return fmt.Errorf("failed to read formation.yaml: %w", err)
@@ -345,7 +347,7 @@ func configureCapabilityModel(rootDir string, capability string) error {
 
 	if provider != nil {
 		// Check if API key is configured (not in comments)
-		formationFile := filepath.Join(rootDir, "formation.yaml")
+		formationFile, _ := context.FindFormationFile(rootDir)
 		content, _ := os.ReadFile(formationFile)
 		lines := strings.Split(string(content), "\n")
 		secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
@@ -519,7 +521,7 @@ func checkFallbackModelAPIKey(rootDir, fallbackModel string) error {
 	}
 
 	// Check if API key is configured (not in comments)
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, _ := os.ReadFile(formationFile)
 	lines := strings.Split(string(content), "\n")
 	secretRef := fmt.Sprintf("secrets.%s", provider.SecretName)
@@ -938,7 +940,7 @@ func validatePositiveInt(input string) error {
 }
 
 func addAPIKeyToFormation(rootDir string, provider LLMProvider) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -1032,7 +1034,7 @@ func getCapabilityIndex(cap string) int {
 }
 
 func updateModelInFormation(rootDir, capability, model string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -1113,7 +1115,7 @@ func updateModelInFormation(rootDir, capability, model string) error {
 }
 
 func updateModelSettingsInFormation(rootDir, capability string, settings ModelSettings) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -1195,7 +1197,7 @@ func updateModelSettingsInFormation(rootDir, capability string, settings ModelSe
 }
 
 func updateGlobalSettingsInFormation(rootDir, temp, tokens, timeout, retries, fallback string, caching bool, maxEntries, similarity, ttl string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err

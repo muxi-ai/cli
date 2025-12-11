@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -523,7 +522,7 @@ func getIndexForValue(values []string, current string, defaultIdx int) int {
 }
 
 func getCurrentOverlordPersona(rootDir string) string {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return ""
@@ -552,7 +551,7 @@ func getCurrentOverlordPersona(rootDir string) string {
 }
 
 func getCurrentOverlordValue(rootDir, section, key string) string {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return ""
@@ -637,7 +636,7 @@ func getCurrentOverlordValue(rootDir, section, key string) string {
 // Formation update functions
 
 func updateOverlordPersonaInFormation(rootDir, persona string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -659,7 +658,7 @@ func updateOverlordPersonaInFormation(rootDir, persona string) error {
 }
 
 func updateOverlordResponseInFormation(rootDir, format string, streaming, progress bool) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -676,7 +675,7 @@ func updateOverlordResponseInFormation(rootDir, format string, streaming, progre
 }
 
 func updateOverlordWorkflowInFormation(rootDir, routing string, autoDecomp bool, threshold, complexity string, parallel bool, maxParallel string, affinity bool, taskTimeout, workflowTimeout, errorRecovery string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -703,7 +702,7 @@ func updateOverlordWorkflowInFormation(rootDir, routing string, autoDecomp bool,
 }
 
 func updateOverlordClarificationInFormation(rootDir, style, direct, brainstorm, planning, execution string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err

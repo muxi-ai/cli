@@ -231,7 +231,7 @@ func CreateAgent(name string, noWizard bool) error {
 
 // isA2AEnabled checks if the formation has A2A enabled
 func isA2AEnabled(rootDir string) bool {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return false
@@ -1667,7 +1667,7 @@ func ConfigureA2A(inbound, outbound, noWizard bool) error {
 // configureInboundA2A configures inbound A2A in the formation
 func configureInboundA2A(rootDir string, noWizard bool) error {
 	// Check if A2A inbound is already configured
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
@@ -1987,7 +1987,7 @@ func configureInboundA2A(rootDir string, noWizard bool) error {
 // configureOutboundA2A configures outbound A2A in the formation
 func configureOutboundA2A(rootDir string, noWizard bool) error {
 	// Check if A2A outbound is already configured
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
@@ -2213,7 +2213,7 @@ func parseEndpointList(input string) []string {
 // updateFormationA2AInbound updates the a2a.inbound section in the formation
 // Returns (wasUpdated, error) where wasUpdated is true if an existing config was replaced
 func updateFormationA2AInbound(rootDir string, registries []string, authType, authHeader, authToken, authUsername, authPassword string, trustedEndpoints []string) (bool, error) {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return false, fmt.Errorf("failed to read the formation: %w", err)
@@ -3029,7 +3029,7 @@ func extractA2ATrustedEndpoints(content string) string {
 
 // disableA2AInbound disables inbound A2A in the formation
 func disableA2AInbound(rootDir string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
@@ -3072,7 +3072,7 @@ func disableA2AInbound(rootDir string) error {
 
 // disableA2AOutbound disables outbound A2A in the formation
 func disableA2AOutbound(rootDir string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
@@ -3115,7 +3115,7 @@ func disableA2AOutbound(rootDir string) error {
 
 // enableA2AInbound enables inbound A2A in the formation
 func enableA2AInbound(rootDir string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
@@ -3158,7 +3158,7 @@ func enableA2AInbound(rootDir string) error {
 
 // enableA2AOutbound enables outbound A2A in the formation
 func enableA2AOutbound(rootDir string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return fmt.Errorf("failed to read the formation: %w", err)
@@ -3282,7 +3282,7 @@ func extractA2AOutboundRegistries(content string) string {
 // updateFormationA2AOutbound updates the a2a.outbound section in the formation
 // Returns (wasUpdated, error) where wasUpdated is true if an existing config was replaced
 func updateFormationA2AOutbound(rootDir string, registries []string) (bool, error) {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return false, fmt.Errorf("failed to read the formation: %w", err)

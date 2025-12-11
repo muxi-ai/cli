@@ -3,7 +3,6 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -73,7 +72,7 @@ type AsyncConfig struct {
 
 // getAsyncConfig reads current async config from formation.yaml
 func getAsyncConfig(rootDir string) *AsyncConfig {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return nil
@@ -289,7 +288,7 @@ func disableAsync(rootDir string) error {
 
 // saveAsyncConfig writes async config to formation.yaml
 func saveAsyncConfig(rootDir string, threshold int, webhookURL string, retryCount, retryDelay int) error {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return fmt.Errorf("failed to read formation.yaml: %w", err)
@@ -385,7 +384,7 @@ func buildAsyncNode(threshold int, webhookURL string, retryCount, retryDelay int
 
 // removeAsyncConfig removes async section from formation.yaml
 func removeAsyncConfig(rootDir string) error {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return fmt.Errorf("failed to read formation.yaml: %w", err)

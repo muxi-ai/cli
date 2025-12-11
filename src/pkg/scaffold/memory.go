@@ -3,7 +3,6 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -516,7 +515,7 @@ func validateNotEmpty(input string) error {
 
 // getCurrentWorkingMemoryMode reads the current working memory mode from formation.yaml
 func getCurrentWorkingMemoryMode(rootDir string) string {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return ""
@@ -557,7 +556,7 @@ func getCurrentWorkingMemoryMode(rootDir string) string {
 
 // getCurrentPersistentMemoryType reads the current persistent memory type from formation.yaml
 func getCurrentPersistentMemoryType(rootDir string) string {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return ""
@@ -603,7 +602,7 @@ func getCurrentPersistentMemoryType(rootDir string) string {
 
 // getEmbeddingVectorDimension reads the embedding model from formation.yaml and returns its dimension
 func getEmbeddingVectorDimension(rootDir string) (string, string) {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return "1536", "" // Default to OpenAI's common dimension
@@ -646,7 +645,7 @@ func maskConnectionString(connStr string) string {
 // Formation update functions
 
 func updateWorkingMemoryInFormation(rootDir, mode, maxMemory, vectorDim, fifoInterval, serverURL, apiKey, tenantID string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -676,7 +675,7 @@ func updateWorkingMemoryInFormation(rootDir, mode, maxMemory, vectorDim, fifoInt
 }
 
 func updateBufferMemoryInFormation(rootDir, windowSize, multiplier string, vectorSearch bool) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -693,7 +692,7 @@ func updateBufferMemoryInFormation(rootDir, windowSize, multiplier string, vecto
 }
 
 func updatePersistentMemoryInFormation(rootDir, dbType, queryTimeout string, enableSynopsis bool, synopsisTTL string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
@@ -715,7 +714,7 @@ func updatePersistentMemoryInFormation(rootDir, dbType, queryTimeout string, ena
 }
 
 func updateSQLiteMemoryInFormation(rootDir, dbPath, queryTimeout string, enableSynopsis bool, synopsisTTL string) error {
-	formationFile := filepath.Join(rootDir, "formation.yaml")
+	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err

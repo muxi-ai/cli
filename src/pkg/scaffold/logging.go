@@ -3,7 +3,6 @@ package scaffold
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -622,7 +621,7 @@ func formatStreamLabel(stream map[string]interface{}) string {
 }
 
 func getLoggingStreams(rootDir string) ([]map[string]interface{}, error) {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return nil, err
@@ -654,7 +653,7 @@ func getLoggingStreams(rootDir string) ([]map[string]interface{}, error) {
 }
 
 func addStreamToFormation(rootDir string, stream map[string]interface{}) error {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return fmt.Errorf("failed to read formation.yaml: %w", err)
@@ -736,7 +735,7 @@ func addStreamToFormation(rootDir string, stream map[string]interface{}) error {
 }
 
 func removeStreamFromFormation(rootDir string, idx int) error {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return fmt.Errorf("failed to read formation.yaml: %w", err)

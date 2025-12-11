@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
@@ -252,7 +251,7 @@ func generateFernetKey() (string, error) {
 
 // getCurrentSecurityValue gets a value from user_credentials section
 func getCurrentSecurityValue(rootDir string, key string) string {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return ""
@@ -289,7 +288,7 @@ func getCurrentSecurityValue(rootDir string, key string) string {
 
 // updateSecurityRedirectInFormation updates formation.yaml with redirect mode settings
 func updateSecurityRedirectInFormation(rootDir string, redirectURL string, message string) error {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return fmt.Errorf("failed to read formation.yaml: %w", err)
@@ -384,7 +383,7 @@ func buildRedirectNode(redirectURL string, message string) *yaml.Node {
 
 // updateSecurityDynamicInFormation updates formation.yaml with dynamic mode settings
 func updateSecurityDynamicInFormation(rootDir string, redirectURL string) error {
-	formationPath := filepath.Join(rootDir, "formation.yaml")
+	formationPath, _ := context.FindFormationFile(rootDir)
 	data, err := os.ReadFile(formationPath)
 	if err != nil {
 		return fmt.Errorf("failed to read formation.yaml: %w", err)
