@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	fcontext "github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/registry"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
@@ -432,9 +433,9 @@ func runPush(cmd *cobra.Command, args []string) error {
 	registryFlag, _ := cmd.Flags().GetString("registry")
 
 	// Check we're in a formation directory
-	formationPath := filepath.Join(".", "formation.yaml")
-	if _, err := os.Stat(formationPath); os.IsNotExist(err) {
-		return fmt.Errorf("formation.yaml not found - run this from a formation directory")
+	formationPath, found := fcontext.FindFormationFile(".")
+	if !found {
+		return fmt.Errorf("formation config not found - run this from a formation directory")
 	}
 
 	// Create client and check auth
@@ -456,7 +457,7 @@ func runPush(cmd *cobra.Command, args []string) error {
 	formationData, err := os.ReadFile(formationPath)
 	if err != nil {
 		fmt.Println()
-		return fmt.Errorf("failed to read formation.yaml: %w", err)
+		return fmt.Errorf("failed to read formation config: %w", err)
 	}
 
 	var formation struct {
@@ -466,16 +467,16 @@ func runPush(cmd *cobra.Command, args []string) error {
 	}
 	if err := yaml.Unmarshal(formationData, &formation); err != nil {
 		fmt.Println()
-		return fmt.Errorf("invalid formation.yaml: %w", err)
+		return fmt.Errorf("invalid formation config: %w", err)
 	}
 
 	if formation.Name == "" {
 		fmt.Println()
-		return fmt.Errorf("formation.yaml missing 'name' field")
+		return fmt.Errorf("formation config missing 'name' field")
 	}
 	if formation.Version == "" {
 		fmt.Println()
-		return fmt.Errorf("formation.yaml missing 'version' field")
+		return fmt.Errorf("formation config missing 'version' field")
 	}
 	fmt.Println("OK")
 

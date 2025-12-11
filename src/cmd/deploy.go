@@ -86,22 +86,25 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	// Read formation.yaml to get ID and version
-	formationPath := filepath.Join(ctx.RootDir, "formation.yaml")
+	// Read formation config to get ID and version
+	formationPath, found := context.FindFormationFile(ctx.RootDir)
+	if !found {
+		return fmt.Errorf("formation config file not found (formation.afs or formation.yaml)")
+	}
 	formationData, err := os.ReadFile(formationPath)
 	if err != nil {
-		return fmt.Errorf("failed to read formation.yaml: %w", err)
+		return fmt.Errorf("failed to read formation config: %w", err)
 	}
 
 	var metadata FormationMetadata
 	if err := yaml.Unmarshal(formationData, &metadata); err != nil {
-		return fmt.Errorf("failed to parse formation.yaml: %w", err)
+		return fmt.Errorf("failed to parse formation config: %w", err)
 	}
 
 	if metadata.ID == "" {
 		ui.ErrorBlock(
 			"Missing formation ID",
-			"formation.yaml must have an 'id' field.",
+			"Formation config must have an 'id' field.",
 			"",
 		)
 		os.Exit(1)
