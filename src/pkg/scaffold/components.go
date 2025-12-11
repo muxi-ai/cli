@@ -61,9 +61,9 @@ func CreateAgent(name string, noWizard bool) error {
 				continue
 			}
 
-			// Check if file already exists
-			agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
-			if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
+			// Check if file already exists (either .afs or .yaml)
+			agentFile, exists := context.FindConfigFile(filepath.Join(ctx.RootDir, "agents"), name)
+			if exists {
 				// Get existing agent info for context
 				existingName, existingDesc := getComponentInfo(agentFile)
 				existingInfo := formatExistingInfo(existingName, existingDesc)
@@ -87,9 +87,9 @@ func CreateAgent(name string, noWizard bool) error {
 			os.Exit(1)
 		}
 
-		// Check if file already exists
-		agentFile := filepath.Join(ctx.RootDir, "agents", name+".yaml")
-		if _, err := os.Stat(agentFile); !os.IsNotExist(err) {
+		// Check if file already exists (either .afs or .yaml)
+		agentFile, exists := context.FindConfigFile(filepath.Join(ctx.RootDir, "agents"), name)
+		if exists {
 			// Get existing agent info for context
 			existingName, existingDesc := getComponentInfo(agentFile)
 			existingInfo := ""
@@ -369,9 +369,9 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 	// Show banner in interactive mode (formation-level or agent-specific)
 	if !noWizard {
 		if agentID != "" {
-			// Agent-specific banner
-			agentFile := filepath.Join(ctx.RootDir, "agents", agentID+".yaml")
-			if _, err := os.Stat(agentFile); os.IsNotExist(err) {
+			// Agent-specific banner - check both .afs and .yaml
+			_, agentExists := context.FindConfigFile(filepath.Join(ctx.RootDir, "agents"), agentID)
+			if !agentExists {
 				ui.ErrorBlock(
 					"Agent not found",
 					fmt.Sprintf("Agent '%s' does not exist", agentID),
@@ -420,11 +420,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 			}
 
 			// Check if MCP already exists in formation (formation-level) OR agent (agent-level)
-			mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-			formationLevelExists := false
-			if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
-				formationLevelExists = true
-			}
+			mcpFile, formationLevelExists := context.FindConfigFile(filepath.Join(ctx.RootDir, "mcps"), name)
 
 			agentLevelExists := false
 			if agentID != "" {
@@ -458,11 +454,7 @@ func CreateMCP(name, agentID string, noWizard bool) error {
 		}
 
 		// Check if MCP already exists in formation (formation-level) OR agent (agent-level)
-		mcpFile := filepath.Join(ctx.RootDir, "mcps", name+".yaml")
-		formationLevelExists := false
-		if _, err := os.Stat(mcpFile); !os.IsNotExist(err) {
-			formationLevelExists = true
-		}
+		mcpFile, formationLevelExists := context.FindConfigFile(filepath.Join(ctx.RootDir, "mcps"), name)
 
 		agentLevelExists := false
 		if agentID != "" {
@@ -1226,9 +1218,9 @@ func CreateA2AService(name string, noWizard bool) error {
 				continue
 			}
 
-			// Check for duplicates
-			serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
-			if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
+			// Check for duplicates (both .afs and .yaml)
+			serviceFile, exists := context.FindConfigFile(a2aDir, serviceID)
+			if exists {
 				// Get existing service info for context
 				existingName, existingDesc := getComponentInfo(serviceFile)
 				existingInfo := formatExistingInfo(existingName, existingDesc)
@@ -1442,9 +1434,9 @@ func CreateA2AService(name string, noWizard bool) error {
 			os.Exit(1)
 		}
 
-		// Check for duplicates
-		serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
-		if _, err := os.Stat(serviceFile); !os.IsNotExist(err) {
+		// Check for duplicates (both .afs and .yaml)
+		serviceFile, exists := context.FindConfigFile(a2aDir, serviceID)
+		if exists {
 			// Get existing service info for context
 			existingName, existingDesc := getComponentInfo(serviceFile)
 			existingInfo := ""
@@ -1480,8 +1472,9 @@ func CreateA2AService(name string, noWizard bool) error {
 	// Generate YAML content
 	content := a2aServiceTemplate(serviceID, serviceName, description, serviceURL, authType, authHeader, authToken, authUsername, authPassword, customRetry, retryAttempts, timeoutSeconds)
 
-	// Write file
-	serviceFile := filepath.Join(a2aDir, serviceID+".yaml")
+	// Write file with preferred extension
+	svcExt := defaults.GetFileExtension()
+	serviceFile := filepath.Join(a2aDir, serviceID+"."+svcExt)
 	if err := os.WriteFile(serviceFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to create service file: %w", err)
 	}
@@ -1505,7 +1498,7 @@ func CreateA2AService(name string, noWizard bool) error {
 
 	// Success messages
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Created a2a/%s.yaml", serviceID))
+	ui.Success(fmt.Sprintf("Created a2a/%s.%s", serviceID, svcExt))
 
 	if len(secretValues) > 0 {
 		var secretNames []string
@@ -2453,9 +2446,12 @@ func parseEnvironmentVariables(input string) []string {
 	return result
 }
 
-// mcpExistsInAgent checks if an MCP with the given ID already exists in the agent's YAML
+// mcpExistsInAgent checks if an MCP with the given ID already exists in the agent's config
 func mcpExistsInAgent(rootDir, agentID, mcpID string) bool {
-	agentFile := filepath.Join(rootDir, "agents", agentID+".yaml")
+	agentFile, found := context.FindConfigFile(filepath.Join(rootDir, "agents"), agentID)
+	if !found {
+		return false
+	}
 	content, err := os.ReadFile(agentFile)
 	if err != nil {
 		return false
@@ -2499,11 +2495,14 @@ func mcpExistsInAgent(rootDir, agentID, mcpID string) bool {
 	return false
 }
 
-// appendMCPToAgent adds an MCP server configuration to an agent's YAML file
+// appendMCPToAgent adds an MCP server configuration to an agent's config file
 func appendMCPToAgent(rootDir, agentID, mcpID, description, transport, endpoint, command, args, workingDir, installCmd, authType, authHeader string, envVars []string) error {
-	agentFile := filepath.Join(rootDir, "agents", agentID+".yaml")
+	agentFile, found := context.FindConfigFile(filepath.Join(rootDir, "agents"), agentID)
+	if !found {
+		return fmt.Errorf("agent file not found: %s", agentID)
+	}
 
-	// Read existing agent YAML
+	// Read existing agent config
 	content, err := os.ReadFile(agentFile)
 	if err != nil {
 		return fmt.Errorf("failed to read agent file: %w", err)

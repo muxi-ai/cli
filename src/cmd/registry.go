@@ -483,9 +483,9 @@ func runPush(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  ✓ Name: %s\n", formation.Name)
 	fmt.Printf("  ✓ Version: %s\n", formation.Version)
 
-	// Count components
-	agents := countFiles("agents", "*.yaml")
-	mcps := countFiles("mcps", "*.yaml")
+	// Count components (both .afs and .yaml)
+	agents := countFiles("agents", "*.afs") + countFiles("agents", "*.yaml")
+	mcps := countFiles("mcps", "*.afs") + countFiles("mcps", "*.yaml")
 	sops := countFiles("sops", "*.md")
 	triggers := countFiles("triggers", "*.yaml")
 
