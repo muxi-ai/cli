@@ -134,14 +134,8 @@ func runSopsShow(cmd *cobra.Command, args []string) error {
 	}
 
 	if sop.Content != "" {
-		fmt.Println("  Content:")
-		fmt.Println("  " + ui.DimmedText("─────────────────────────────────────────"))
-		// Indent content by 2 spaces
-		lines := splitLines(sop.Content)
-		for _, line := range lines {
-			fmt.Printf("  %s\n", line)
-		}
-		fmt.Println("  " + ui.DimmedText("─────────────────────────────────────────"))
+		rendered := ui.RenderMarkdown(sop.Content)
+		fmt.Println(rendered)
 		fmt.Println()
 	}
 

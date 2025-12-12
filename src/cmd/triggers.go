@@ -109,30 +109,10 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 	}
 
 	if trigger.Content != "" {
-		fmt.Println("  Template:")
-		fmt.Println("  ─────────")
-		// Indent each line of the template
-		for _, line := range splitLines(trigger.Content) {
-			fmt.Printf("  %s\n", line)
-		}
+		rendered := ui.RenderMarkdown(trigger.Content)
+		fmt.Println(rendered)
 	}
 	fmt.Println()
 
 	return nil
-}
-
-// splitLines splits a string into lines
-func splitLines(s string) []string {
-	var lines []string
-	start := 0
-	for i, c := range s {
-		if c == '\n' {
-			lines = append(lines, s[start:i])
-			start = i + 1
-		}
-	}
-	if start < len(s) {
-		lines = append(lines, s[start:])
-	}
-	return lines
 }

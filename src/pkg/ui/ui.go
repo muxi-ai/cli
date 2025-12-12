@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/fatih/color"
 )
 
@@ -477,4 +478,23 @@ func InfoBanner(message string) {
 	// Bottom border
 	fmt.Printf("╰%s╯\n", strings.Repeat("─", frameWidth-2))
 	fmt.Println()
+}
+
+// RenderMarkdown renders markdown content with syntax highlighting and formatting
+func RenderMarkdown(content string) string {
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithStylePath("dark"),
+		glamour.WithWordWrap(76),
+	)
+	if err != nil {
+		return content
+	}
+
+	rendered, err := renderer.Render(content)
+	if err != nil {
+		return content
+	}
+
+	// Trim extra whitespace glamour adds
+	return strings.TrimSpace(rendered)
 }
