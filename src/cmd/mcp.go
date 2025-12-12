@@ -73,15 +73,15 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		// Table format
-		fmt.Printf("  %-16s %-10s %-12s %s\n",
+		fmt.Printf("  %-16s %-10s %-14s %s\n",
 			"ID", "TYPE", "STATUS", "TOOLS")
-		fmt.Printf("  %-16s %-10s %-12s %s\n",
-			"──────────────", "────────", "──────────", "─────")
+		fmt.Printf("  %-16s %-10s %-14s %s\n",
+			"──────────────", "────────", "────────────", "─────")
 
 		for _, server := range servers {
 			statusIcon := ui.GreenText("●")
 			statusText := "connected"
-			if !server.Enabled {
+			if server.Status == "disabled" {
 				statusIcon = ui.DimmedText("○")
 				statusText = "disabled"
 			} else if server.Status != "" && server.Status != "connected" && server.Status != "active" {
@@ -101,7 +101,7 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 				toolsStr = ui.DimmedText("-")
 			}
 
-			fmt.Printf("  %-16s %-10s %s %-10s %s\n",
+			fmt.Printf("  %-16s %-10s %s %-12s %s\n",
 				truncateStr(server.ID, 16),
 				server.Type,
 				statusIcon,
@@ -128,7 +128,7 @@ func displayMCPServerVerbose(server formation.MCPServer) {
 	// Status
 	statusIcon := ui.GreenText("●")
 	statusText := "connected"
-	if !server.Enabled {
+	if server.Status == "disabled" {
 		statusIcon = ui.DimmedText("○")
 		statusText = "disabled"
 	} else if server.Status != "" && server.Status != "connected" && server.Status != "active" {
