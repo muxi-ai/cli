@@ -61,6 +61,8 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 		for i, agent := range resp.Agents {
 			if i > 0 {
 				fmt.Println()
+				fmt.Println("  " + ui.DimmedText("───────────────────────────────────────"))
+				fmt.Println()
 			}
 			displayAgentVerbose(agent)
 		}
@@ -101,15 +103,14 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 }
 
 func displayAgentVerbose(agent formation.Agent) {
-	fmt.Printf("  Agent: %s\n", agent.ID)
+	fmt.Printf("  %s\n", ui.BoldText(agent.ID))
 	if agent.Name != "" && agent.Name != agent.ID {
-		fmt.Printf("  Name:        %s\n", agent.Name)
+		fmt.Printf("   Name:        %s\n", agent.Name)
 	}
-	fmt.Printf("  Role:        %s\n", agent.Role)
+	fmt.Printf("   Role:        %s\n", agent.Role)
 	if agent.Description != "" {
-		fmt.Printf("  Description: %s\n", agent.Description)
+		fmt.Printf("   Description: %s\n", agent.Description)
 	}
-	fmt.Println()
 
 	// Status
 	statusIcon := ui.GreenText("●")
@@ -121,22 +122,22 @@ func displayAgentVerbose(agent formation.Agent) {
 		statusIcon = ui.DimmedText("○")
 		statusText = agent.Status
 	}
-	fmt.Printf("  Status:      %s %s\n", statusIcon, statusText)
+	fmt.Printf("   Status:      %s %s\n", statusIcon, statusText)
 
 	// Model info
 	if agent.Model != "" {
-		fmt.Printf("  Model:       %s\n", agent.Model)
+		fmt.Printf("   Model:       %s\n", agent.Model)
 	}
 	if agent.Provider != "" {
-		fmt.Printf("  Provider:    %s\n", agent.Provider)
+		fmt.Printf("   Provider:    %s\n", agent.Provider)
 	}
 
 	// Tools and MCP servers
 	if len(agent.Tools) > 0 {
-		fmt.Printf("  Tools:       %d configured\n", len(agent.Tools))
+		fmt.Printf("   Tools:       %d configured\n", len(agent.Tools))
 	}
 	if len(agent.MCPServers) > 0 {
-		fmt.Printf("  MCP Servers: %d connected\n", len(agent.MCPServers))
+		fmt.Printf("   MCP Servers: %d connected\n", len(agent.MCPServers))
 	}
 }
 
