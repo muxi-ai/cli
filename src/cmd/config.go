@@ -407,6 +407,23 @@ func cleanConfigOutput(data map[string]interface{}) {
 
 	// Replace "resource" keys with CLI commands
 	replaceResourceWithCLI(data)
+
+	// Remove empty objects
+	removeEmptyObjects(data)
+}
+
+// removeEmptyObjects recursively removes empty maps from data
+func removeEmptyObjects(data map[string]interface{}) {
+	for key, value := range data {
+		if nested, ok := value.(map[string]interface{}); ok {
+			// Recursively clean nested maps first
+			removeEmptyObjects(nested)
+			// Then remove if empty
+			if len(nested) == 0 {
+				delete(data, key)
+			}
+		}
+	}
 }
 
 // resourceToCLI maps API resource paths to CLI commands
