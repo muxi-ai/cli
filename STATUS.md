@@ -1,27 +1,47 @@
 # MUXI CLI - Current Status
 
-**Last Updated:** 2025-12-08
-**Version:** 0.20251208.0
-**Status:** ✅ Ready for Formation API Implementation
+**Last Updated:** 2025-12-12
+**Version:** 0.20251212.0
+**Status:** ✅ Phase 2 Complete - Formation API Commands Working
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI is **fully functional** with complete scaffolding system, secrets management, all config commands, full registry integration, and **complete server/formation lifecycle commands** with SSE streaming progress.
+MUXI CLI is **fully functional** with complete scaffolding system, secrets management, all config commands, full registry integration, **complete server/formation lifecycle commands** with SSE streaming progress, and **Phase 2 Formation API commands**.
 
-### Recent Changes (2025-12-08)
-- ✅ **Formation API Foundation COMPLETE:** `pkg/formation/` package ready
+### Recent Changes (2025-12-12)
+- ✅ **Phase 2 Formation API Commands COMPLETE:**
+  - `muxi agents list|ls [-v]` - List agents with badge, status, verbose mode
+  - `muxi agents show <id> [--raw]` - Show agent config as YAML
+  - `muxi mcp list|ls [-v]` - List MCP servers with badge, status, verbose mode
+  - `muxi mcp show <id> [--raw]` - Show MCP server config as YAML
+  - `muxi sops list|ls` - List SOPs with badge
+  - `muxi sops show <id> [--raw]` - Show SOP content with Markdown rendering
+  - `muxi triggers list|ls` - List triggers with badge
+  - `muxi triggers show <id> [--raw]` - Show trigger content with Markdown rendering
+  - `muxi info` - Formation info with badge
+  - `muxi secrets ls --remote` - List secrets from running formation
+  - `muxi config --remote [--raw]` - Full config with syntax highlighting
+  - `muxi config llm|memory|overlord --remote [--raw]` - Subconfig endpoints
+- ✅ **UI Polish:**
+  - Badge shows formation ID and server for all --remote commands
+  - YAML syntax highlighting via chroma
+  - 2-space indent for readable output
+  - `--raw` flag for plain output (no colors, no badge)
+  - Proper nested array/map YAML formatting
+  - Empty objects removed from output
+  - CLI command hints instead of API resource paths
+
+### Previous Changes (2025-12-08)
+- ✅ **Formation API Foundation:** `pkg/formation/` package ready
   - `client.go` - HTTP client with admin/client key auth
   - `auth.go` - API key resolution from secrets.enc or env vars
   - `types.go` - Response types for all Formation API endpoints
   - `flags.go` - Common flag helpers (-F, -p, -u)
-  - Tested against live formation
 - ✅ **Unified defaults command:** `muxi set default server|registry|user`
 - ✅ **Command groups in help:** Organized into Formation/Registry/Server/Config groups
-- ✅ **Default user_id support:** For upcoming Formation API commands
-- ✅ **Formation API plan:** Complete parallelization strategy in `docs/plan-formation-api.md`
 
 ### What Exists ✅
 
@@ -271,6 +291,23 @@ muxi server ping [--profile string]
 
 ## 📝 Recent Changes
 
+### 2025-12-12
+- ✅ **Phase 2 Formation API Commands Complete**
+- ✅ `muxi agents list|ls [-v]` and `muxi agents show <id> [--raw]`
+- ✅ `muxi mcp list|ls [-v]` and `muxi mcp show <id> [--raw]`
+- ✅ `muxi sops list|ls` and `muxi sops show <id> [--raw]`
+- ✅ `muxi triggers list|ls` and `muxi triggers show <id> [--raw]`
+- ✅ `muxi info` with badge
+- ✅ `muxi secrets ls --remote` with badge
+- ✅ `muxi config --remote [--raw]` with syntax highlighting
+- ✅ `muxi config llm|memory|overlord --remote [--raw]`
+- ✅ Badge shows formation ID and server for all --remote commands
+- ✅ YAML syntax highlighting via chroma
+- ✅ `--raw` flag for plain output (no colors, no badge)
+- ✅ CLI command hints in config output instead of API paths
+- ✅ Empty objects removed from config output
+- ✅ Proper nested array/map YAML formatting
+
 ### 2025-12-06
 - ✅ Added `formation start` command with SSE streaming
 - ✅ Added `muxi start` shortcut command
@@ -298,29 +335,34 @@ muxi server ping [--profile string]
 
 ## 🎯 What's Next
 
-### Formation API Commands (Priority)
+### Formation API Commands
 See **[docs/plan-formation-api.md](docs/plan-formation-api.md)** for full implementation plan.
 
-**Foundation: ✅ COMPLETE**
+**Phase 1 - Foundation: ✅ COMPLETE**
 - [x] `pkg/formation/client.go` - Formation API HTTP client
 - [x] `pkg/formation/auth.go` - API key resolution
 - [x] `pkg/formation/types.go` - Response types
 - [x] `pkg/formation/flags.go` - Common flags
 
-**Parallel Tracks: ✅ ALL COMPLETE**
-- [x] Track A: `muxi info`, `muxi triggers`, `muxi sops`
-- [x] Track B: `muxi agents`, `muxi mcp`
-- [x] Track C: `muxi secrets --remote`, `muxi config --remote`
-- [x] Track D: `muxi sessions`, `muxi history`, `muxi clear`
-- [x] Track E: `muxi trigger`, `muxi jobs`, `muxi audit`, `muxi stream`
-- [x] Track F: `muxi scheduler`, `muxi users`, `muxi memory`
-- [ ] Phase 6: `muxi chat` (deferred - needs careful UX design)
+**Phase 2 - List/Show Commands: ✅ COMPLETE (2025-12-12)**
+- [x] `muxi agents list|ls [-v]` - List agents with verbose mode
+- [x] `muxi agents show <id> [--raw]` - Show agent YAML config
+- [x] `muxi mcp list|ls [-v]` - List MCP servers with verbose mode
+- [x] `muxi mcp show <id> [--raw]` - Show MCP server YAML config
+- [x] `muxi sops list|ls` - List SOPs
+- [x] `muxi sops show <id> [--raw]` - Show SOP with Markdown rendering
+- [x] `muxi triggers list|ls` - List triggers
+- [x] `muxi triggers show <id> [--raw]` - Show trigger with Markdown rendering
+- [x] `muxi info` - Formation info with badge
+- [x] `muxi secrets ls --remote` - List secrets from running formation
+- [x] `muxi config --remote [--raw]` - Full config with syntax highlighting
+- [x] `muxi config llm|memory|overlord --remote [--raw]` - Subconfig endpoints
 
-### Future Enhancements
+**Phase 3 - Interactive Commands: PENDING**
 - [ ] `muxi chat` - Interactive chat with formation (needs UX design)
 - [ ] Tab completion for bash/zsh/fish
 
 ---
 
-**Last Updated:** 2025-12-08
+**Last Updated:** 2025-12-12
 **Maintained by:** MUXI Team
