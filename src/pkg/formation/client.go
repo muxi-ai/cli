@@ -873,7 +873,7 @@ func (c *Client) StreamRequest(userID, sessionID, requestID string) (*http.Respo
 }
 
 // StreamLogs returns the response body for SSE log streaming (caller must close)
-func (c *Client) StreamLogs(userID, level, agent, requestID string) (*http.Response, error) {
+func (c *Client) StreamLogs(userID, level, agentID, requestID string) (*http.Response, error) {
 	path := "/logs/stream"
 	params := []string{}
 	if userID != "" {
@@ -882,8 +882,8 @@ func (c *Client) StreamLogs(userID, level, agent, requestID string) (*http.Respo
 	if level != "" {
 		params = append(params, "level="+level)
 	}
-	if agent != "" {
-		params = append(params, "agent="+agent)
+	if agentID != "" {
+		params = append(params, "agent_id="+agentID)
 	}
 	if requestID != "" {
 		params = append(params, "request_id="+requestID)
