@@ -179,14 +179,17 @@ func runUsersResolve(cmd *cobra.Command, args []string) error {
 
 	identifier := args[0]
 
-	userID, err := client.ResolveUserIdentifier(identifier)
+	result, err := client.ResolveUserIdentifier(identifier)
 	if err != nil {
 		return fmt.Errorf("failed to resolve identifier: %w", err)
 	}
 
 	fmt.Println()
 	fmt.Printf("  Identifier: %s\n", identifier)
-	fmt.Printf("  User ID:    %s\n", userID)
+	fmt.Printf("  User ID:    %s\n", result.UserID)
+	if result.Type != "" {
+		fmt.Printf("  Type:       %s\n", result.Type)
+	}
 	fmt.Println()
 
 	return nil
