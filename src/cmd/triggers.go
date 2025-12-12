@@ -10,15 +10,21 @@ import (
 
 var triggersCmd = &cobra.Command{
 	Use:     "triggers",
-	Short:   "List formation triggers",
+	Short:   "List and view formation triggers",
 	GroupID: "formation",
-	Long: `List all triggers defined in the formation.
+	Long: `List and view triggers defined in the formation.
 
 Triggers are entry points that can be invoked to start workflows.
 Use 'muxi trigger <name>' to invoke a trigger.
 
 Requires client API key (from secrets.enc or MUXI_CLIENT_KEY).`,
-	RunE: runTriggers,
+}
+
+var triggersListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all triggers",
+	RunE:    runTriggers,
 }
 
 var triggersShowCmd = &cobra.Command{
@@ -33,10 +39,12 @@ Displays the trigger template content and metadata.`,
 
 func init() {
 	rootCmd.AddCommand(triggersCmd)
+	triggersCmd.AddCommand(triggersListCmd)
 	triggersCmd.AddCommand(triggersShowCmd)
 
-	formation.AddFormationFlag(triggersCmd)
-	formation.AddProfileFlag(triggersCmd)
+	formation.AddFormationFlag(triggersListCmd)
+	formation.AddProfileFlag(triggersListCmd)
+
 	formation.AddFormationFlag(triggersShowCmd)
 	formation.AddProfileFlag(triggersShowCmd)
 	triggersShowCmd.Flags().Bool("raw", false, "Show raw content without markdown rendering")

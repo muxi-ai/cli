@@ -16,12 +16,14 @@ var sopsCmd = &cobra.Command{
 
 SOPs define workflows, templates, and guides for agents to follow.
 
-Commands:
-  muxi sops              List all SOPs
-  muxi sops show <id>    Show SOP details
-
 Requires client API key (from secrets.enc or MUXI_CLIENT_KEY).`,
-	RunE: runSopsList,
+}
+
+var sopsListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all SOPs",
+	RunE:    runSopsList,
 }
 
 var sopsShowCmd = &cobra.Command{
@@ -34,10 +36,11 @@ var sopsShowCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(sopsCmd)
+	sopsCmd.AddCommand(sopsListCmd)
 	sopsCmd.AddCommand(sopsShowCmd)
 
-	formation.AddFormationFlag(sopsCmd)
-	formation.AddProfileFlag(sopsCmd)
+	formation.AddFormationFlag(sopsListCmd)
+	formation.AddProfileFlag(sopsListCmd)
 
 	formation.AddFormationFlag(sopsShowCmd)
 	formation.AddProfileFlag(sopsShowCmd)
