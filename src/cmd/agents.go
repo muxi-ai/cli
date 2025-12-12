@@ -74,7 +74,7 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 		for _, agent := range resp.Agents {
 			statusIcon := ui.GreenText("●")
 			statusText := "active"
-			if !agent.Enabled {
+			if agent.Status == "disabled" {
 				statusIcon = ui.DimmedText("○")
 				statusText = "disabled"
 			} else if agent.Status != "" && agent.Status != "active" {
@@ -114,7 +114,7 @@ func displayAgentVerbose(agent formation.Agent) {
 	// Status
 	statusIcon := ui.GreenText("●")
 	statusText := "active"
-	if !agent.Enabled {
+	if agent.Status == "disabled" {
 		statusIcon = ui.DimmedText("○")
 		statusText = "disabled"
 	} else if agent.Status != "" && agent.Status != "active" {
