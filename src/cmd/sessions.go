@@ -253,16 +253,19 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 			timestamp = dimStyle.Render(m.Timestamp.Format("15:04"))
 		}
 
-		switch m.Role {
+		role := m.GetRole()
+		content := m.GetContent()
+
+		switch role {
 		case "user":
 			// User message: >  content
-			fmt.Printf("\n %s  %s  %s\n", timestamp, goldStyle.Render(">"), userStyle.Render(m.Content))
+			fmt.Printf("\n %s  %s  %s\n", timestamp, goldStyle.Render(">"), userStyle.Render(content))
 
 		case "assistant":
 			// Assistant message: 𝐌 with markdown rendering
-			rendered := m.Content
+			rendered := content
 			if renderer != nil {
-				if r, err := renderer.Render(m.Content); err == nil {
+				if r, err := renderer.Render(content); err == nil {
 					rendered = strings.TrimSpace(r)
 					// Indent each line
 					lines := strings.Split(rendered, "\n")
@@ -275,17 +278,17 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 				}
 			}
 			agent := "𝐌"
-			if m.Agent != "" {
-				agent = m.Agent
+			if m.GetAgent() != "" {
+				agent = m.GetAgent()
 			}
 			fmt.Printf("\n %s  %s %s\n", timestamp, goldStyle.Render(agent), rendered)
 
 		case "system":
 			// System message: dimmed
-			fmt.Printf("\n %s  %s\n", timestamp, dimStyle.Render(m.Content))
+			fmt.Printf("\n %s  %s\n", timestamp, dimStyle.Render(content))
 
 		default:
-			fmt.Printf("\n %s  %s: %s\n", timestamp, m.Role, m.Content)
+			fmt.Printf("\n %s  %s: %s\n", timestamp, role, content)
 		}
 	}
 
@@ -329,14 +332,16 @@ func runSessionsRestore(cmd *cobra.Command, args []string) error {
 	}
 
 	for i, m := range messages {
-		if m.Role == "" {
+		role := m.GetRole()
+		content := m.GetContent()
+		if role == "" {
 			return fmt.Errorf("message %d: missing 'role' field", i+1)
 		}
-		if m.Content == "" {
+		if content == "" {
 			return fmt.Errorf("message %d: missing 'content' field", i+1)
 		}
-		if m.Role != "user" && m.Role != "assistant" && m.Role != "system" {
-			return fmt.Errorf("message %d: invalid role '%s' (must be user, assistant, or system)", i+1, m.Role)
+		if role != "user" && role != "assistant" && role != "system" {
+			return fmt.Errorf("message %d: invalid role '%s' (must be user, assistant, or system)", i+1, role)
 		}
 	}
 

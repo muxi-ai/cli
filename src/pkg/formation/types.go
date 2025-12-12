@@ -277,11 +277,43 @@ type SessionsListResponse struct {
 
 // Message represents a chat message
 type Message struct {
-	ID        string    `json:"id,omitempty"`
-	Role      string    `json:"role"` // user, assistant, system
-	Content   string    `json:"content"`
-	Agent     string    `json:"agent,omitempty"`
-	Timestamp *FlexTime `json:"timestamp,omitempty"`
+	ID        string           `json:"id,omitempty"`
+	Text      string           `json:"text"`
+	Content   string           `json:"content,omitempty"` // alias for text
+	Timestamp *FlexTime        `json:"timestamp,omitempty"`
+	Metadata  *MessageMetadata `json:"metadata,omitempty"`
+}
+
+// MessageMetadata contains message metadata
+type MessageMetadata struct {
+	Role       string `json:"role"`
+	UserID     string `json:"user_id,omitempty"`
+	SessionID  string `json:"session_id,omitempty"`
+	AgentID    string `json:"agent_id,omitempty"`
+}
+
+// GetContent returns text or content
+func (m *Message) GetContent() string {
+	if m.Text != "" {
+		return m.Text
+	}
+	return m.Content
+}
+
+// GetRole returns role from metadata or empty
+func (m *Message) GetRole() string {
+	if m.Metadata != nil {
+		return m.Metadata.Role
+	}
+	return ""
+}
+
+// GetAgent returns agent from metadata
+func (m *Message) GetAgent() string {
+	if m.Metadata != nil {
+		return m.Metadata.AgentID
+	}
+	return ""
 }
 
 // SessionMessagesResponse from GET /sessions/{id}/messages
