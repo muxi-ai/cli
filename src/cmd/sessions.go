@@ -55,14 +55,14 @@ var sessionsMessagesCmd = &cobra.Command{
 }
 
 var sessionsRestoreCmd = &cobra.Command{
-	Use:   "restore <session-id>",
+	Use:   "restore <session-id> <file>",
 	Short: "Restore session from file",
 	Long: `Restore a session from a JSON file.
 
 The file should be in the same format as 'muxi sessions messages --json' output.`,
-	Example: `  muxi sessions restore sess_abc123 --file backup.json
-  muxi sessions restore sess_abc123 -f session.json`,
-	Args: RequireArgs(1),
+	Example: `  muxi sessions restore sess_abc123 backup.json
+  muxi sessions restore my-session ./session-backup.json`,
+	Args: RequireArgs(2),
 	RunE: runSessionsRestore,
 }
 
@@ -76,8 +76,6 @@ func init() {
 	sessionsListCmd.Flags().Int("limit", 10, "Maximum number of sessions to return")
 	sessionsMessagesCmd.Flags().IntP("lines", "n", 0, "Limit number of messages (0 = all)")
 	sessionsMessagesCmd.Flags().Bool("json", false, "Output as JSON")
-	sessionsRestoreCmd.Flags().StringP("file", "f", "", "JSON file to restore from (required)")
-	sessionsRestoreCmd.MarkFlagRequired("file")
 
 	formation.AddCommonFlags(sessionsListCmd)
 	formation.AddCommonFlags(sessionsShowCmd)
@@ -275,7 +273,7 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 
 func runSessionsRestore(cmd *cobra.Command, args []string) error {
 	sessionID := args[0]
-	filePath, _ := cmd.Flags().GetString("file")
+	filePath := args[1]
 
 	client, userID, err := formation.ClientAndUserFromFlags(cmd)
 	if err != nil {
