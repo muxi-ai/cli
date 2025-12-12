@@ -347,7 +347,7 @@ var configA2ACmd = &cobra.Command{
 This command modifies the a2a section in formation.yaml to enable
 inbound or outbound A2A communication.
 
-Must be run inside a formation directory.
+Use --remote to fetch A2A config from a running formation.
 
 Examples:
   # Configure with interactive wizard (asks for direction)
@@ -357,19 +357,45 @@ Examples:
   muxi config a2a --inbound
   
   # Configure outbound A2A (skip direction question)
-  muxi config a2a --outbound`,
+  muxi config a2a --outbound
+  
+  # Fetch A2A config from running formation
+  muxi config a2a --remote`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		inbound, _ := cmd.Flags().GetBool("inbound")
-		outbound, _ := cmd.Flags().GetBool("outbound")
-		noWizard, _ := cmd.Flags().GetBool("no-wizard")
-		
-		if err := scaffold.ConfigureA2A(inbound, outbound, noWizard); err != nil {
-			return fmt.Errorf("failed to configure A2A: %w", err)
+	RunE: runConfigA2A,
+}
+
+func runConfigA2A(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
+		if err != nil {
+			return err
 		}
 
-		return nil
-	},
+		raw, _ := cmd.Flags().GetBool("raw")
+		if !raw {
+			formation.PrintBadgeFromFlags(cmd)
+		}
+
+		a2aConfig, err := client.GetA2AConfig()
+		if err != nil {
+			return fmt.Errorf("failed to get A2A config: %w", err)
+		}
+
+		output, _ := cmd.Flags().GetString("output")
+		return printConfigOutput(a2aConfig, output, raw)
+	}
+
+	inbound, _ := cmd.Flags().GetBool("inbound")
+	outbound, _ := cmd.Flags().GetBool("outbound")
+	noWizard, _ := cmd.Flags().GetBool("no-wizard")
+
+	if err := scaffold.ConfigureA2A(inbound, outbound, noWizard); err != nil {
+		return fmt.Errorf("failed to configure A2A: %w", err)
+	}
+	return nil
 }
 
 func init() {
@@ -395,9 +421,13 @@ func init() {
 	formation.AddCommonFlags(configOverlordCmd)
 
 	// Add flags to config a2a
+	configA2ACmd.Flags().Bool("remote", false, "Fetch A2A config from remote Formation API")
+	configA2ACmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	configA2ACmd.Flags().Bool("raw", false, "Output plain YAML without formatting")
 	configA2ACmd.Flags().Bool("inbound", false, "Configure inbound A2A (skip direction question)")
 	configA2ACmd.Flags().Bool("outbound", false, "Configure outbound A2A (skip direction question)")
 	configA2ACmd.Flags().Bool("no-wizard", false, "Skip interactive prompts")
+	formation.AddCommonFlags(configA2ACmd)
 
 	// Add subcommands to config
 	configCmd.AddCommand(configA2ACmd)
