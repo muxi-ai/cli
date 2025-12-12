@@ -261,6 +261,61 @@ transport:
     - "/data"
 ```
 
+## Viewing MCPs (Formation API)
+
+When connected to a running formation, you can view MCP server configurations:
+
+### List MCP Servers
+
+```bash
+muxi mcp list
+muxi mcp ls             # Short alias
+muxi mcp ls -v          # Verbose output with details
+```
+
+Output:
+```
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
+  ID               TYPE       STATUS         TOOLS
+  ──────────────   ────────   ────────────   ─────
+  weather          stdio      ● connected    3 tools
+  github-api       http       ● connected    12 tools
+```
+
+### Show MCP Configuration
+
+```bash
+muxi mcp show <server-id>
+```
+
+Displays the MCP's full configuration as YAML with syntax highlighting:
+
+```
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
+  active: true
+  args:
+    - -m
+    - run
+  command: python
+  description: Weather forecasts
+  id: weather
+  type: stdio
+```
+
+### Raw Output
+
+Use `--raw` for piping to files or other tools:
+
+```bash
+muxi mcp show weather --raw > mcp.yaml
+```
+
 ## Best Practices
 
 1. **Use secrets for credentials** - Never hardcode API keys

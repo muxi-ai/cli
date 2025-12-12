@@ -9,16 +9,21 @@ This guide covers creating and managing Standard Operating Procedures (SOPs) in 
 View all SOPs defined in a running formation:
 
 ```bash
-muxi sops
+muxi sops list
+muxi sops ls            # Short alias
 ```
 
 **Example output:**
 
 ```
-    NAME                TYPE        DESCRIPTION
-    customer-onboard    template    Guide new customers through setup
-    bug-triage          guide       Categorize and prioritize bugs
-    content-review      template    Review and approve content
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
+  NAME                TYPE        DESCRIPTION
+  customer-onboard    template    Guide new customers through setup
+  bug-triage          guide       Categorize and prioritize bugs
+  content-review      template    Review and approve content
 ```
 
 ### Show SOP Details
@@ -32,20 +37,29 @@ muxi sops show customer-onboard
 **Example output:**
 
 ```
-  SOP: customer-onboard
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
 
-    Description:  Guide new customers through account setup
-    Type:         template
-    Steps:        4
-    Agents:       [support-agent, setup-assistant]
+  customer-onboard (template)
+  Guide new customers through account setup
+  Steps:   4
 
-    Content:
-    ─────────────────────────────────────────
-    # Customer Onboarding
+  Content:
+  ────────────────────────────────────────
+  # Customer Onboarding
 
-    ## Step 1: Welcome and Verification
-    ...
-    ─────────────────────────────────────────
+  ## Step 1: Welcome and Verification
+  ...
+  ────────────────────────────────────────
+```
+
+### Raw Output
+
+Use `--raw` to output unrendered content (for piping):
+
+```bash
+muxi sops show customer-onboard --raw > sop.md
 ```
 
 **Flags (both commands):**
@@ -54,6 +68,7 @@ muxi sops show customer-onboard
 |------|-------|-------------|
 | `--formation` | `-F` | Formation ID (default: from formation.afs) |
 | `--profile` | `-p` | Server profile (default: from .muxi or global) |
+| `--raw` | | Output raw content without formatting (show only) |
 
 Requires **client API key** (from `secrets.enc` or `MUXI_CLIENT_KEY`).
 

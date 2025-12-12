@@ -9,16 +9,55 @@ This guide covers creating and managing webhook triggers in MUXI formations.
 View all triggers defined in a running formation:
 
 ```bash
-muxi triggers
+muxi triggers list
+muxi triggers ls        # Short alias
 ```
 
 **Example output:**
 
 ```
-    NAME                 DESCRIPTION
-    github-issue         Handle GitHub issue events
-    linear-ticket        Process Linear ticket updates
-    slack-message        Respond to Slack messages
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
+  NAME                 DESCRIPTION
+  github-issue         Handle GitHub issue events
+  linear-ticket        Process Linear ticket updates
+  slack-message        Respond to Slack messages
+```
+
+### Show Trigger Details
+
+View a specific trigger's content:
+
+```bash
+muxi triggers show github-issue
+```
+
+**Example output:**
+
+```
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
+  github-issue
+  Handle GitHub issue events
+
+  Content:
+  ────────────────────────────────────────
+  A new issue was created in {{ repo }}:
+  Title: {{ issue.title }}
+  ...
+  ────────────────────────────────────────
+```
+
+### Raw Output
+
+Use `--raw` to output unrendered content (for piping):
+
+```bash
+muxi triggers show github-issue --raw > trigger.md
 ```
 
 **Flags:**
@@ -27,6 +66,7 @@ muxi triggers
 |------|-------|-------------|
 | `--formation` | `-F` | Formation ID (default: from formation.afs) |
 | `--profile` | `-p` | Server profile (default: from .muxi or global) |
+| `--raw` | | Output raw content without formatting (show only) |
 
 Requires **client API key** (from `secrets.enc` or `MUXI_CLIENT_KEY`).
 

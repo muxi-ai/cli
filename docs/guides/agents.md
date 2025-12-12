@@ -149,6 +149,60 @@ agents/
 
 Use SOPs to define workflows between agents.
 
+## Viewing Agents (Formation API)
+
+When connected to a running formation, you can view agent configurations:
+
+### List Agents
+
+```bash
+muxi agents list
+muxi agents ls          # Short alias
+muxi agents ls -v       # Verbose output with details
+```
+
+Output:
+```
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
+  ID                   ROLE           STATUS        MODEL
+  ──────────────────   ────────────   ───────────   ─────────────────────
+  research-assistant   researcher     ● active      gpt-4o
+  content-writer       writer         ● active      claude-sonnet-4-20250514
+```
+
+### Show Agent Configuration
+
+```bash
+muxi agents show <agent-id>
+```
+
+Displays the agent's full configuration as YAML with syntax highlighting:
+
+```
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
+  active: true
+  description: Research and information gathering
+  id: research-assistant
+  name: Research Assistant
+  role: researcher
+  system_message: |
+    You are a research assistant...
+```
+
+### Raw Output
+
+Use `--raw` for piping to files or other tools:
+
+```bash
+muxi agents show research-assistant --raw > agent.yaml
+```
+
 ## Best Practices
 
 1. **Single responsibility** - Each agent should have a focused purpose

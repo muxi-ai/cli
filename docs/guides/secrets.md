@@ -227,6 +227,10 @@ muxi secrets list --remote -p production
 **Example output:**
 
 ```
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
+
 Secrets (3):
   ANTHROPIC_API_KEY    sk-ant-••••••••••
   GITHUB_TOKEN         ghp_••••••••••••

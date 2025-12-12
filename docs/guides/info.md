@@ -21,19 +21,21 @@ Shows formation status including:
 **Example output:**
 
 ```
-  Formation: my-formation
+ ╭────────────────────────────╮
+ │ ⌬ my-formation │ ⚙︎ localhost │
+ ╰────────────────────────────╯
 
-    Status:     ● running
-    Version:    1.2.0
-    Uptime:     5d 12h 30m
+  Status:     ● healthy
+  Version:    1.2.0
+  Uptime:     5d 12h 30m
 
-    Agents:     3 (2 active)
-    MCP:        2 servers connected
-    Memory:     256 MB working, 1.2 GB usage
+  Agents:     3 (2 active)
+  MCP:        2 servers connected
+  Memory:     256 MB working, 1.2 GB usage
 
-    Stats:
-      Requests:   1,234 total (12 active)
-      CPU:        15%
+  Stats:
+    Requests:   1,234 total (12 active)
+    CPU:        15%
 ```
 
 ### View Full Configuration
