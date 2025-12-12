@@ -87,17 +87,18 @@ This is a shortcut for 'muxi formation rollback <id>'.`,
 	RunE: runShortcutRollback,
 }
 
-var logsCmd = &cobra.Command{
-	Use:     "logs",
-	Short:   "View current formation logs",
-	GroupID: "formation",
-	Long: `View logs for the current formation.
-
-Must be run from inside a formation directory.
-This is a shortcut for 'muxi formation logs <id>'.`,
-	Args: cobra.NoArgs,
-	RunE: runShortcutLogs,
-}
+// logsCmd shortcut moved to logs.go for runtime log streaming
+// var logsCmd = &cobra.Command{
+// 	Use:     "logs",
+// 	Short:   "View current formation logs",
+// 	GroupID: "formation",
+// 	Long: `View logs for the current formation.
+//
+// Must be run from inside a formation directory.
+// This is a shortcut for 'muxi formation logs <id>'.`,
+// 	Args: cobra.NoArgs,
+// 	RunE: runShortcutLogs,
+// }
 
 func init() {
 	// Register shortcut commands
@@ -107,7 +108,7 @@ func init() {
 	rootCmd.AddCommand(restartCmd)
 	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(rollbackCmd)
-	rootCmd.AddCommand(logsCmd)
+	// rootCmd.AddCommand(logsCmd) // moved to logs.go
 
 	// Flags for shortcuts (mirror formation command flags)
 	getCmd.Flags().String("profile", "", "Server profile to use")
@@ -127,10 +128,10 @@ func init() {
 	rollbackCmd.Flags().String("profile", "", "Server profile to use")
 	rollbackCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 
-	logsCmd.Flags().String("profile", "", "Server profile to use")
-	logsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
-	logsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
-	logsCmd.Flags().BoolP("follow", "f", false, "Stream new logs (like tail -f)")
+	// logsCmd.Flags().String("profile", "", "Server profile to use")
+	// logsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
+	// logsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
+	// logsCmd.Flags().BoolP("follow", "f", false, "Stream new logs (like tail -f)")
 }
 
 // requireFormationContext returns the formation context or exits with error
@@ -342,69 +343,70 @@ func runShortcutRollback(cmd *cobra.Command, args []string) error {
 	return runFormationRollbackWithID(ctx.ID, profile)
 }
 
-func runShortcutLogs(cmd *cobra.Command, args []string) error {
-	ctx, err := requireFormationContext("logs")
-	if err != nil {
-		return err
-	}
-
-	profile, _ := cmd.Flags().GetString("profile")
-	lines, _ := cmd.Flags().GetInt("lines")
-	stream, _ := cmd.Flags().GetString("stream")
-	follow, _ := cmd.Flags().GetBool("follow")
-
-	if stream == "" {
-		stream = "all"
-	}
-
-	client, err := server.NewClient(profile)
-	if err != nil {
-		return err
-	}
-
-	// Check if formation exists
-	_, err = client.GetFormation(ctx.ID)
-	if err != nil {
-		if err.Error() == "not found" {
-			ui.ErrorBlock(
-				"Formation not deployed",
-				fmt.Sprintf("Formation '%s' is not deployed to the server.", ctx.ID),
-				ui.Command("muxi deploy"),
-			)
-			os.Exit(1)
-		}
-		return err
-	}
-
-	// Follow mode
-	if follow {
-		return streamFormationLogs(client, ctx.ID, stream)
-	}
-
-	// Non-follow mode
-	resp, err := client.GetFormationLogs(ctx.ID, lines, stream)
-	if err != nil {
-		return err
-	}
-
-	var allLogs []string
-	if stream == "all" || stream == "stdout" {
-		allLogs = append(allLogs, resp.Logs.Stdout...)
-	}
-	if stream == "all" || stream == "stderr" {
-		allLogs = append(allLogs, resp.Logs.Stderr...)
-	}
-
-	if len(allLogs) == 0 {
-		fmt.Println()
-		ui.Dimmed("  No logs available")
-		fmt.Println()
-		return nil
-	}
-
-	for _, line := range allLogs {
-		fmt.Println(line)
-	}
-
-	return nil
-}
+// runShortcutLogs moved to logs.go for runtime log streaming
+// func runShortcutLogs(cmd *cobra.Command, args []string) error {
+// 	ctx, err := requireFormationContext("logs")
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	profile, _ := cmd.Flags().GetString("profile")
+// 	lines, _ := cmd.Flags().GetInt("lines")
+// 	stream, _ := cmd.Flags().GetString("stream")
+// 	follow, _ := cmd.Flags().GetBool("follow")
+//
+// 	if stream == "" {
+// 		stream = "all"
+// 	}
+//
+// 	client, err := server.NewClient(profile)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	// Check if formation exists
+// 	_, err = client.GetFormation(ctx.ID)
+// 	if err != nil {
+// 		if err.Error() == "not found" {
+// 			ui.ErrorBlock(
+// 				"Formation not deployed",
+// 				fmt.Sprintf("Formation '%s' is not deployed to the server.", ctx.ID),
+// 				ui.Command("muxi deploy"),
+// 			)
+// 			os.Exit(1)
+// 		}
+// 		return err
+// 	}
+//
+// 	// Follow mode
+// 	if follow {
+// 		return streamFormationLogs(client, ctx.ID, stream)
+// 	}
+//
+// 	// Non-follow mode
+// 	resp, err := client.GetFormationLogs(ctx.ID, lines, stream)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	var allLogs []string
+// 	if stream == "all" || stream == "stdout" {
+// 		allLogs = append(allLogs, resp.Logs.Stdout...)
+// 	}
+// 	if stream == "all" || stream == "stderr" {
+// 		allLogs = append(allLogs, resp.Logs.Stderr...)
+// 	}
+//
+// 	if len(allLogs) == 0 {
+// 		fmt.Println()
+// 		ui.Dimmed("  No logs available")
+// 		fmt.Println()
+// 		return nil
+// 	}
+//
+// 	for _, line := range allLogs {
+// 		fmt.Println(line)
+// 	}
+//
+// 	return nil
+// }

@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var streamCmd = &cobra.Command{
-	Use:     "stream",
+var logsCmd = &cobra.Command{
+	Use:     "logs",
 	Short:   "Stream formation logs",
 	GroupID: "formation",
 	Long: `Stream real-time logs from a formation.
@@ -26,25 +26,25 @@ Use filter flags to narrow down the logs you want to see.
 Requires admin API key.
 
 Examples:
-  muxi stream
-  muxi stream --level error
-  muxi stream --agent weather-bot
-  muxi stream -u alice`,
-	RunE: runStream,
+  muxi logs
+  muxi logs --level error
+  muxi logs --agent weather-bot
+  muxi logs -u alice`,
+	RunE: runLogs,
 }
 
 func init() {
-	rootCmd.AddCommand(streamCmd)
+	rootCmd.AddCommand(logsCmd)
 
-	formation.AddFormationFlag(streamCmd)
-	formation.AddProfileFlag(streamCmd)
-	streamCmd.Flags().StringP("user", "u", "", "Filter by user ID")
-	streamCmd.Flags().String("level", "", "Filter by log level (debug, info, warn, error)")
-	streamCmd.Flags().String("agent", "", "Filter by agent ID")
-	streamCmd.Flags().String("request", "", "Filter by request ID")
+	formation.AddFormationFlag(logsCmd)
+	formation.AddProfileFlag(logsCmd)
+	logsCmd.Flags().StringP("user", "u", "", "Filter by user ID")
+	logsCmd.Flags().String("level", "", "Filter by log level (debug, info, warn, error)")
+	logsCmd.Flags().String("agent", "", "Filter by agent ID")
+	logsCmd.Flags().String("request", "", "Filter by request ID")
 }
 
-func runStream(cmd *cobra.Command, args []string) error {
+func runLogs(cmd *cobra.Command, args []string) error {
 	userFilter, _ := cmd.Flags().GetString("user")
 	level, _ := cmd.Flags().GetString("level")
 	agent, _ := cmd.Flags().GetString("agent")
