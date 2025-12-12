@@ -76,11 +76,21 @@ func printConfigOutput(data interface{}, format string) error {
 		enc.SetIndent("", "  ")
 		return enc.Encode(data)
 	default:
+		// Convert via JSON to preserve snake_case field names from json tags
+		jsonBytes, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+		var mapData interface{}
+		if err := json.Unmarshal(jsonBytes, &mapData); err != nil {
+			return err
+		}
+
 		// Pretty print as yaml with syntax highlighting and indentation
 		var buf bytes.Buffer
 		enc := yaml.NewEncoder(&buf)
 		enc.SetIndent(2)
-		if err := enc.Encode(data); err != nil {
+		if err := enc.Encode(mapData); err != nil {
 			return err
 		}
 		fmt.Println()
