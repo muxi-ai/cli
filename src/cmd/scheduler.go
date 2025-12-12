@@ -52,6 +52,8 @@ func runSchedulerStatus(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get scheduler config: %w", err)
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	fmt.Println()
 	ui.Bold("Scheduler Configuration")
 	fmt.Println()
@@ -80,6 +82,8 @@ func runSchedulerList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to list scheduler jobs: %w", err)
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	if resp.Count == 0 {
 		fmt.Println()

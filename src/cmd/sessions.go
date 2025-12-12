@@ -46,6 +46,8 @@ func runSessions(cmd *cobra.Command, args []string) error {
 
 	spinner.Stop()
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	if sessions.Count == 0 {
 		fmt.Println()
 		ui.Dimmed("  No sessions found")

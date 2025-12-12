@@ -46,6 +46,8 @@ func runJobsList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	if resp.Count == 0 {
 		fmt.Println()
 		ui.Dimmed("  No jobs found")

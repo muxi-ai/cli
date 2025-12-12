@@ -54,7 +54,7 @@ func runHistory(cmd *cobra.Command, args []string) error {
 
 	spinner.Stop()
 
-	// JSON output
+	// JSON output (no badge)
 	if jsonOutput {
 		data, err := json.MarshalIndent(messages, "", "  ")
 		if err != nil {
@@ -63,6 +63,8 @@ func runHistory(cmd *cobra.Command, args []string) error {
 		fmt.Println(string(data))
 		return nil
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	if messages.Count == 0 {
 		fmt.Println()

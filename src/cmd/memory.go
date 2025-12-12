@@ -88,6 +88,8 @@ func runMemoryStatus(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get memory config: %w", err)
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	fmt.Println()
 	ui.Bold("Memory Configuration")
 	fmt.Println()
@@ -120,6 +122,8 @@ func runMemoryList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to list memories: %w", err)
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	if resp.Count == 0 {
 		fmt.Println()

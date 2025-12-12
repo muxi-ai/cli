@@ -97,6 +97,8 @@ func runUsersIdentifiers(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to list identifiers: %w", err)
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	if resp.Count == 0 {
 		fmt.Println()
 		ui.Dimmed(fmt.Sprintf("  No identifiers for user '%s'", userID))
@@ -183,6 +185,8 @@ func runUsersResolve(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to resolve identifier: %w", err)
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	fmt.Println()
 	fmt.Printf("  Identifier: %s\n", identifier)
