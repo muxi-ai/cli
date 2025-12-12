@@ -7,6 +7,26 @@
 
 ---
 
+## Deprecated Endpoints (2025-12-12)
+
+The following configuration modification endpoints are **deprecated**. Config changes require deploying a new formation version via `muxi deploy`:
+
+| Deprecated Endpoint | Alternative |
+|---------------------|-------------|
+| `PATCH /memory` | Update formation.afs, redeploy |
+| `DELETE /memory/{item}` | Update formation.afs, redeploy |
+| `PATCH /mcp` | Update formation.afs, redeploy |
+| `PATCH /llm/settings` | Update formation.afs, redeploy |
+| `DELETE /llm/settings/{item}` | Update formation.afs, redeploy |
+| `PATCH /async` | Update formation.afs, redeploy |
+| `PATCH /scheduler` | Update formation.afs, redeploy |
+| `PATCH /a2a/outbound` | Update formation.afs, redeploy |
+| `DELETE /a2a/outbound/{item}` | Update formation.afs, redeploy |
+
+> **Rationale:** Enforcing version-based configuration ensures all config changes are tracked, reproducible, and can be rolled back.
+
+---
+
 ## Overview
 
 Implement CLI commands for interacting with **deployed formations** via the Formation API. This is distinct from the Server API:
