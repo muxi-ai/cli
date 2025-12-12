@@ -148,10 +148,11 @@ func runBump(cmd *cobra.Command, args []string) error {
 
 	// Display result
 	fmt.Println()
+	ui.Success("Formation version updated!")
 	if currentVersion == "0.0.0" {
-		ui.Success(fmt.Sprintf("Version: %s (created)", newVersion))
+		fmt.Printf("  (none) => %s\n", newVersion)
 	} else {
-		ui.Success(fmt.Sprintf("Version: %s → %s", currentVersion, newVersion))
+		fmt.Printf("  %s => %s\n", currentVersion, newVersion)
 	}
 
 	return nil
