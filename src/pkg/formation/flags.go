@@ -3,6 +3,7 @@ package formation
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fatih/color"
 	"github.com/muxi-ai/cli/pkg/context"
@@ -122,19 +123,18 @@ func ClientAndUserFromFlags(cmd *cobra.Command) (*Client, string, error) {
 func PrintBadge(formationID, serverName string) {
 	dim := color.New(color.Faint).SprintFunc()
 
-	// Build the content
-	leftPart := fmt.Sprintf("⌬ %s", formationID)
-	rightPart := fmt.Sprintf("⚙︎ %s", serverName)
-	content := fmt.Sprintf(" %s │ %s ", leftPart, rightPart)
+	// Build the content line (what goes between the │ characters)
+	// Format: " ⌬ {formation} │ ⚙︎ {server} "
+	content := fmt.Sprintf(" ⌬ %s │ ⚙︎ %s ", formationID, serverName)
 
-	// Calculate width (accounting for unicode)
-	// The box chars and spacing add overhead
-	contentWidth := len(leftPart) + len(rightPart) + 5 // " | " + padding
+	// Calculate visual width using rune count
+	// Subtract 1 for the variation selector in ⚙︎ (U+FE0E)
+	visualWidth := utf8.RuneCountInString(content) - 1
 
 	fmt.Println()
-	fmt.Println(dim("  ╭" + strings.Repeat("─", contentWidth) + "╮"))
+	fmt.Println(dim("  ╭" + strings.Repeat("─", visualWidth) + "╮"))
 	fmt.Println(dim("  │") + content + dim("│"))
-	fmt.Println(dim("  ╰" + strings.Repeat("─", contentWidth) + "╯"))
+	fmt.Println(dim("  ╰" + strings.Repeat("─", visualWidth) + "╯"))
 }
 
 // PrintBadgeFromFlags prints the badge using resolved flag values
