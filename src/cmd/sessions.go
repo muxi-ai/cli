@@ -167,12 +167,16 @@ func runSessionsShow(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Printf("  Session ID:    %s\n", session.SessionID)
 	fmt.Printf("  User ID:       %s\n", session.UserID)
-	fmt.Printf("  Messages:      %d\n", session.MessageCount)
-	if !session.CreatedAt.IsZero() {
+	if session.Active {
+		fmt.Printf("  Status:        %s\n", ui.GreenText("active"))
+	} else {
+		fmt.Printf("  Status:        %s\n", ui.DimmedText("inactive"))
+	}
+	if session.CreatedAt != nil && !session.CreatedAt.IsZero() {
 		fmt.Printf("  Created:       %s\n", session.CreatedAt.Format("Jan 2, 2006 3:04pm"))
 	}
-	if !session.LastActivity.IsZero() {
-		fmt.Printf("  Last Activity: %s\n", formatTimeAgo(session.LastActivity))
+	if session.LastActivity != nil && !session.LastActivity.IsZero() {
+		fmt.Printf("  Last Activity: %s\n", formatTimeAgo(session.LastActivity.Time))
 	}
 	fmt.Println()
 

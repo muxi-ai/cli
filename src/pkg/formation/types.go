@@ -677,11 +677,12 @@ type SecretResponse struct {
 
 // SessionDetailResponse from GET /sessions/{session_id}
 type SessionDetailResponse struct {
-	SessionID    string    `json:"session_id"`
-	UserID       string    `json:"user_id"`
-	CreatedAt    time.Time `json:"created_at"`
-	LastActivity time.Time `json:"last_activity"`
-	MessageCount int       `json:"message_count"`
+	SessionID    string                 `json:"session_id"`
+	UserID       string                 `json:"user_id"`
+	CreatedAt    *FlexTime              `json:"created_at,omitempty"`
+	LastActivity *FlexTime              `json:"last_activity,omitempty"`
+	MessageCount int                    `json:"message_count,omitempty"`
+	Active       bool                   `json:"active,omitempty"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
