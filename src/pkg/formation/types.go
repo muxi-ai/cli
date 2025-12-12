@@ -356,11 +356,32 @@ type MemoryBufferResponse struct {
 
 // LLMSettingsResponse from GET /llm/settings
 type LLMSettingsResponse struct {
-	Temperature    float64 `json:"temperature"`
-	MaxTokens      int     `json:"max_tokens"`
-	TimeoutSeconds int     `json:"timeout_seconds"`
-	DefaultModel   string  `json:"default_model,omitempty"`
-	DefaultProvider string  `json:"default_provider,omitempty"`
+	APIKeys  map[string]string `json:"api_keys,omitempty"`
+	Models   []LLMModelConfig  `json:"models,omitempty"`
+	Settings LLMGlobalSettings `json:"settings,omitempty"`
+}
+
+// LLMModelConfig represents a model configuration
+type LLMModelConfig struct {
+	// Model type fields (one of these will be set)
+	Text      string `json:"text,omitempty"`
+	Streaming string `json:"streaming,omitempty"`
+	Embedding string `json:"embedding,omitempty"`
+	Documents string `json:"documents,omitempty"`
+	Audio     string `json:"audio,omitempty"`
+	Vision    string `json:"vision,omitempty"`
+
+	Settings map[string]interface{} `json:"settings,omitempty"`
+}
+
+// LLMGlobalSettings represents global LLM settings
+type LLMGlobalSettings struct {
+	Temperature    float64                `json:"temperature,omitempty"`
+	MaxTokens      int                    `json:"max_tokens,omitempty"`
+	TimeoutSeconds int                    `json:"timeout_seconds,omitempty"`
+	MaxRetries     int                    `json:"max_retries,omitempty"`
+	FallbackModel  string                 `json:"fallback_model,omitempty"`
+	Caching        map[string]interface{} `json:"caching,omitempty"`
 }
 
 // AsyncSettingsResponse from GET /async
