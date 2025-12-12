@@ -94,7 +94,10 @@ func runJobsList(cmd *cobra.Command, args []string) error {
 		}
 
 		// Created time
-		createdDisplay := formatRelativeTime(job.CreatedAt)
+		createdDisplay := "-"
+		if job.CreatedAt != nil {
+			createdDisplay = formatRelativeTime(job.CreatedAt.Time)
+		}
 
 		// Truncate job ID for display
 		jobID := job.ID

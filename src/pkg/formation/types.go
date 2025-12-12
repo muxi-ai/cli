@@ -326,11 +326,11 @@ type SessionMessagesResponse struct {
 // Job represents an async job
 type Job struct {
 	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
+	UserID    string    `json:"user_id,omitempty"`
 	Status    string    `json:"status"` // pending, processing, completed, failed, cancelled
 	Progress  int       `json:"progress,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	CreatedAt *FlexTime `json:"created_at,omitempty"`
+	UpdatedAt *FlexTime `json:"updated_at,omitempty"`
 	Result    string    `json:"result,omitempty"`
 	Error     string    `json:"error,omitempty"`
 }
