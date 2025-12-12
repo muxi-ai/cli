@@ -323,22 +323,18 @@ type SessionMessagesResponse struct {
 	Count     int       `json:"count"`
 }
 
-// Job represents an async job
-type Job struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id,omitempty"`
-	Status    string    `json:"status"` // pending, processing, completed, failed, cancelled
+// RequestItem represents a request in the list
+type RequestItem struct {
+	RequestID string    `json:"request_id"`
+	Status    string    `json:"status"` // processing, completed, failed, cancelled
 	Progress  int       `json:"progress,omitempty"`
 	CreatedAt *FlexTime `json:"created_at,omitempty"`
-	UpdatedAt *FlexTime `json:"updated_at,omitempty"`
-	Result    string    `json:"result,omitempty"`
-	Error     string    `json:"error,omitempty"`
 }
 
-// JobsListResponse from GET /jobs/{user_id}
-type JobsListResponse struct {
-	Jobs  []Job `json:"jobs"`
-	Count int   `json:"count"`
+// RequestsListResponse from GET /requests
+type RequestsListResponse struct {
+	Requests []RequestItem `json:"requests"`
+	Count    int           `json:"count"`
 }
 
 // AuditEntry represents an audit log entry

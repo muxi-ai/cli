@@ -349,20 +349,20 @@ func (c *Client) RestoreSession(sessionID, userID string, messages []Message) er
 	return checkResponse(resp)
 }
 
-// GetJobs lists jobs for a user
-func (c *Client) GetJobs(userID string) (*JobsListResponse, error) {
-	resp, err := c.GetWithUser("/jobs", userID)
+// GetRequests lists requests for a user
+func (c *Client) GetRequests(userID string) (*RequestsListResponse, error) {
+	resp, err := c.GetWithUser("/requests", userID)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return parseResponse[JobsListResponse](resp)
+	return parseResponse[RequestsListResponse](resp)
 }
 
-// CancelJob cancels a job
-func (c *Client) CancelJob(userID, jobID string) error {
-	resp, err := c.DeleteWithUser("/jobs/"+jobID, userID)
+// CancelRequest cancels a request
+func (c *Client) CancelRequest(requestID, userID string) error {
+	resp, err := c.DeleteWithUser("/requests/"+requestID, userID)
 	if err != nil {
 		return err
 	}
