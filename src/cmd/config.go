@@ -504,7 +504,12 @@ func writeYAMLField(buf *bytes.Buffer, key string, value interface{}, indent int
 	case []interface{}:
 		buf.WriteString(fmt.Sprintf("%s%s:\n", indentStr, key))
 		for _, item := range v {
-			buf.WriteString(fmt.Sprintf("%s  - %v\n", indentStr, item))
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				// Array item is a map - write as nested YAML object
+				writeYAMLArrayItem(buf, itemMap, indent+1)
+			} else {
+				buf.WriteString(fmt.Sprintf("%s  - %v\n", indentStr, item))
+			}
 		}
 	case string:
 		if strings.Contains(v, "\n") {
@@ -526,5 +531,77 @@ func writeYAMLField(buf *bytes.Buffer, key string, value interface{}, indent int
 		buf.WriteString(fmt.Sprintf("%s%s: %t\n", indentStr, key, v))
 	default:
 		buf.WriteString(fmt.Sprintf("%s%s: %v\n", indentStr, key, v))
+	}
+}
+
+// writeYAMLArrayItem writes a map as a YAML array item (with leading "- ")
+func writeYAMLArrayItem(buf *bytes.Buffer, data map[string]interface{}, indent int) {
+	indentStr := strings.Repeat("  ", indent)
+	
+	// Sort keys for consistent output
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	first := true
+	for _, key := range keys {
+		value := data[key]
+		if first {
+			// First key gets the "- " prefix
+			buf.WriteString(fmt.Sprintf("%s- %s: ", indentStr, key))
+			first = false
+		} else {
+			// Subsequent keys are indented to align
+			buf.WriteString(fmt.Sprintf("%s  %s: ", indentStr, key))
+		}
+		writeYAMLValue(buf, value, indent+1)
+	}
+}
+
+// writeYAMLValue writes a value (used for array item values)
+func writeYAMLValue(buf *bytes.Buffer, value interface{}, indent int) {
+	indentStr := strings.Repeat("  ", indent)
+
+	switch v := value.(type) {
+	case map[string]interface{}:
+		buf.WriteString("\n")
+		keys := make([]string, 0, len(v))
+		for k := range v {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			writeYAMLField(buf, key, v[key], indent)
+		}
+	case []interface{}:
+		buf.WriteString("\n")
+		for _, item := range v {
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				writeYAMLArrayItem(buf, itemMap, indent)
+			} else {
+				buf.WriteString(fmt.Sprintf("%s- %v\n", indentStr, item))
+			}
+		}
+	case string:
+		if strings.Contains(v, "\n") {
+			buf.WriteString("|\n")
+			for _, line := range strings.Split(strings.TrimSuffix(v, "\n"), "\n") {
+				buf.WriteString(fmt.Sprintf("%s%s\n", indentStr, line))
+			}
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\n", v))
+		}
+	case float64:
+		if v == float64(int(v)) {
+			buf.WriteString(fmt.Sprintf("%d\n", int(v)))
+		} else {
+			buf.WriteString(fmt.Sprintf("%v\n", v))
+		}
+	case bool:
+		buf.WriteString(fmt.Sprintf("%t\n", v))
+	default:
+		buf.WriteString(fmt.Sprintf("%v\n", v))
 	}
 }
