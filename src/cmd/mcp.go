@@ -268,33 +268,58 @@ func runMCPTools(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Println()
-	fmt.Printf("  %-24s %-16s %s\n",
-		ui.BoldText("TOOL"),
-		ui.BoldText("SERVER"),
-		ui.BoldText("DESCRIPTION"))
-	fmt.Printf("  %-24s %-16s %s\n",
-		"────────────────────────",
-		"────────────────",
-		"────────────────────────────────")
-
+	// Group tools by server
+	serverTools := make(map[string][]formation.MCPTool)
+	var servers []string
 	for _, tool := range resp.Tools {
-		desc := tool.Description
-		if len(desc) > 40 {
-			desc = desc[:37] + "..."
+		server := tool.Server
+		if server == "" {
+			server = "unknown"
 		}
-		if desc == "" {
-			desc = ui.DimmedText("-")
+		if _, exists := serverTools[server]; !exists {
+			servers = append(servers, server)
 		}
+		serverTools[server] = append(serverTools[server], tool)
+	}
 
-		fmt.Printf("  %-24s %-16s %s\n",
-			truncateStr(tool.Name, 24),
-			truncateStr(tool.Server, 16),
-			desc)
+	// Sort servers alphabetically
+	for i := 0; i < len(servers)-1; i++ {
+		for j := i + 1; j < len(servers); j++ {
+			if servers[i] > servers[j] {
+				servers[i], servers[j] = servers[j], servers[i]
+			}
+		}
 	}
 
 	fmt.Println()
-	ui.Dimmed(fmt.Sprintf("  %d tool(s) available", resp.Count))
+
+	for i, server := range servers {
+		if i > 0 {
+			fmt.Println()
+		}
+		fmt.Printf("  Server: %s\n", ui.BoldText(server))
+		fmt.Printf("    %-24s %s\n", "TOOL", "DESCRIPTION")
+		fmt.Printf("    %-24s %s\n",
+			"────────────────────────",
+			"────────────────────────────────")
+
+		for _, tool := range serverTools[server] {
+			desc := tool.Description
+			if len(desc) > 40 {
+				desc = desc[:37] + "..."
+			}
+			if desc == "" {
+				desc = ui.DimmedText("-")
+			}
+
+			fmt.Printf("    %-24s %s\n",
+				truncateStr(tool.Name, 24),
+				desc)
+		}
+	}
+
+	fmt.Println()
+	ui.Dimmed(fmt.Sprintf("  %d tool(s) across %d server(s)", resp.Count, len(servers)))
 	fmt.Println()
 
 	return nil
