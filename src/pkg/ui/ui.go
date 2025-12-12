@@ -502,6 +502,18 @@ func RenderMarkdown(content string) string {
 	return strings.TrimSpace(rendered)
 }
 
+// IndentString adds n spaces to the beginning of each line
+func IndentString(s string, n int) string {
+	indent := strings.Repeat(" ", n)
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		if line != "" {
+			lines[i] = indent + line
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 // RenderYAML renders YAML content with syntax highlighting (no background)
 func RenderYAML(content string) string {
 	lexer := lexers.Get("yaml")

@@ -43,6 +43,7 @@ func init() {
 	// Flags for show command
 	formation.AddFormationFlag(agentsShowCmd)
 	formation.AddProfileFlag(agentsShowCmd)
+	agentsShowCmd.Flags().Bool("raw", false, "Output raw YAML without formatting (for piping)")
 }
 
 func runAgentsList(cmd *cobra.Command, args []string) error {
@@ -164,16 +165,22 @@ func truncateStr(s string, max int) string {
 
 func runAgentsShow(cmd *cobra.Command, args []string) error {
 	agentID := args[0]
+	raw, _ := cmd.Flags().GetBool("raw")
 
 	client, err := formation.ClientFromFlags(cmd)
 	if err != nil {
 		return err
 	}
 
-	formation.PrintBadgeFromFlags(cmd)
+	if !raw {
+		formation.PrintBadgeFromFlags(cmd)
+	}
 
 	config, err := client.GetAgent(agentID)
 	if err != nil {
+		if raw {
+			return fmt.Errorf("agent '%s' not found", agentID)
+		}
 		fmt.Println()
 		fmt.Printf("  Agent '%s' not found\n", agentID)
 		fmt.Println()
@@ -189,9 +196,14 @@ func runAgentsShow(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to convert to YAML: %w", err)
 	}
 
-	// Render with syntax highlighting
-	fmt.Println()
-	fmt.Println(ui.RenderYAML(string(yamlBytes)))
+	if raw {
+		// Raw output for piping
+		fmt.Print(string(yamlBytes))
+	} else {
+		// Formatted output with syntax highlighting and indentation
+		fmt.Println()
+		fmt.Println(ui.IndentString(ui.RenderYAML(string(yamlBytes)), 3))
+	}
 
 	return nil
 }

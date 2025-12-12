@@ -44,6 +44,7 @@ func init() {
 	// Flags for show command
 	formation.AddFormationFlag(mcpShowCmd)
 	formation.AddProfileFlag(mcpShowCmd)
+	mcpShowCmd.Flags().Bool("raw", false, "Output raw YAML without formatting (for piping)")
 }
 
 func runMCPList(cmd *cobra.Command, args []string) error {
@@ -175,16 +176,22 @@ func displayMCPServerVerbose(server formation.MCPServer) {
 
 func runMCPShow(cmd *cobra.Command, args []string) error {
 	serverID := args[0]
+	raw, _ := cmd.Flags().GetBool("raw")
 
 	client, err := formation.ClientFromFlags(cmd)
 	if err != nil {
 		return err
 	}
 
-	formation.PrintBadgeFromFlags(cmd)
+	if !raw {
+		formation.PrintBadgeFromFlags(cmd)
+	}
 
 	config, err := client.GetMCPServer(serverID)
 	if err != nil {
+		if raw {
+			return fmt.Errorf("MCP server '%s' not found", serverID)
+		}
 		fmt.Println()
 		fmt.Printf("  MCP server '%s' not found\n", serverID)
 		fmt.Println()
@@ -200,9 +207,14 @@ func runMCPShow(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to convert to YAML: %w", err)
 	}
 
-	// Render with syntax highlighting
-	fmt.Println()
-	fmt.Println(ui.RenderYAML(string(yamlBytes)))
+	if raw {
+		// Raw output for piping
+		fmt.Print(string(yamlBytes))
+	} else {
+		// Formatted output with syntax highlighting and indentation
+		fmt.Println()
+		fmt.Println(ui.IndentString(ui.RenderYAML(string(yamlBytes)), 3))
+	}
 
 	return nil
 }
