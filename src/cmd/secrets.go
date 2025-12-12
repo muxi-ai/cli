@@ -25,8 +25,9 @@ Must be run inside a formation directory.`,
 }
 
 var secretsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all secrets",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all secrets",
 	Long: `List all secret keys stored in secrets.enc.
 
 By default, only shows secret names. Use --with-values to also display

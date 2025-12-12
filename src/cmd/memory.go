@@ -27,8 +27,9 @@ var memoryStatusCmd = &cobra.Command{
 }
 
 var memoryListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List user memories",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List user memories",
 	Long: `List all stored memories for a user.
 
 Requires -u flag to specify the user.`,
