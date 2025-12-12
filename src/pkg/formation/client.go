@@ -334,17 +334,6 @@ func (c *Client) GetSessionMessages(sessionID, userID string) (*SessionMessagesR
 	return parseResponse[SessionMessagesResponse](resp)
 }
 
-// DeleteSession deletes a session
-func (c *Client) DeleteSession(sessionID, userID string) error {
-	resp, err := c.DeleteWithUser("/sessions/"+sessionID, userID)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return checkResponse(resp)
-}
-
 // GetJobs lists jobs for a user
 func (c *Client) GetJobs(userID string) (*JobsListResponse, error) {
 	resp, err := c.GetWithUser("/jobs/"+userID, userID)
@@ -591,28 +580,6 @@ func (c *Client) GetMemoryBuffer(userID string) (*MemoryBufferResponse, error) {
 	return parseResponse[MemoryBufferResponse](resp)
 }
 
-// ClearMemoryBuffer clears buffer for a user
-func (c *Client) ClearMemoryBuffer(userID string) (*ClearBufferResponse, error) {
-	resp, err := c.DeleteWithUser("/memory/buffer", userID)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return parseResponse[ClearBufferResponse](resp)
-}
-
-// ClearSessionBuffer clears buffer for a specific session
-func (c *Client) ClearSessionBuffer(userID, sessionID string) (*ClearBufferResponse, error) {
-	resp, err := c.DeleteWithUser("/memory/buffer/"+sessionID, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return parseResponse[ClearBufferResponse](resp)
-}
-
 // GetMemoryBuffers lists all buffers (admin)
 func (c *Client) GetMemoryBuffers() (*MemoryBuffersResponse, error) {
 	resp, err := c.Get("/memory/buffers")
@@ -622,17 +589,6 @@ func (c *Client) GetMemoryBuffers() (*MemoryBuffersResponse, error) {
 	defer resp.Body.Close()
 
 	return parseResponse[MemoryBuffersResponse](resp)
-}
-
-// ClearAllBuffers clears all buffers (admin)
-func (c *Client) ClearAllBuffers() (*ClearBufferResponse, error) {
-	resp, err := c.Delete("/memory/buffers")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return parseResponse[ClearBufferResponse](resp)
 }
 
 // GetAsyncConfig gets async configuration

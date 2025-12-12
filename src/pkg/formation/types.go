@@ -547,15 +547,6 @@ type MemoryBuffersResponse struct {
 	Count   int                  `json:"count"`
 }
 
-// ClearBufferResponse from DELETE /memory/buffer
-type ClearBufferResponse struct {
-	Message         string `json:"message"`
-	UserID          string `json:"user_id,omitempty"`
-	SessionID       string `json:"session_id,omitempty"`
-	MessagesCleared int    `json:"messages_cleared"`
-	SessionsCleared int    `json:"sessions_cleared,omitempty"`
-}
-
 // AsyncJob represents an async job
 type AsyncJob struct {
 	ID        string    `json:"id"`
