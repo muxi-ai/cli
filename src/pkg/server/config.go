@@ -12,7 +12,7 @@ import (
 // ProfilesConfig is the structure of ~/.muxi/cli/profiles.yaml
 type ProfilesConfig struct {
 	Version        string                  `yaml:"version"`
-	DefaultProfile string                  `yaml:"default_profile"`
+	DefaultProfile string                  `yaml:"default"`
 	Profiles       map[string]ProfileEntry `yaml:"profiles"`
 }
 
