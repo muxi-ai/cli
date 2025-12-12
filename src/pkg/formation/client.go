@@ -351,7 +351,7 @@ func (c *Client) RestoreSession(sessionID, userID string, messages []Message) er
 
 // GetJobs lists jobs for a user
 func (c *Client) GetJobs(userID string) (*JobsListResponse, error) {
-	resp, err := c.GetWithUser("/jobs/"+userID, userID)
+	resp, err := c.GetWithUser("/jobs", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +362,7 @@ func (c *Client) GetJobs(userID string) (*JobsListResponse, error) {
 
 // CancelJob cancels a job
 func (c *Client) CancelJob(userID, jobID string) error {
-	resp, err := c.DeleteWithUser("/jobs/"+userID+"/"+jobID, userID)
+	resp, err := c.DeleteWithUser("/jobs/"+jobID, userID)
 	if err != nil {
 		return err
 	}
@@ -834,7 +834,7 @@ func (c *Client) BulkLinkIdentifiers(userID string, identifiers []string) (*Bulk
 
 // StreamEvents returns SSE stream for user events (caller must close)
 func (c *Client) StreamEvents(userID string) (*http.Response, error) {
-	url := c.BaseURL + "/events/" + userID
+	url := c.BaseURL + "/events"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -845,6 +845,7 @@ func (c *Client) StreamEvents(userID string) (*http.Response, error) {
 		return nil, fmt.Errorf("client key required but not set")
 	}
 	req.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
+	req.Header.Set("X-User-ID", userID)
 	req.Header.Set("Accept", "text/event-stream")
 
 	streamClient := &http.Client{}
@@ -853,7 +854,7 @@ func (c *Client) StreamEvents(userID string) (*http.Response, error) {
 
 // StreamRequest returns SSE stream for a specific request (caller must close)
 func (c *Client) StreamRequest(userID, sessionID, requestID string) (*http.Response, error) {
-	url := c.BaseURL + "/stream/" + userID + "/" + sessionID + "/" + requestID
+	url := c.BaseURL + "/stream/" + sessionID + "/" + requestID
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -864,6 +865,7 @@ func (c *Client) StreamRequest(userID, sessionID, requestID string) (*http.Respo
 		return nil, fmt.Errorf("client key required but not set")
 	}
 	req.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
+	req.Header.Set("X-User-ID", userID)
 	req.Header.Set("Accept", "text/event-stream")
 
 	streamClient := &http.Client{}
