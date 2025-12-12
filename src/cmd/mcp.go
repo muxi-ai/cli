@@ -39,7 +39,7 @@ var mcpShowCmd = &cobra.Command{
 
 Use --raw to output plain YAML without formatting, suitable for piping
 to files or other tools.`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runMCPShow,
 }
 

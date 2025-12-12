@@ -40,7 +40,7 @@ var usersLinkCmd = &cobra.Command{
 Examples:
   muxi users link -u alice "alice@company.com"
   muxi users link -u alice "+1234567890" --type phone`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runUsersLink,
 }
 
@@ -51,7 +51,7 @@ var usersUnlinkCmd = &cobra.Command{
 
 Example:
   muxi users unlink "alice@company.com"`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runUsersUnlink,
 }
 
@@ -62,7 +62,7 @@ var usersResolveCmd = &cobra.Command{
 
 Example:
   muxi users resolve "alice@company.com"`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runUsersResolve,
 }
 

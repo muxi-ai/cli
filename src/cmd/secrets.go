@@ -173,7 +173,7 @@ Examples:
 
   # Get remote secret (masked)
   muxi secrets get OPENAI_API_KEY --remote`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runSecretsGet,
 }
 
@@ -320,7 +320,7 @@ Use --remote to delete from a running Formation.
 Examples:
   muxi secrets delete OPENAI_API_KEY
   muxi secrets delete OPENAI_API_KEY --remote`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runSecretsDelete,
 }
 

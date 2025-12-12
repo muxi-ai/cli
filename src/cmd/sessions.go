@@ -39,7 +39,7 @@ var sessionsShowCmd = &cobra.Command{
 	Use:   "show <session-id>",
 	Short: "Show session details",
 	Long:  `Display detailed information about a specific session.`,
-	Args:  cobra.ExactArgs(1),
+	Args:  RequireArgs(1),
 	RunE:  runSessionsShow,
 }
 
@@ -50,7 +50,7 @@ var sessionsMessagesCmd = &cobra.Command{
 	Example: `  muxi sessions messages sess_abc123
   muxi sessions messages sess_abc123 --lines 50
   muxi sessions messages sess_abc123 --json`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runSessionsMessages,
 }
 
@@ -62,7 +62,7 @@ var sessionsRestoreCmd = &cobra.Command{
 The file should be in the same format as 'muxi sessions messages --json' output.`,
 	Example: `  muxi sessions restore sess_abc123 --file backup.json
   muxi sessions restore sess_abc123 -f session.json`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runSessionsRestore,
 }
 

@@ -23,7 +23,7 @@ Examples:
   muxi trigger github-issue --data '{"issue": {"number": 123}}'
   muxi trigger webhook --file event.json
   muxi trigger daily-report --async`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runTrigger,
 }
 

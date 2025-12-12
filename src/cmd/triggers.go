@@ -37,7 +37,7 @@ var triggersShowCmd = &cobra.Command{
 
 Use --raw to output the raw template without rendering, suitable for
 piping to files or other tools.`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runTriggersShow,
 }
 

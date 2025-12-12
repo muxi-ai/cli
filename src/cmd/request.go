@@ -17,7 +17,7 @@ var requestCmd = &cobra.Command{
 Useful for tracking long-running requests that were processed asynchronously.
 Request IDs are returned when triggers or chat requests run in async mode.`,
 	Example: `  muxi request req_abc123`,
-	Args:    cobra.ExactArgs(1),
+	Args:    RequireArgs(1),
 	RunE:    runRequest,
 }
 

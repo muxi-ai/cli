@@ -8,6 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// RequireArgs returns a custom Args validator that shows help instead of error
+func RequireArgs(n int) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) < n {
+			cmd.Help()
+			return fmt.Errorf("") // Empty error to suppress additional output
+		}
+		return nil
+	}
+}
+
 // Colors for help output
 var (
 	gold   = color.New(color.FgHiYellow)

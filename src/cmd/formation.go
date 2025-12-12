@@ -43,7 +43,7 @@ var formationGetCmd = &cobra.Command{
 	Long: `Get detailed information about a specific formation.
 
 Displays status, version, port, uptime, and configuration.`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runFormationGet,
 }
 
@@ -57,7 +57,7 @@ This will:
 - Release the allocated port
 - Remove from registry
 - Clean up formation directory`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runFormationDelete,
 }
 
@@ -68,7 +68,7 @@ var formationStopCmd = &cobra.Command{
 
 The formation process is stopped but the formation remains registered
 on the server. Use 'muxi formation start' to restart it.`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runFormationStop,
 }
 
@@ -78,14 +78,14 @@ var formationStartCmd = &cobra.Command{
 	Long: `Start a stopped formation.
 
 Restarts a formation that was previously stopped.`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runFormationStart,
 }
 
 var formationRestartCmd = &cobra.Command{
 	Use:   "restart <id>",
 	Short: "Restart a formation",
-	Args:  cobra.ExactArgs(1),
+	Args:  RequireArgs(1),
 	RunE:  runFormationRestart,
 }
 
@@ -93,14 +93,14 @@ var formationRollbackCmd = &cobra.Command{
 	Use:   "rollback <id>",
 	Short: "Rollback to previous version",
 	Long:  `Rollback a formation to its previous deployed version.`,
-	Args:  cobra.ExactArgs(1),
+	Args:  RequireArgs(1),
 	RunE:  runFormationRollback,
 }
 
 var formationLogsCmd = &cobra.Command{
 	Use:   "logs <id>",
 	Short: "View formation logs",
-	Args:  cobra.ExactArgs(1),
+	Args:  RequireArgs(1),
 	RunE:  runFormationLogs,
 }
 

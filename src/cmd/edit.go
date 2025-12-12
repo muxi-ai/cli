@@ -24,7 +24,7 @@ Examples:
 
 The editor used is determined by $EDITOR environment variable.
 Falls back to: vim (Unix) or notepad (Windows) if $EDITOR is not set.`,
-	Args: cobra.MinimumNArgs(1),
+	Args: RequireArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		component := args[0]
 		

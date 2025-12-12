@@ -44,7 +44,7 @@ var memoryAddCmd = &cobra.Command{
 Examples:
   muxi memory add -u alice "Prefers dark mode"
   muxi memory add -u alice "Uses TypeScript for all projects"`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runMemoryAdd,
 }
 
@@ -55,7 +55,7 @@ var memoryDeleteCmd = &cobra.Command{
 
 Example:
   muxi memory delete -u alice mem_abc123`,
-	Args: cobra.ExactArgs(1),
+	Args: RequireArgs(1),
 	RunE: runMemoryDelete,
 }
 

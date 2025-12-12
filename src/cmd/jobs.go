@@ -22,7 +22,7 @@ Jobs are created when triggers or chat requests are processed asynchronously.`,
 var jobsCancelCmd = &cobra.Command{
 	Use:   "cancel <job_id>",
 	Short: "Cancel an async job",
-	Args:  cobra.ExactArgs(1),
+	Args:  RequireArgs(1),
 	RunE:  runJobsCancel,
 }
 

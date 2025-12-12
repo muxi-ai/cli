@@ -56,7 +56,7 @@ var pullCmd = &cobra.Command{
 	Short:   "Download formation from registry",
 	GroupID: "registry",
 	Long:    "Download a formation from the MUXI registry",
-	Args:    cobra.ExactArgs(1),
+	Args:    RequireArgs(1),
 	RunE:    runPull,
 }
 
@@ -66,7 +66,7 @@ var searchCmd = &cobra.Command{
 	Short:   "Search for formations",
 	GroupID: "registry",
 	Long:    "Search for formations in the MUXI registry",
-	Args:    cobra.ExactArgs(1),
+	Args:    RequireArgs(1),
 	RunE:    runSearch,
 }
 
@@ -76,7 +76,7 @@ var showCmd = &cobra.Command{
 	Short:   "Display formation details",
 	GroupID: "registry",
 	Long:    "Display detailed information about a formation",
-	Args:    cobra.ExactArgs(1),
+	Args:    RequireArgs(1),
 	RunE:    runShow,
 }
 
@@ -109,19 +109,19 @@ var (
 	registryPullCmd = &cobra.Command{
 		Use:   "pull <@user/formation[:version]>",
 		Short: "Download formation from registry",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArgs(1),
 		RunE:  runPull,
 	}
 	registrySearchCmd = &cobra.Command{
 		Use:   "search <query>",
 		Short: "Search for formations",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArgs(1),
 		RunE:  runSearch,
 	}
 	registryShowCmd = &cobra.Command{
 		Use:   "show <@user/formation[:version]>",
 		Short: "Display formation details",
-		Args:  cobra.ExactArgs(1),
+		Args:  RequireArgs(1),
 		RunE:  runShow,
 	}
 	registryListCmd = &cobra.Command{
