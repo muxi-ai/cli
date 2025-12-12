@@ -343,17 +343,23 @@ type JobsListResponse struct {
 
 // AuditEntry represents an audit log entry
 type AuditEntry struct {
-	Timestamp time.Time `json:"timestamp"`
-	Action    string    `json:"action"`
-	Resource  string    `json:"resource"`
-	User      string    `json:"user,omitempty"`
-	Details   string    `json:"details,omitempty"`
+	Timestamp    *FlexTime `json:"timestamp,omitempty"`
+	RequestID    string    `json:"request_id,omitempty"`
+	Action       string    `json:"action"`
+	ResourceType string    `json:"resource_type,omitempty"`
+	ResourceID   string    `json:"resource_id,omitempty"`
+	User         string    `json:"user,omitempty"`
+	IP           string    `json:"ip,omitempty"`
+	Result       string    `json:"result,omitempty"`
+	StatusCode   int       `json:"status_code,omitempty"`
+	Message      string    `json:"message,omitempty"`
 }
 
 // AuditLogResponse from GET /audit
 type AuditLogResponse struct {
-	Entries []AuditEntry `json:"entries"`
-	Count   int          `json:"count"`
+	Entries      []AuditEntry `json:"entries"`
+	Count        int          `json:"count"`
+	TotalEntries int          `json:"total_entries,omitempty"`
 }
 
 // ScheduledJob represents a scheduled job

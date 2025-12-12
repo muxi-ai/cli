@@ -70,24 +70,35 @@ func runAudit(cmd *cobra.Command, args []string) error {
 
 	// Header
 	fmt.Println()
-	fmt.Printf("  %-20s %-18s %-18s %s\n",
+	fmt.Printf("  %-20s %-22s %-18s %s\n",
 		"TIMESTAMP", "ACTION", "RESOURCE", "USER")
-	fmt.Printf("  %-20s %-18s %-18s %s\n",
-		"────────────────────", "──────────────────", "──────────────────", "──────────")
+	fmt.Printf("  %-20s %-22s %-18s %s\n",
+		"────────────────────", "────────────────────", "────────────────", "──────────")
 
 	for _, entry := range entries {
 		// Format timestamp
-		timestamp := entry.Timestamp.Format("2006-01-02 15:04:05")
+		timestamp := "-"
+		if entry.Timestamp != nil {
+			timestamp = entry.Timestamp.Format("2006-01-02 15:04:05")
+		}
+
+		// Resource is type/id
+		resource := entry.ResourceID
+		if entry.ResourceType != "" && entry.ResourceID != "" {
+			resource = entry.ResourceType + "/" + entry.ResourceID
+		} else if entry.ResourceType != "" {
+			resource = entry.ResourceType
+		}
 
 		// Truncate fields for display
-		action := truncateString(entry.Action, 16)
-		resource := truncateString(entry.Resource, 16)
+		action := truncateString(entry.Action, 20)
+		resource = truncateString(resource, 16)
 		user := truncateString(entry.User, 10)
 		if user == "" {
 			user = "-"
 		}
 
-		fmt.Printf("  %-20s %-18s %-18s %s\n",
+		fmt.Printf("  %-20s %-22s %-18s %s\n",
 			timestamp, action, resource, user)
 	}
 

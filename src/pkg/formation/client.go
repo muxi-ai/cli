@@ -384,7 +384,7 @@ func (c *Client) GetAuditLog() (*AuditLogResponse, error) {
 
 // ClearAuditLog clears the audit log
 func (c *Client) ClearAuditLog() error {
-	resp, err := c.Delete("/audit")
+	resp, err := c.Delete("/audit?confirm=clear-audit-log")
 	if err != nil {
 		return err
 	}
