@@ -248,7 +248,10 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 
 	// Print messages
 	for _, m := range displayMessages {
-		timestamp := dimStyle.Render(m.Timestamp.Format("15:04"))
+		timestamp := ""
+		if m.Timestamp != nil {
+			timestamp = dimStyle.Render(m.Timestamp.Format("15:04"))
+		}
 
 		switch m.Role {
 		case "user":

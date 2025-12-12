@@ -277,11 +277,11 @@ type SessionsListResponse struct {
 
 // Message represents a chat message
 type Message struct {
-	ID        string    `json:"id"`
+	ID        string    `json:"id,omitempty"`
 	Role      string    `json:"role"` // user, assistant, system
 	Content   string    `json:"content"`
 	Agent     string    `json:"agent,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp *FlexTime `json:"timestamp,omitempty"`
 }
 
 // SessionMessagesResponse from GET /sessions/{id}/messages
