@@ -237,6 +237,21 @@ func (c *Client) GetAgents() (*AgentListResponse, error) {
 	return parseResponse[AgentListResponse](resp)
 }
 
+// GetAgent gets a single agent by ID (returns raw config as map)
+func (c *Client) GetAgent(agentID string) (map[string]interface{}, error) {
+	resp, err := c.Get("/agents/" + agentID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	result, err := parseResponse[map[string]interface{}](resp)
+	if err != nil {
+		return nil, err
+	}
+	return *result, nil
+}
+
 // GetMCPServers lists all MCP servers
 func (c *Client) GetMCPServers() (*MCPListResponse, error) {
 	resp, err := c.Get("/mcp/servers")
@@ -246,6 +261,21 @@ func (c *Client) GetMCPServers() (*MCPListResponse, error) {
 	defer resp.Body.Close()
 
 	return parseResponse[MCPListResponse](resp)
+}
+
+// GetMCPServer gets a single MCP server by ID (returns raw config as map)
+func (c *Client) GetMCPServer(serverID string) (map[string]interface{}, error) {
+	resp, err := c.Get("/mcp/servers/" + serverID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	result, err := parseResponse[map[string]interface{}](resp)
+	if err != nil {
+		return nil, err
+	}
+	return *result, nil
 }
 
 // GetSecrets lists all secrets (keys only)

@@ -7,6 +7,7 @@ import (
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var mcpCmd = &cobra.Command{
@@ -23,14 +24,26 @@ var mcpListCmd = &cobra.Command{
 	RunE:    runMCPList,
 }
 
+var mcpShowCmd = &cobra.Command{
+	Use:   "show <server-id>",
+	Short: "Show MCP server configuration",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runMCPShow,
+}
+
 func init() {
 	rootCmd.AddCommand(mcpCmd)
 
 	mcpCmd.AddCommand(mcpListCmd)
+	mcpCmd.AddCommand(mcpShowCmd)
 
 	// Flags for list command
 	formation.AddCommonFlags(mcpListCmd)
 	mcpListCmd.Flags().BoolP("verbose", "v", false, "Show detailed MCP server information including tools")
+
+	// Flags for show command
+	formation.AddFormationFlag(mcpShowCmd)
+	formation.AddProfileFlag(mcpShowCmd)
 }
 
 func runMCPList(cmd *cobra.Command, args []string) error {
@@ -158,4 +171,38 @@ func displayMCPServerVerbose(server formation.MCPServer) {
 			}
 		}
 	}
+}
+
+func runMCPShow(cmd *cobra.Command, args []string) error {
+	serverID := args[0]
+
+	client, err := formation.ClientFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	formation.PrintBadgeFromFlags(cmd)
+
+	config, err := client.GetMCPServer(serverID)
+	if err != nil {
+		fmt.Println()
+		fmt.Printf("  MCP server '%s' not found\n", serverID)
+		fmt.Println()
+		return nil
+	}
+
+	// Remove "source" key
+	delete(config, "source")
+
+	// Convert to YAML
+	yamlBytes, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to convert to YAML: %w", err)
+	}
+
+	// Render with syntax highlighting
+	fmt.Println()
+	fmt.Println(ui.RenderYAML(string(yamlBytes)))
+
+	return nil
 }

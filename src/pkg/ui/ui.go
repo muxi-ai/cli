@@ -6,6 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alecthomas/chroma/v2/formatters"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/charmbracelet/glamour"
 	"github.com/fatih/color"
 )
@@ -497,4 +500,35 @@ func RenderMarkdown(content string) string {
 
 	// Trim extra whitespace glamour adds
 	return strings.TrimSpace(rendered)
+}
+
+// RenderYAML renders YAML content with syntax highlighting (no background)
+func RenderYAML(content string) string {
+	lexer := lexers.Get("yaml")
+	if lexer == nil {
+		return content
+	}
+
+	style := styles.Get("monokai")
+	if style == nil {
+		style = styles.Fallback
+	}
+
+	formatter := formatters.Get("terminal256")
+	if formatter == nil {
+		formatter = formatters.Fallback
+	}
+
+	iterator, err := lexer.Tokenise(nil, content)
+	if err != nil {
+		return content
+	}
+
+	var buf strings.Builder
+	err = formatter.Format(&buf, style, iterator)
+	if err != nil {
+		return content
+	}
+
+	return buf.String()
 }

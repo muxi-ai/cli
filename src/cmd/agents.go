@@ -6,6 +6,7 @@ import (
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var agentsCmd = &cobra.Command{
@@ -22,14 +23,26 @@ var agentsListCmd = &cobra.Command{
 	RunE:    runAgentsList,
 }
 
+var agentsShowCmd = &cobra.Command{
+	Use:   "show <agent-id>",
+	Short: "Show agent configuration",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runAgentsShow,
+}
+
 func init() {
 	rootCmd.AddCommand(agentsCmd)
 
 	agentsCmd.AddCommand(agentsListCmd)
+	agentsCmd.AddCommand(agentsShowCmd)
 
 	// Flags for list command
 	formation.AddCommonFlags(agentsListCmd)
 	agentsListCmd.Flags().BoolP("verbose", "v", false, "Show detailed agent information")
+
+	// Flags for show command
+	formation.AddFormationFlag(agentsShowCmd)
+	formation.AddProfileFlag(agentsShowCmd)
 }
 
 func runAgentsList(cmd *cobra.Command, args []string) error {
@@ -147,4 +160,38 @@ func truncateStr(s string, max int) string {
 		return s
 	}
 	return s[:max-1] + "…"
+}
+
+func runAgentsShow(cmd *cobra.Command, args []string) error {
+	agentID := args[0]
+
+	client, err := formation.ClientFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	formation.PrintBadgeFromFlags(cmd)
+
+	config, err := client.GetAgent(agentID)
+	if err != nil {
+		fmt.Println()
+		fmt.Printf("  Agent '%s' not found\n", agentID)
+		fmt.Println()
+		return nil
+	}
+
+	// Remove "source" key
+	delete(config, "source")
+
+	// Convert to YAML
+	yamlBytes, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to convert to YAML: %w", err)
+	}
+
+	// Render with syntax highlighting
+	fmt.Println()
+	fmt.Println(ui.RenderYAML(string(yamlBytes)))
+
+	return nil
 }
