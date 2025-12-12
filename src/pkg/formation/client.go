@@ -2,6 +2,7 @@ package formation
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -874,6 +875,11 @@ func (c *Client) StreamRequest(userID, sessionID, requestID string) (*http.Respo
 
 // StreamLogs returns the response body for SSE log streaming (caller must close)
 func (c *Client) StreamLogs(userID, level, agentID, requestID string) (*http.Response, error) {
+	return c.StreamLogsWithContext(context.Background(), userID, level, agentID, requestID)
+}
+
+// StreamLogsWithContext returns the response body for SSE log streaming with context support
+func (c *Client) StreamLogsWithContext(ctx context.Context, userID, level, agentID, requestID string) (*http.Response, error) {
 	path := "/logs/stream"
 	params := []string{}
 	if userID != "" {
@@ -892,9 +898,9 @@ func (c *Client) StreamLogs(userID, level, agentID, requestID string) (*http.Res
 		path += "?" + strings.Join(params, "&")
 	}
 
-	// Create request with no timeout for streaming
+	// Create request with context for cancellation
 	url := c.BaseURL + path
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}

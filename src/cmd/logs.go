@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -65,6 +67,10 @@ func runLogs(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Streaming logs %s\n", ui.DimmedText("(Ctrl+C to stop)"))
 	fmt.Println()
 
+	// Create cancellable context
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -72,27 +78,28 @@ func runLogs(cmd *cobra.Command, args []string) error {
 	// Start streaming in a goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- streamLogs(client, userFilter, level, agent, requestID)
+		errChan <- streamLogs(ctx, client, userFilter, level, agent, requestID)
 	}()
 
 	// Wait for signal or error
 	select {
 	case <-sigChan:
+		cancel() // Cancel the context to close the connection
 		fmt.Println()
 		fmt.Println()
 		ui.Dimmed("  Stopped streaming")
 		fmt.Println()
 		return nil
 	case err := <-errChan:
-		if err != nil {
+		if err != nil && err != context.Canceled {
 			return err
 		}
 		return nil
 	}
 }
 
-func streamLogs(client *formation.Client, userID, level, agent, requestID string) error {
-	resp, err := client.StreamLogs(userID, level, agent, requestID)
+func streamLogs(ctx context.Context, client *formation.Client, userID, level, agent, requestID string) error {
+	resp, err := client.StreamLogsWithContext(ctx, userID, level, agent, requestID)
 	if err != nil {
 		return err
 	}
@@ -104,6 +111,13 @@ func streamLogs(client *formation.Client, userID, level, agent, requestID string
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
+		// Check if context was cancelled
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		line := scanner.Text()
 
 		// Parse SSE format
@@ -125,17 +139,21 @@ func streamLogs(client *formation.Client, userID, level, agent, requestID string
 		}
 	}
 
-	return scanner.Err()
+	if err := scanner.Err(); err != nil && ctx.Err() == nil {
+		return err
+	}
+	return ctx.Err()
 }
 
 func displayLogEvent(event formation.LogStreamEvent) {
-	// Format timestamp
-	timestamp := event.Timestamp.Format("15:04:05")
+	// Format timestamp (Unix ms to time)
+	t := time.UnixMilli(event.Timestamp)
+	timestamp := t.Format("15:04:05")
 
 	// Color-code level
 	var levelDisplay string
 	switch strings.ToUpper(event.Level) {
-	case "ERROR":
+	case "ERROR", "CRITICAL":
 		levelDisplay = ui.RedText("ERROR")
 	case "WARN", "WARNING":
 		levelDisplay = ui.YellowText("WARN ")
@@ -144,19 +162,19 @@ func displayLogEvent(event formation.LogStreamEvent) {
 	case "DEBUG":
 		levelDisplay = ui.DimmedText("DEBUG")
 	default:
-		levelDisplay = event.Level
+		levelDisplay = fmt.Sprintf("%-5s", event.Level)
 	}
 
 	// Build context parts
 	var context []string
-	if event.User != "" {
-		context = append(context, fmt.Sprintf("user=%s", event.User))
+	if event.UserID != "" {
+		context = append(context, fmt.Sprintf("user=%s", event.UserID))
 	}
-	if event.Agent != "" {
-		context = append(context, fmt.Sprintf("agent=%s", event.Agent))
+	if event.AgentID != "" {
+		context = append(context, fmt.Sprintf("agent=%s", event.AgentID))
 	}
-	if event.Session != "" {
-		context = append(context, fmt.Sprintf("session=%s", event.Session))
+	if event.SessionID != "" {
+		context = append(context, fmt.Sprintf("session=%s", event.SessionID))
 	}
 	if event.RequestID != "" {
 		// Truncate request ID

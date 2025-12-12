@@ -592,13 +592,15 @@ type TriggerResponse struct {
 
 // LogStreamEvent from GET /logs/stream (SSE)
 type LogStreamEvent struct {
-	Timestamp time.Time `json:"timestamp"`
-	Level     string    `json:"level"`
-	Message   string    `json:"message"`
-	User      string    `json:"user,omitempty"`
-	Agent     string    `json:"agent,omitempty"`
-	RequestID string    `json:"request_id,omitempty"`
-	Session   string    `json:"session,omitempty"`
+	Timestamp int64                  `json:"timestamp"` // Unix ms
+	Level     string                 `json:"level"`
+	EventType string                 `json:"event_type,omitempty"`
+	UserID    string                 `json:"user_id,omitempty"`
+	SessionID string                 `json:"session_id,omitempty"`
+	RequestID string                 `json:"request_id,omitempty"`
+	AgentID   string                 `json:"agent_id,omitempty"`
+	Message   string                 `json:"message"`
+	Data      map[string]interface{} `json:"data,omitempty"`
 }
 
 // MCPTool represents an MCP tool
