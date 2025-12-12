@@ -44,7 +44,7 @@ func runRequest(cmd *cobra.Command, args []string) error {
 	formation.PrintBadgeFromFlags(cmd)
 
 	fmt.Println()
-	fmt.Printf("  Request ID:      %s\n", status.RequestID)
+	fmt.Printf("  Request ID: %s\n", status.RequestID)
 
 	// Status with color
 	var statusDisplay string
@@ -53,26 +53,21 @@ func runRequest(cmd *cobra.Command, args []string) error {
 		statusDisplay = ui.GreenText("completed")
 	case "processing":
 		statusDisplay = ui.CyanText("processing")
-	case "pending":
-		statusDisplay = "pending"
 	case "failed":
 		statusDisplay = ui.RedText("failed")
 	default:
 		statusDisplay = status.Status
 	}
-	fmt.Printf("  Status:          %s\n", statusDisplay)
+	fmt.Printf("  Status:     %s\n", statusDisplay)
 
-	if status.FormationID != "" {
-		fmt.Printf("  Formation:       %s\n", status.FormationID)
+	if status.Progress != "" {
+		fmt.Printf("  Progress:   %s\n", status.Progress)
 	}
-	if status.UserID != "" {
-		fmt.Printf("  User:            %s\n", status.UserID)
+	if status.Error != "" {
+		fmt.Printf("  Error:      %s\n", ui.RedText(status.Error))
 	}
-	if status.ProcessingMode != "" {
-		fmt.Printf("  Mode:            %s\n", status.ProcessingMode)
-	}
-	if status.ProcessingTime > 0 {
-		fmt.Printf("  Processing Time: %.2fs\n", status.ProcessingTime)
+	if status.CompletedAt != nil {
+		fmt.Printf("  Completed:  %s\n", status.CompletedAt.Format("Jan 2, 2006 3:04pm"))
 	}
 	fmt.Println()
 

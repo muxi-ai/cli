@@ -652,13 +652,11 @@ type AsyncJobDetailResponse struct {
 
 // RequestStatusResponse from GET /requests/{request_id}
 type RequestStatusResponse struct {
-	RequestID      string    `json:"request_id"`
-	Status         string    `json:"status"`
-	FormationID    string    `json:"formation_id"`
-	UserID         string    `json:"user_id"`
-	ProcessingTime float64   `json:"processing_time,omitempty"`
-	ProcessingMode string    `json:"processing_mode,omitempty"`
-	CreatedAt      time.Time `json:"created_at,omitempty"`
+	RequestID   string    `json:"request_id"`
+	Status      string    `json:"status"` // processing, completed, failed
+	Progress    string    `json:"progress,omitempty"`
+	Error       string    `json:"error,omitempty"`
+	CompletedAt *FlexTime `json:"completed_at,omitempty"`
 }
 
 // SchedulerJobDetail from GET /scheduler/jobs/{job_id}
