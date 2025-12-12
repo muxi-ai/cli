@@ -18,38 +18,58 @@ var serverCmd = &cobra.Command{
 	Use:     "server",
 	Short:   "Manage server connections",
 	GroupID: "server",
-	Long:    `Add, list, and manage MUXI Server connections.`,
+	Long: `Add, list, and manage MUXI Server connections.
+
+Servers are saved to ~/.muxi/cli/servers.yaml and can be referenced by name
+using the -p (--profile) flag in other commands.`,
 }
 
 var serverAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a server connection",
-	RunE:  runServerAdd,
+	Long: `Add a new MUXI Server connection interactively.
+
+Prompts for server URL, name, and HMAC credentials. The server is verified
+before being saved.`,
+	RunE: runServerAdd,
 }
 
 var serverListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List server connections",
-	RunE:    runServerList,
+	Long: `List all configured server connections.
+
+Shows server name, URL, and online status. The default server is marked
+with an asterisk (*).`,
+	RunE: runServerList,
 }
 
 var serverRemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove a server connection",
-	RunE:  runServerRemove,
+	Long: `Remove a server connection interactively.
+
+Select from a list of configured servers to remove.`,
+	RunE: runServerRemove,
 }
 
 var serverStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show server status",
-	RunE:  runServerStatus,
+	Long: `Show detailed status for a server.
+
+Displays server health, version, and deployed formations.`,
+	RunE: runServerStatus,
 }
 
 var serverPingCmd = &cobra.Command{
 	Use:   "ping",
 	Short: "Test server connectivity",
-	RunE:  runServerPing,
+	Long: `Test connectivity to a server.
+
+Sends a ping request and displays the response time.`,
+	RunE: runServerPing,
 }
 
 func init() {

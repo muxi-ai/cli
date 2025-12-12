@@ -23,15 +23,21 @@ var sopsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List all SOPs",
-	RunE:    runSopsList,
+	Long: `List all Standard Operating Procedures configured in the formation.
+
+Displays SOP name, type (template/guide), and description.`,
+	RunE: runSopsList,
 }
 
 var sopsShowCmd = &cobra.Command{
 	Use:   "show <id>",
 	Short: "Show SOP details",
-	Long:  `Show detailed information about a specific SOP including its content.`,
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSopsShow,
+	Long: `Display a specific SOP's content with markdown rendering.
+
+Use --raw to output the raw markdown without rendering, suitable for
+piping to files or other tools.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runSopsShow,
 }
 
 func init() {

@@ -24,15 +24,19 @@ var triggersListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List all triggers",
-	RunE:    runTriggers,
+	Long: `List all triggers defined in the formation.
+
+Displays trigger name and description.`,
+	RunE: runTriggers,
 }
 
 var triggersShowCmd = &cobra.Command{
 	Use:   "show <id>",
 	Short: "Show trigger details",
-	Long: `Show detailed information about a specific trigger.
+	Long: `Display a trigger's template content with markdown rendering.
 
-Displays the trigger template content and metadata.`,
+Use --raw to output the raw template without rendering, suitable for
+piping to files or other tools.`,
 	Args: cobra.ExactArgs(1),
 	RunE: runTriggersShow,
 }

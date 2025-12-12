@@ -22,21 +22,29 @@ var formationCmd = &cobra.Command{
 	Use:     "formation",
 	Short:   "Manage deployed formations",
 	GroupID: "server",
-	Long:    `List, inspect, and manage formations deployed to a MUXI server.`,
+	Long: `List, inspect, and manage formations deployed to a MUXI server.
+
+Use -p (--profile) to specify which server to connect to.`,
 }
 
 var formationListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List deployed formations",
-	RunE:    runFormationList,
+	Long: `List all formations deployed to the server.
+
+Displays formation ID, status, port, and version.`,
+	RunE: runFormationList,
 }
 
 var formationGetCmd = &cobra.Command{
 	Use:   "get <id>",
 	Short: "Get formation details",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFormationGet,
+	Long: `Get detailed information about a specific formation.
+
+Displays status, version, port, uptime, and configuration.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFormationGet,
 }
 
 var formationDeleteCmd = &cobra.Command{
@@ -56,15 +64,22 @@ This will:
 var formationStopCmd = &cobra.Command{
 	Use:   "stop <id>",
 	Short: "Stop a running formation",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFormationStop,
+	Long: `Stop a running formation.
+
+The formation process is stopped but the formation remains registered
+on the server. Use 'muxi formation start' to restart it.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFormationStop,
 }
 
 var formationStartCmd = &cobra.Command{
 	Use:   "start <id>",
 	Short: "Start a stopped formation",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runFormationStart,
+	Long: `Start a stopped formation.
+
+Restarts a formation that was previously stopped.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runFormationStart,
 }
 
 var formationRestartCmd = &cobra.Command{

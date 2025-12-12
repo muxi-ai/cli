@@ -15,21 +15,32 @@ var mcpCmd = &cobra.Command{
 	Use:     "mcp",
 	Short:   "Manage MCP servers",
 	GroupID: "formation",
-	Long:    `List and manage MCP (Model Context Protocol) servers configured in a formation.`,
+	Long: `List and manage MCP (Model Context Protocol) servers configured in a running formation.
+
+Requires connection to a Formation API server. Use -F to specify a formation
+and -p to specify a server profile.`,
 }
 
 var mcpListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List MCP servers in the formation",
-	RunE:    runMCPList,
+	Long: `List all MCP servers configured in the formation.
+
+Displays server ID, type, connection status, and tool count. Use -v for
+detailed output including description and available tools.`,
+	RunE: runMCPList,
 }
 
 var mcpShowCmd = &cobra.Command{
 	Use:   "show <server-id>",
 	Short: "Show MCP server configuration",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runMCPShow,
+	Long: `Display an MCP server's full configuration as YAML with syntax highlighting.
+
+Use --raw to output plain YAML without formatting, suitable for piping
+to files or other tools.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runMCPShow,
 }
 
 func init() {

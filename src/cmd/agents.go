@@ -14,21 +14,32 @@ var agentsCmd = &cobra.Command{
 	Use:     "agents",
 	Short:   "Manage formation agents",
 	GroupID: "formation",
-	Long:    `List and manage agents configured in a formation.`,
+	Long: `List and manage agents configured in a running formation.
+
+Requires connection to a Formation API server. Use -F to specify a formation
+and -p to specify a server profile.`,
 }
 
 var agentsListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List agents in the formation",
-	RunE:    runAgentsList,
+	Long: `List all agents configured in the formation.
+
+Displays agent ID, role, status, and model. Use -v for detailed output
+including description and system message preview.`,
+	RunE: runAgentsList,
 }
 
 var agentsShowCmd = &cobra.Command{
 	Use:   "show <agent-id>",
 	Short: "Show agent configuration",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runAgentsShow,
+	Long: `Display an agent's full configuration as YAML with syntax highlighting.
+
+Use --raw to output plain YAML without formatting, suitable for piping
+to files or other tools.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runAgentsShow,
 }
 
 func init() {
