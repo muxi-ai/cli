@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/muxi-ai/cli/pkg/formation"
@@ -31,14 +32,29 @@ var sessionsShowCmd = &cobra.Command{
 	RunE:  runSessionsShow,
 }
 
+var sessionsMessagesCmd = &cobra.Command{
+	Use:   "messages <session-id>",
+	Short: "View session message history",
+	Long:  `View message history for a session.`,
+	Example: `  muxi sessions messages sess_abc123
+  muxi sessions messages sess_abc123 --lines 50
+  muxi sessions messages sess_abc123 --json`,
+	Args: cobra.ExactArgs(1),
+	RunE: runSessionsMessages,
+}
+
 func init() {
 	rootCmd.AddCommand(sessionsCmd)
 	sessionsCmd.AddCommand(sessionsShowCmd)
+	sessionsCmd.AddCommand(sessionsMessagesCmd)
 
 	sessionsCmd.Flags().Int("limit", 10, "Maximum number of sessions to return")
+	sessionsMessagesCmd.Flags().IntP("lines", "n", 0, "Limit number of messages (0 = all)")
+	sessionsMessagesCmd.Flags().Bool("json", false, "Output as JSON")
 
 	formation.AddCommonFlags(sessionsCmd)
 	formation.AddCommonFlags(sessionsShowCmd)
+	formation.AddCommonFlags(sessionsMessagesCmd)
 }
 
 func runSessions(cmd *cobra.Command, args []string) error {
@@ -116,6 +132,88 @@ func runSessionsShow(cmd *cobra.Command, args []string) error {
 	if !session.LastActivity.IsZero() {
 		fmt.Printf("  Last Activity: %s\n", formatTimeAgo(session.LastActivity))
 	}
+	fmt.Println()
+
+	return nil
+}
+
+func runSessionsMessages(cmd *cobra.Command, args []string) error {
+	sessionID := args[0]
+
+	client, userID, err := formation.ClientAndUserFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	lines, _ := cmd.Flags().GetInt("lines")
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+
+	spinner := ui.NewSpinner("Fetching messages...")
+	spinner.Start()
+
+	messages, err := client.GetSessionMessages(sessionID, userID)
+	if err != nil {
+		spinner.StopWithError("Failed to fetch messages")
+		return err
+	}
+
+	spinner.Stop()
+
+	// JSON output (no badge)
+	if jsonOutput {
+		data, err := json.MarshalIndent(messages, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(data))
+		return nil
+	}
+
+	formation.PrintBadgeFromFlags(cmd)
+
+	if messages.Count == 0 {
+		fmt.Println()
+		ui.Dimmed("  No messages in session")
+		fmt.Println()
+		return nil
+	}
+
+	// Apply line limit
+	displayMessages := messages.Messages
+	if lines > 0 && lines < len(displayMessages) {
+		displayMessages = displayMessages[len(displayMessages)-lines:]
+	}
+
+	// Print header
+	fmt.Println()
+	fmt.Printf("  Session: %s (%d messages)\n", ui.BoldText(sessionID), messages.Count)
+	fmt.Println()
+
+	// Print messages
+	for _, m := range displayMessages {
+		timestamp := m.Timestamp.Format("15:04:05")
+		role := m.Role
+
+		// Color role
+		var roleDisplay string
+		switch role {
+		case "user":
+			roleDisplay = ui.CyanText("user")
+		case "assistant":
+			if m.Agent != "" {
+				roleDisplay = ui.GreenText(m.Agent)
+			} else {
+				roleDisplay = ui.GreenText("assistant")
+			}
+		case "system":
+			roleDisplay = ui.DimmedText("system")
+		default:
+			roleDisplay = role
+		}
+
+		fmt.Printf("  [%s] %s: %s\n", ui.DimmedText(timestamp), roleDisplay, m.Content)
+	}
+
 	fmt.Println()
 
 	return nil
