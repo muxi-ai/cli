@@ -59,7 +59,7 @@ func (c *Client) Do(method, path string, body io.Reader, useAdminKey bool) (*htt
 	return c.HTTPClient.Do(req)
 }
 
-// DoWithUserID performs a request with X-User-ID header (for client endpoints)
+// DoWithUserID performs a request with X-Muxi-User-ID header (for client endpoints)
 func (c *Client) DoWithUserID(method, path string, body io.Reader, userID string) (*http.Response, error) {
 	url := c.BaseURL + path
 
@@ -72,7 +72,7 @@ func (c *Client) DoWithUserID(method, path string, body io.Reader, userID string
 		return nil, fmt.Errorf("client key required but not set")
 	}
 	req.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
-	req.Header.Set("X-User-ID", userID)
+	req.Header.Set("X-Muxi-User-ID", userID)
 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -552,6 +552,209 @@ func (c *Client) DeleteMemory(userID, memoryID string) error {
 	defer resp.Body.Close()
 
 	return checkResponse(resp)
+}
+
+// GetMCPConfig gets MCP configuration
+func (c *Client) GetMCPConfig() (*MCPConfigResponse, error) {
+	resp, err := c.Get("/mcp")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[MCPConfigResponse](resp)
+}
+
+// GetMCPTools lists all MCP tools
+func (c *Client) GetMCPTools() (*MCPToolsResponse, error) {
+	resp, err := c.Get("/mcp/tools")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[MCPToolsResponse](resp)
+}
+
+// GetMemoryBuffer gets buffer status for a user
+func (c *Client) GetMemoryBuffer(userID string) (*MemoryBufferResponse, error) {
+	resp, err := c.GetWithUser("/memory/buffer", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[MemoryBufferResponse](resp)
+}
+
+// ClearMemoryBuffer clears buffer for a user
+func (c *Client) ClearMemoryBuffer(userID string) (*ClearBufferResponse, error) {
+	resp, err := c.DeleteWithUser("/memory/buffer", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[ClearBufferResponse](resp)
+}
+
+// ClearSessionBuffer clears buffer for a specific session
+func (c *Client) ClearSessionBuffer(userID, sessionID string) (*ClearBufferResponse, error) {
+	resp, err := c.DeleteWithUser("/memory/buffer/"+sessionID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[ClearBufferResponse](resp)
+}
+
+// GetMemoryBuffers lists all buffers (admin)
+func (c *Client) GetMemoryBuffers() (*MemoryBuffersResponse, error) {
+	resp, err := c.Get("/memory/buffers")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[MemoryBuffersResponse](resp)
+}
+
+// ClearAllBuffers clears all buffers (admin)
+func (c *Client) ClearAllBuffers() (*ClearBufferResponse, error) {
+	resp, err := c.Delete("/memory/buffers")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[ClearBufferResponse](resp)
+}
+
+// GetAsyncConfig gets async configuration
+func (c *Client) GetAsyncConfig() (*AsyncSettingsResponse, error) {
+	resp, err := c.Get("/async")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[AsyncSettingsResponse](resp)
+}
+
+// GetAsyncJobs lists async jobs (admin)
+func (c *Client) GetAsyncJobs() (*AsyncJobsResponse, error) {
+	resp, err := c.Get("/async/jobs")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[AsyncJobsResponse](resp)
+}
+
+// GetAsyncJob gets async job details
+func (c *Client) GetAsyncJob(jobID string) (*AsyncJobDetailResponse, error) {
+	resp, err := c.Get("/async/jobs/" + jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[AsyncJobDetailResponse](resp)
+}
+
+// CancelAsyncJob cancels an async job
+func (c *Client) CancelAsyncJob(jobID string) error {
+	resp, err := c.Delete("/async/jobs/" + jobID)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// GetSchedulerJob gets a specific scheduled job
+func (c *Client) GetSchedulerJob(jobID string) (*SchedulerJobDetail, error) {
+	resp, err := c.Get("/scheduler/jobs/" + jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[SchedulerJobDetail](resp)
+}
+
+// DeleteSchedulerJob deletes a scheduled job
+func (c *Client) DeleteSchedulerJob(jobID string) error {
+	resp, err := c.Delete("/scheduler/jobs/" + jobID)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// GetA2AConfig gets A2A configuration
+func (c *Client) GetA2AConfig() (*A2AConfigResponse, error) {
+	resp, err := c.Get("/a2a")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[A2AConfigResponse](resp)
+}
+
+// GetLoggingConfig gets logging configuration
+func (c *Client) GetLoggingConfig() (*LoggingConfigResponse, error) {
+	resp, err := c.Get("/logging")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[LoggingConfigResponse](resp)
+}
+
+// GetRequestStatus gets request status
+func (c *Client) GetRequestStatus(requestID string) (*RequestStatusResponse, error) {
+	resp, err := c.Get("/requests/" + requestID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[RequestStatusResponse](resp)
+}
+
+// ResolveUser resolves an identifier to a user, optionally creating
+func (c *Client) ResolveUser(identifier string, createUser bool) (*UserResolveResponse, error) {
+	body := UserResolveRequest{
+		Identifier: identifier,
+		CreateUser: createUser,
+	}
+
+	resp, err := c.PostClient("/users/resolve", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[UserResolveResponse](resp)
+}
+
+// Chat sends a chat message
+func (c *Client) Chat(req *ChatRequest) (*ChatResponse, error) {
+	resp, err := c.PostClient("/chat", req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[ChatResponse](resp)
 }
 
 // StreamLogs returns the response body for SSE log streaming (caller must close)

@@ -43,11 +43,21 @@ to files or other tools.`,
 	RunE: runMCPShow,
 }
 
+var mcpToolsCmd = &cobra.Command{
+	Use:   "tools",
+	Short: "List all MCP tools",
+	Long: `List all tools available across all MCP servers.
+
+Displays tool name, description, and which server provides it.`,
+	RunE: runMCPTools,
+}
+
 func init() {
 	rootCmd.AddCommand(mcpCmd)
 
 	mcpCmd.AddCommand(mcpListCmd)
 	mcpCmd.AddCommand(mcpShowCmd)
+	mcpCmd.AddCommand(mcpToolsCmd)
 
 	// Flags for list command
 	formation.AddCommonFlags(mcpListCmd)
@@ -57,6 +67,10 @@ func init() {
 	formation.AddFormationFlag(mcpShowCmd)
 	formation.AddProfileFlag(mcpShowCmd)
 	mcpShowCmd.Flags().Bool("raw", false, "Output raw YAML without formatting (for piping)")
+
+	// Flags for tools command
+	formation.AddFormationFlag(mcpToolsCmd)
+	formation.AddProfileFlag(mcpToolsCmd)
 }
 
 func runMCPList(cmd *cobra.Command, args []string) error {
@@ -230,6 +244,58 @@ func runMCPShow(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		fmt.Println(ui.IndentString(ui.RenderYAML(string(yamlBytes)), 2))
 	}
+
+	return nil
+}
+
+func runMCPTools(cmd *cobra.Command, args []string) error {
+	client, err := formation.ClientFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	formation.PrintBadgeFromFlags(cmd)
+
+	resp, err := client.GetMCPTools()
+	if err != nil {
+		return err
+	}
+
+	if resp.Count == 0 {
+		fmt.Println()
+		ui.Dimmed("  No MCP tools available")
+		fmt.Println()
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Printf("  %-24s %-16s %s\n",
+		ui.BoldText("TOOL"),
+		ui.BoldText("SERVER"),
+		ui.BoldText("DESCRIPTION"))
+	fmt.Printf("  %-24s %-16s %s\n",
+		"────────────────────────",
+		"────────────────",
+		"────────────────────────────────")
+
+	for _, tool := range resp.Tools {
+		desc := tool.Description
+		if len(desc) > 40 {
+			desc = desc[:37] + "..."
+		}
+		if desc == "" {
+			desc = ui.DimmedText("-")
+		}
+
+		fmt.Printf("  %-24s %-16s %s\n",
+			truncateStr(tool.Name, 24),
+			truncateStr(tool.Server, 16),
+			desc)
+	}
+
+	fmt.Println()
+	ui.Dimmed(fmt.Sprintf("  %d tool(s) available", resp.Count))
+	fmt.Println()
 
 	return nil
 }

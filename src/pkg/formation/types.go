@@ -518,3 +518,102 @@ type LogStreamEvent struct {
 	RequestID string    `json:"request_id,omitempty"`
 	Session   string    `json:"session,omitempty"`
 }
+
+// MCPTool represents an MCP tool
+type MCPTool struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Server      string                 `json:"server"`
+	InputSchema map[string]interface{} `json:"input_schema,omitempty"`
+}
+
+// MCPToolsResponse from GET /mcp/tools
+type MCPToolsResponse struct {
+	Tools []MCPTool `json:"tools"`
+	Count int       `json:"count"`
+}
+
+// MemoryBufferStatus represents a single buffer status
+type MemoryBufferStatus struct {
+	UserID       string `json:"user_id"`
+	SessionCount int    `json:"session_count"`
+	MessageCount int    `json:"message_count"`
+	SizeBytes    int    `json:"size_bytes"`
+}
+
+// MemoryBuffersResponse from GET /memory/buffers (admin)
+type MemoryBuffersResponse struct {
+	Buffers []MemoryBufferStatus `json:"buffers"`
+	Count   int                  `json:"count"`
+}
+
+// ClearBufferResponse from DELETE /memory/buffer
+type ClearBufferResponse struct {
+	Message         string `json:"message"`
+	UserID          string `json:"user_id,omitempty"`
+	SessionID       string `json:"session_id,omitempty"`
+	MessagesCleared int    `json:"messages_cleared"`
+	SessionsCleared int    `json:"sessions_cleared,omitempty"`
+}
+
+// AsyncJob represents an async job
+type AsyncJob struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// AsyncJobsResponse from GET /async/jobs
+type AsyncJobsResponse struct {
+	Jobs  []AsyncJob `json:"jobs"`
+	Count int        `json:"count"`
+}
+
+// AsyncJobDetailResponse from GET /async/jobs/{job_id}
+type AsyncJobDetailResponse struct {
+	ID        string                 `json:"id"`
+	UserID    string                 `json:"user_id"`
+	Status    string                 `json:"status"`
+	CreatedAt time.Time              `json:"created_at"`
+	Result    map[string]interface{} `json:"result,omitempty"`
+}
+
+// RequestStatusResponse from GET /requests/{request_id}
+type RequestStatusResponse struct {
+	RequestID      string    `json:"request_id"`
+	Status         string    `json:"status"`
+	FormationID    string    `json:"formation_id"`
+	UserID         string    `json:"user_id"`
+	ProcessingTime float64   `json:"processing_time,omitempty"`
+	ProcessingMode string    `json:"processing_mode,omitempty"`
+	CreatedAt      time.Time `json:"created_at,omitempty"`
+}
+
+// SchedulerJobDetail from GET /scheduler/jobs/{job_id}
+type SchedulerJobDetail struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Schedule    string    `json:"schedule,omitempty"`
+	RunAt       string    `json:"run_at,omitempty"`
+	Message     string    `json:"message"`
+	UserID      string    `json:"user_id"`
+	Enabled     bool      `json:"enabled"`
+	NextRun     time.Time `json:"next_run,omitempty"`
+	LastRun     time.Time `json:"last_run,omitempty"`
+	RunCount    int       `json:"run_count"`
+	FailCount   int       `json:"fail_count"`
+}
+
+// UserResolveRequest for POST /users/resolve
+type UserResolveRequest struct {
+	Identifier string `json:"identifier"`
+	CreateUser bool   `json:"create_user,omitempty"`
+}
+
+// UserResolveResponse from POST /users/resolve
+type UserResolveResponse struct {
+	Identifier     string `json:"identifier"`
+	MuxiUserID     string `json:"muxi_user_id"`
+	InternalUserID int    `json:"internal_user_id"`
+}
