@@ -47,6 +47,8 @@ func runTriggers(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	resp, err := client.GetTriggers()
 	if err != nil {
 		return fmt.Errorf("failed to get triggers: %w", err)
@@ -54,19 +56,17 @@ func runTriggers(cmd *cobra.Command, args []string) error {
 
 	if resp.Count == 0 {
 		fmt.Println()
-		ui.Dimmed("  No triggers defined in this formation")
+		ui.Dimmed("  No triggers defined")
 		fmt.Println()
 		return nil
 	}
 
 	fmt.Println()
-	ui.Bold("  Triggers:")
-	fmt.Println()
 	for _, name := range resp.Triggers {
-		fmt.Printf("    • %s\n", name)
+		fmt.Printf("  • %s\n", name)
 	}
 	fmt.Println()
-	ui.Dimmed(fmt.Sprintf("  Use 'muxi triggers show <name>' for details"))
+	ui.Dimmed("  Use 'muxi triggers show <name>' for details")
 	fmt.Println()
 
 	return nil
@@ -79,6 +79,8 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	trigger, err := client.GetTrigger(triggerName)
 	if err != nil {

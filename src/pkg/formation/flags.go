@@ -1,6 +1,10 @@
 package formation
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/fatih/color"
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/defaults"
 	"github.com/spf13/cobra"
@@ -109,4 +113,34 @@ func ClientAndUserFromFlags(cmd *cobra.Command) (*Client, string, error) {
 	}
 
 	return client, userID, nil
+}
+
+// PrintBadge prints a compact badge showing formation and server
+// ╭────────────────────────────────────╮
+// │ ⌬ test-formation │ ⚙︎ server-name │
+// ╰────────────────────────────────────╯
+func PrintBadge(formationID, serverName string) {
+	dim := color.New(color.Faint).SprintFunc()
+
+	// Build the content
+	leftPart := fmt.Sprintf("⌬ %s", formationID)
+	rightPart := fmt.Sprintf("⚙︎ %s", serverName)
+	content := fmt.Sprintf(" %s │ %s ", leftPart, rightPart)
+
+	// Calculate width (accounting for unicode)
+	// The box chars and spacing add overhead
+	contentWidth := len(leftPart) + len(rightPart) + 5 // " | " + padding
+
+	fmt.Println()
+	fmt.Println(dim("  ╭" + strings.Repeat("─", contentWidth) + "╮"))
+	fmt.Println(dim("  │") + content + dim("│"))
+	fmt.Println(dim("  ╰" + strings.Repeat("─", contentWidth) + "╯"))
+}
+
+// PrintBadgeFromFlags prints the badge using resolved flag values
+func PrintBadgeFromFlags(cmd *cobra.Command) {
+	flags := GetCommonFlags(cmd)
+	formationID, _ := ResolveFormationID(flags.FormationID)
+	serverName := ResolveProfile(flags.Profile)
+	PrintBadge(formationID, serverName)
 }

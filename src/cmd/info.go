@@ -34,6 +34,9 @@ func runInfo(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Print badge header
+	formation.PrintBadgeFromFlags(cmd)
+
 	full, _ := cmd.Flags().GetBool("full")
 
 	// Get health status first
@@ -48,12 +51,8 @@ func runInfo(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get status: %w", err)
 	}
 
-	// Print formation info
-	fmt.Println()
-	fmt.Printf("  Formation: %s\n", ui.BoldText(status.Formation.Name))
-	fmt.Println()
-
 	// Status line with colored indicator based on health
+	fmt.Println()
 	statusColor := ui.GreenText("●")
 	statusText := health.Status
 	switch health.Status {
@@ -64,9 +63,9 @@ func runInfo(cmd *cobra.Command, args []string) error {
 	default: // unhealthy or unknown
 		statusColor = ui.RedText("●")
 	}
-	fmt.Printf("    Status:     %s %s\n", statusColor, statusText)
-	fmt.Printf("    Version:    %s\n", status.Formation.Version)
-	fmt.Printf("    Uptime:     %s\n", formatUptime(status.Server.UptimeSeconds))
+	fmt.Printf("  Status:     %s %s\n", statusColor, statusText)
+	fmt.Printf("  Version:    %s\n", status.Formation.Version)
+	fmt.Printf("  Uptime:     %s\n", formatUptime(status.Server.UptimeSeconds))
 	fmt.Println()
 
 	// Agents and MCP
@@ -74,13 +73,13 @@ func runInfo(cmd *cobra.Command, args []string) error {
 	if status.Agents.Active > 0 && status.Agents.Active != status.Agents.Count {
 		agentStatus = fmt.Sprintf("%d (%d active)", status.Agents.Count, status.Agents.Active)
 	}
-	fmt.Printf("    Agents:     %s\n", agentStatus)
+	fmt.Printf("  Agents:     %s\n", agentStatus)
 
 	mcpStatus := fmt.Sprintf("%d servers", status.MCPServers.Count)
 	if status.MCPServers.Active > 0 {
 		mcpStatus = fmt.Sprintf("%d servers connected", status.MCPServers.Active)
 	}
-	fmt.Printf("    MCP:        %s\n", mcpStatus)
+	fmt.Printf("  MCP:        %s\n", mcpStatus)
 
 	// Memory
 	memoryInfo := fmt.Sprintf("%.0f MB working", status.Stats.Memory.WorkingMemoryMB)
@@ -88,17 +87,17 @@ func runInfo(cmd *cobra.Command, args []string) error {
 		memoryInfo = fmt.Sprintf("%.0f MB working, %.1f MB usage",
 			status.Stats.Memory.WorkingMemoryMB, status.Stats.Memory.MemoryUsageMB)
 	}
-	fmt.Printf("    Memory:     %s\n", memoryInfo)
+	fmt.Printf("  Memory:     %s\n", memoryInfo)
 	fmt.Println()
 
 	// Stats
-	fmt.Println("    Stats:")
+	fmt.Println("  Stats:")
 	requestInfo := fmt.Sprintf("%d total", status.Stats.Requests.Total)
 	if status.Stats.Requests.Active > 0 {
 		requestInfo = fmt.Sprintf("%d total (%d active)", status.Stats.Requests.Total, status.Stats.Requests.Active)
 	}
-	fmt.Printf("      Requests:   %s\n", requestInfo)
-	fmt.Printf("      CPU:        %.0f%%\n", status.Stats.CPUPercent)
+	fmt.Printf("    Requests: %s\n", requestInfo)
+	fmt.Printf("    CPU:      %.0f%%\n", status.Stats.CPUPercent)
 	fmt.Println()
 
 	// Full config if requested
@@ -108,11 +107,11 @@ func runInfo(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to get config: %w", err)
 		}
 
-		fmt.Println("    Configuration:")
-		fmt.Printf("      Schema:     %s\n", config.SchemaVersion)
-		fmt.Printf("      Agents:     %d total\n", config.Agents.Total)
-		fmt.Printf("      Secrets:    %d total\n", config.Secrets.Total)
-		fmt.Printf("      MCP:        %d servers (timeout: %ds, retries: %d)\n",
+		fmt.Println("  Configuration:")
+		fmt.Printf("    Schema:   %s\n", config.SchemaVersion)
+		fmt.Printf("    Agents:   %d total\n", config.Agents.Total)
+		fmt.Printf("    Secrets:  %d total\n", config.Secrets.Total)
+		fmt.Printf("    MCP:      %d servers (timeout: %ds, retries: %d)\n",
 			config.MCP.Servers.Total, config.MCP.DefaultTimeoutSeconds, config.MCP.DefaultRetryAttempts)
 		fmt.Println()
 	}
