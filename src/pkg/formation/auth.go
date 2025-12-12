@@ -77,10 +77,10 @@ func BuildFormationURL(serverURL, formationID string) string {
 // NewClientFromContext creates a Formation API client using context detection
 // It resolves: server profile, formation ID, and API keys
 func NewClientFromContext(profile, formationID string) (*Client, error) {
-	// Resolve server
-	serverEntry, err := server.GetServer(profile)
+	// Resolve server profile
+	profileEntry, err := server.GetProfile(profile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get server: %w", err)
+		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	// Resolve formation ID
@@ -103,7 +103,7 @@ func NewClientFromContext(profile, formationID string) (*Client, error) {
 	}
 
 	// Build client
-	baseURL := BuildFormationURL(serverEntry.URL, formationID)
+	baseURL := BuildFormationURL(profileEntry.URL, formationID)
 	return NewClient(baseURL, adminKey, clientKey), nil
 }
 
@@ -148,7 +148,7 @@ func ResolveProfile(flagValue string) string {
 	}
 
 	// Fall back to global default
-	return server.GetDefaultServer()
+	return server.GetDefaultProfile()
 }
 
 // ResolveFormationID resolves the formation ID to use

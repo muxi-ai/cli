@@ -21,7 +21,7 @@ type Client struct {
 
 // NewClient creates a new server client from a profile name
 func NewClient(profile string) (*Client, error) {
-	entry, err := GetServer(profile)
+	entry, err := GetProfile(profile)
 	if err != nil {
 		return nil, err
 	}
@@ -29,8 +29,8 @@ func NewClient(profile string) (*Client, error) {
 	return NewClientFromEntry(entry), nil
 }
 
-// NewClientFromEntry creates a client from a server entry
-func NewClientFromEntry(entry *ServerEntry) *Client {
+// NewClientFromEntry creates a client from a profile entry
+func NewClientFromEntry(entry *ProfileEntry) *Client {
 	return &Client{
 		BaseURL:   entry.URL,
 		KeyID:     entry.KeyID,

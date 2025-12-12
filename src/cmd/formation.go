@@ -222,7 +222,7 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	// Get server name for display
 	serverName := profile
 	if serverName == "" {
-		serverName = server.GetDefaultServer()
+		serverName = server.GetDefaultProfile()
 	}
 
 	fmt.Println()
@@ -1102,7 +1102,7 @@ func confirmFormationAction(action, formationID string) bool {
 func displayFormationDetails(f *server.FormationDetail, verbose bool, profile string) error {
 	serverName := profile
 	if serverName == "" {
-		serverName = server.GetDefaultServer()
+		serverName = server.GetDefaultProfile()
 	}
 
 	fmt.Println()

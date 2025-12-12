@@ -9,57 +9,57 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ServersConfig is the structure of ~/.muxi/cli/servers.yaml
-type ServersConfig struct {
-	Version string                 `yaml:"version"`
-	Default string                 `yaml:"default"`
-	Servers map[string]ServerEntry `yaml:"servers"`
+// ProfilesConfig is the structure of ~/.muxi/cli/profiles.yaml
+type ProfilesConfig struct {
+	Version        string                  `yaml:"version"`
+	DefaultProfile string                  `yaml:"default_profile"`
+	Profiles       map[string]ProfileEntry `yaml:"profiles"`
 }
 
-// ServerEntry stores connection info for a server
-type ServerEntry struct {
+// ProfileEntry stores connection info for a server profile
+type ProfileEntry struct {
 	URL       string    `yaml:"url"`
 	KeyID     string    `yaml:"key_id"`
 	SecretKey string    `yaml:"secret_key"`
 	AddedAt   time.Time `yaml:"added_at"`
 }
 
-// serversPath returns the path to servers.yaml
-func serversPath() string {
+// profilesPath returns the path to profiles.yaml
+func profilesPath() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".muxi", "cli", "servers.yaml")
+	return filepath.Join(home, ".muxi", "cli", "profiles.yaml")
 }
 
-// LoadServers loads the servers configuration
-func LoadServers() (*ServersConfig, error) {
-	path := serversPath()
+// LoadProfiles loads the profiles configuration
+func LoadProfiles() (*ProfilesConfig, error) {
+	path := profilesPath()
 
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &ServersConfig{
-				Version: "1.0",
-				Servers: make(map[string]ServerEntry),
+			return &ProfilesConfig{
+				Version:  "1.0",
+				Profiles: make(map[string]ProfileEntry),
 			}, nil
 		}
-		return nil, fmt.Errorf("failed to read servers config: %w", err)
+		return nil, fmt.Errorf("failed to read profiles config: %w", err)
 	}
 
-	var config ServersConfig
+	var config ProfilesConfig
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse servers config: %w", err)
+		return nil, fmt.Errorf("failed to parse profiles config: %w", err)
 	}
 
-	if config.Servers == nil {
-		config.Servers = make(map[string]ServerEntry)
+	if config.Profiles == nil {
+		config.Profiles = make(map[string]ProfileEntry)
 	}
 
 	return &config, nil
 }
 
-// SaveServers saves the servers configuration
-func SaveServers(config *ServersConfig) error {
-	path := serversPath()
+// SaveProfiles saves the profiles configuration
+func SaveProfiles(config *ProfilesConfig) error {
+	path := profilesPath()
 
 	// Ensure directory exists
 	dir := filepath.Dir(path)
@@ -79,81 +79,81 @@ func SaveServers(config *ServersConfig) error {
 	return nil
 }
 
-// GetDefaultServer returns the default server name
-func GetDefaultServer() string {
-	config, err := LoadServers()
+// GetDefaultProfile returns the default profile name
+func GetDefaultProfile() string {
+	config, err := LoadProfiles()
 	if err != nil {
 		return ""
 	}
-	return config.Default
+	return config.DefaultProfile
 }
 
-// GetServer returns a server entry by name
-func GetServer(name string) (*ServerEntry, error) {
-	config, err := LoadServers()
+// GetProfile returns a profile entry by name
+func GetProfile(name string) (*ProfileEntry, error) {
+	config, err := LoadProfiles()
 	if err != nil {
 		return nil, err
 	}
 
 	if name == "" {
-		name = config.Default
+		name = config.DefaultProfile
 	}
 
 	if name == "" {
-		return nil, fmt.Errorf("no server specified and no default set")
+		return nil, fmt.Errorf("no profile specified and no default set")
 	}
 
-	entry, ok := config.Servers[name]
+	entry, ok := config.Profiles[name]
 	if !ok {
-		return nil, fmt.Errorf("server '%s' not found", name)
+		return nil, fmt.Errorf("profile '%s' not found", name)
 	}
 
 	return &entry, nil
 }
 
-// AddServer adds a new server to the config
-func AddServer(name string, entry ServerEntry) error {
-	config, err := LoadServers()
+// AddProfile adds a new profile to the config
+func AddProfile(name string, entry ProfileEntry) error {
+	config, err := LoadProfiles()
 	if err != nil {
 		return err
 	}
 
-	config.Servers[name] = entry
-	return SaveServers(config)
+	config.Profiles[name] = entry
+	return SaveProfiles(config)
 }
 
-// RemoveServer removes a server from the config
-func RemoveServer(name string) error {
-	config, err := LoadServers()
+// RemoveProfile removes a profile from the config
+func RemoveProfile(name string) error {
+	config, err := LoadProfiles()
 	if err != nil {
 		return err
 	}
 
-	if _, ok := config.Servers[name]; !ok {
-		return fmt.Errorf("server '%s' not found", name)
+	if _, ok := config.Profiles[name]; !ok {
+		return fmt.Errorf("profile '%s' not found", name)
 	}
 
-	delete(config.Servers, name)
+	delete(config.Profiles, name)
 
-	// Clear default if it was the removed server
-	if config.Default == name {
-		config.Default = ""
+	// Clear default if it was the removed profile
+	if config.DefaultProfile == name {
+		config.DefaultProfile = ""
 	}
 
-	return SaveServers(config)
+	return SaveProfiles(config)
 }
 
-// SetDefaultServer sets the default server
-func SetDefaultServer(name string) error {
-	config, err := LoadServers()
+// SetDefaultProfile sets the default profile
+func SetDefaultProfile(name string) error {
+	config, err := LoadProfiles()
 	if err != nil {
 		return err
 	}
 
-	if _, ok := config.Servers[name]; !ok {
-		return fmt.Errorf("server '%s' not found", name)
+	if _, ok := config.Profiles[name]; !ok {
+		return fmt.Errorf("profile '%s' not found", name)
 	}
 
-	config.Default = name
-	return SaveServers(config)
+	config.DefaultProfile = name
+	return SaveProfiles(config)
 }

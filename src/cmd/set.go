@@ -40,12 +40,13 @@ Outside formation directory: sets global default.
 Use --local or --global flags to skip the prompt.`,
 }
 
-var setDefaultServerCmd = &cobra.Command{
-	Use:   "server [name]",
-	Short: "Set default server",
-	Long:  `Set the default server profile for deployments and commands.`,
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  runSetDefaultServer,
+var setDefaultProfileCmd = &cobra.Command{
+	Use:     "profile [name]",
+	Aliases: []string{"server"},
+	Short:   "Set default profile",
+	Long:    `Set the default server profile for deployments and commands.`,
+	Args:    cobra.MaximumNArgs(1),
+	RunE:    runSetDefaultProfile,
 }
 
 var setDefaultRegistryCmd = &cobra.Command{
@@ -69,12 +70,12 @@ func init() {
 	setCmd.AddCommand(setDefaultCmd)
 
 	// Add subcommands to 'set default'
-	setDefaultCmd.AddCommand(setDefaultServerCmd)
+	setDefaultCmd.AddCommand(setDefaultProfileCmd)
 	setDefaultCmd.AddCommand(setDefaultRegistryCmd)
 	setDefaultCmd.AddCommand(setDefaultUserCmd)
 
 	// Add --local and --global flags to each
-	for _, cmd := range []*cobra.Command{setDefaultServerCmd, setDefaultRegistryCmd, setDefaultUserCmd} {
+	for _, cmd := range []*cobra.Command{setDefaultProfileCmd, setDefaultRegistryCmd, setDefaultUserCmd} {
 		cmd.Flags().BoolP("local", "l", false, "Set for this formation only (requires formation directory)")
 		cmd.Flags().BoolP("global", "g", false, "Set as global default")
 	}
@@ -153,24 +154,24 @@ func determineScope(cmd *cobra.Command) (string, error) {
 	return scope, nil
 }
 
-// runSetDefaultServer handles muxi set default server
-func runSetDefaultServer(cmd *cobra.Command, args []string) error {
+// runSetDefaultProfile handles muxi set default profile
+func runSetDefaultProfile(cmd *cobra.Command, args []string) error {
 	scope, err := determineScope(cmd)
 	if err != nil {
 		return err
 	}
 
-	// Load servers
-	config, err := server.LoadServers()
+	// Load profiles
+	config, err := server.LoadProfiles()
 	if err != nil {
 		return err
 	}
 
-	if len(config.Servers) == 0 {
+	if len(config.Profiles) == 0 {
 		fmt.Println()
-		ui.Dimmed("  No servers configured")
+		ui.Dimmed("  No profiles configured")
 		fmt.Println()
-		fmt.Printf("  Add a server first: %s\n", ui.Command("muxi server add"))
+		fmt.Printf("  Add a profile first: %s\n", ui.Command("muxi profiles add"))
 		fmt.Println()
 		return nil
 	}
@@ -178,10 +179,10 @@ func runSetDefaultServer(cmd *cobra.Command, args []string) error {
 	var selected string
 
 	if len(args) > 0 {
-		// Server name provided as argument
+		// Profile name provided as argument
 		selected = args[0]
-		if _, ok := config.Servers[selected]; !ok {
-			return fmt.Errorf("server '%s' not found", selected)
+		if _, ok := config.Profiles[selected]; !ok {
+			return fmt.Errorf("profile '%s' not found", selected)
 		}
 	} else {
 		// Interactive selection
@@ -190,13 +191,13 @@ func runSetDefaultServer(cmd *cobra.Command, args []string) error {
 			dotMuxi, _ := loadDotMuxi()
 			currentDefault = dotMuxi.Profile
 		} else {
-			currentDefault = config.Default
+			currentDefault = config.DefaultProfile
 		}
 
 		var options []wizard.SelectOption
 		currentIndex := 0
 		i := 0
-		for name := range config.Servers {
+		for name := range config.Profiles {
 			label := name
 			if name == currentDefault {
 				label += " [current]"
@@ -210,7 +211,7 @@ func runSetDefaultServer(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Println()
-		selected, err = wizard.PromptSelect("Select server", options, currentIndex)
+		selected, err = wizard.PromptSelect("Select profile", options, currentIndex)
 		if err != nil {
 			return err
 		}
@@ -227,13 +228,13 @@ func runSetDefaultServer(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to save .muxi: %w", err)
 		}
 		fmt.Println()
-		ui.Success(fmt.Sprintf("Default server set to '%s' (local)", selected))
+		ui.Success(fmt.Sprintf("Default profile set to '%s' (local)", selected))
 	} else {
-		if err := server.SetDefaultServer(selected); err != nil {
+		if err := server.SetDefaultProfile(selected); err != nil {
 			return err
 		}
 		fmt.Println()
-		ui.Success(fmt.Sprintf("Default server set to '%s' (global)", selected))
+		ui.Success(fmt.Sprintf("Default profile set to '%s' (global)", selected))
 	}
 
 	fmt.Println()

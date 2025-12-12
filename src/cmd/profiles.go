@@ -14,99 +14,100 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var serverCmd = &cobra.Command{
-	Use:     "server",
-	Short:   "Manage server connections",
+var profilesCmd = &cobra.Command{
+	Use:     "profiles",
+	Aliases: []string{"profile"},
+	Short:   "Manage server profiles",
 	GroupID: "server",
-	Long: `Add, list, and manage MUXI Server connections.
+	Long: `Add, list, and manage MUXI Server profiles.
 
-Servers are saved to ~/.muxi/cli/servers.yaml and can be referenced by name
+Profiles are saved to ~/.muxi/cli/profiles.yaml and can be referenced by name
 using the -p (--profile) flag in other commands.`,
 }
 
-var serverAddCmd = &cobra.Command{
+var profilesAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Add a server connection",
-	Long: `Add a new MUXI Server connection interactively.
+	Short: "Add a server profile",
+	Long: `Add a new MUXI Server profile interactively.
 
 Prompts for server URL, name, and HMAC credentials. The server is verified
 before being saved.`,
-	RunE: runServerAdd,
+	RunE: runProfilesAdd,
 }
 
-var serverListCmd = &cobra.Command{
+var profilesListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "List server connections",
-	Long: `List all configured server connections.
+	Short:   "List server profiles",
+	Long: `List all configured server profiles.
 
-Shows server name, URL, and online status. The default server is marked
+Shows profile name, URL, and online status. The default profile is marked
 with an asterisk (*).`,
-	RunE: runServerList,
+	RunE: runProfilesList,
 }
 
-var serverRemoveCmd = &cobra.Command{
+var profilesRemoveCmd = &cobra.Command{
 	Use:   "remove",
-	Short: "Remove a server connection",
-	Long: `Remove a server connection interactively.
+	Short: "Remove a server profile",
+	Long: `Remove a server profile interactively.
 
-Select from a list of configured servers to remove.`,
-	RunE: runServerRemove,
+Select from a list of configured profiles to remove.`,
+	RunE: runProfilesRemove,
 }
 
-var serverStatusCmd = &cobra.Command{
+var profilesStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show server status",
-	Long: `Show detailed status for a server.
+	Long: `Show detailed status for a server profile.
 
 Displays server health, version, and deployed formations.`,
-	RunE: runServerStatus,
+	RunE: runProfilesStatus,
 }
 
-var serverPingCmd = &cobra.Command{
+var profilesPingCmd = &cobra.Command{
 	Use:   "ping",
 	Short: "Test server connectivity",
 	Long: `Test connectivity to a server.
 
 Sends a ping request and displays the response time.`,
-	RunE: runServerPing,
+	RunE: runProfilesPing,
 }
 
 func init() {
-	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(profilesCmd)
 
-	serverCmd.AddCommand(serverAddCmd)
-	serverCmd.AddCommand(serverListCmd)
-	serverCmd.AddCommand(serverRemoveCmd)
-	serverCmd.AddCommand(serverStatusCmd)
-	serverCmd.AddCommand(serverPingCmd)
+	profilesCmd.AddCommand(profilesAddCmd)
+	profilesCmd.AddCommand(profilesListCmd)
+	profilesCmd.AddCommand(profilesRemoveCmd)
+	profilesCmd.AddCommand(profilesStatusCmd)
+	profilesCmd.AddCommand(profilesPingCmd)
 
 	// Flags
-	serverStatusCmd.Flags().String("profile", "", "Server profile to use")
-	serverPingCmd.Flags().String("profile", "", "Server profile to use")
+	profilesStatusCmd.Flags().String("profile", "", "Server profile to use")
+	profilesPingCmd.Flags().String("profile", "", "Server profile to use")
 }
 
-// runServerAdd handles muxi server add
-func runServerAdd(cmd *cobra.Command, args []string) error {
+// runProfilesAdd handles muxi profiles add
+func runProfilesAdd(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
-	// Server name
-	name, err := wizard.PromptString("Server name", "localhost", nil)
+	// Profile name
+	name, err := wizard.PromptString("Profile name", "localhost", nil)
 	if err != nil {
 		return err
 	}
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return fmt.Errorf("server name cannot be empty")
+		return fmt.Errorf("profile name cannot be empty")
 	}
 
 	// Check if exists
-	config, err := server.LoadServers()
+	config, err := server.LoadProfiles()
 	if err != nil {
 		return err
 	}
-	if _, exists := config.Servers[name]; exists {
-		return fmt.Errorf("server '%s' already exists", name)
+	if _, exists := config.Profiles[name]; exists {
+		return fmt.Errorf("profile '%s' already exists", name)
 	}
 
 	// Server URL
@@ -140,7 +141,7 @@ func runServerAdd(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Print("  Testing connection... ")
 
-	entry := server.ServerEntry{
+	entry := server.ProfileEntry{
 		URL:       url,
 		KeyID:     keyID,
 		SecretKey: secretKey,
@@ -162,30 +163,30 @@ func runServerAdd(cmd *cobra.Command, args []string) error {
 	fmt.Println("OK")
 
 	// Save
-	if err := server.AddServer(name, entry); err != nil {
+	if err := server.AddProfile(name, entry); err != nil {
 		return err
 	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Server \"%s\" added", name))
+	ui.Success(fmt.Sprintf("Profile \"%s\" added", name))
 
 	// Set as default?
-	if config.Default == "" || len(config.Servers) == 0 {
-		if err := server.SetDefaultServer(name); err != nil {
+	if config.DefaultProfile == "" || len(config.Profiles) == 0 {
+		if err := server.SetDefaultProfile(name); err != nil {
 			return err
 		}
-		fmt.Printf("  Set as default server\n")
+		fmt.Printf("  Set as default profile\n")
 	} else {
 		fmt.Println()
-		setDefault, err := wizard.PromptConfirm("Set as default server?", false)
+		setDefault, err := wizard.PromptConfirm("Set as default profile?", false)
 		if err != nil {
 			return err
 		}
 		if setDefault {
-			if err := server.SetDefaultServer(name); err != nil {
+			if err := server.SetDefaultProfile(name); err != nil {
 				return err
 			}
-			ui.Success(fmt.Sprintf("Default server set to: %s", name))
+			ui.Success(fmt.Sprintf("Default profile set to: %s", name))
 		}
 	}
 
@@ -193,18 +194,18 @@ func runServerAdd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runServerList handles muxi server list
-func runServerList(cmd *cobra.Command, args []string) error {
-	config, err := server.LoadServers()
+// runProfilesList handles muxi profiles list
+func runProfilesList(cmd *cobra.Command, args []string) error {
+	config, err := server.LoadProfiles()
 	if err != nil {
 		return err
 	}
 
-	if len(config.Servers) == 0 {
+	if len(config.Profiles) == 0 {
 		fmt.Println()
-		ui.Dimmed("  No servers configured")
+		ui.Dimmed("  No profiles configured")
 		fmt.Println()
-		fmt.Printf("  Add a server: %s\n", ui.Command("muxi server add"))
+		fmt.Printf("  Add a profile: %s\n", ui.Command("muxi server add"))
 		fmt.Println()
 		return nil
 	}
@@ -213,7 +214,7 @@ func runServerList(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  %-15s %-35s %s\n", "NAME", "URL", "STATUS")
 	fmt.Printf("  %-15s %-35s %s\n", "----", "---", "------")
 
-	for name, entry := range config.Servers {
+	for name, entry := range config.Profiles {
 		// Check connectivity
 		client := server.NewClientFromEntry(&entry)
 		status := ui.GreenText("● online")
@@ -222,7 +223,7 @@ func runServerList(cmd *cobra.Command, args []string) error {
 		}
 
 		displayName := name
-		if name == config.Default {
+		if name == config.DefaultProfile {
 			displayName = name + " *"
 		}
 
@@ -236,23 +237,23 @@ func runServerList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runServerRemove handles muxi server remove
-func runServerRemove(cmd *cobra.Command, args []string) error {
-	config, err := server.LoadServers()
+// runProfilesRemove handles muxi profiles remove
+func runProfilesRemove(cmd *cobra.Command, args []string) error {
+	config, err := server.LoadProfiles()
 	if err != nil {
 		return err
 	}
 
-	if len(config.Servers) == 0 {
+	if len(config.Profiles) == 0 {
 		fmt.Println()
-		ui.Dimmed("  No servers configured")
+		ui.Dimmed("  No profiles configured")
 		fmt.Println()
 		return nil
 	}
 
 	// Build options
 	var options []wizard.SelectOption
-	for name := range config.Servers {
+	for name := range config.Profiles {
 		options = append(options, wizard.SelectOption{
 			Value: name,
 			Label: name,
@@ -260,7 +261,7 @@ func runServerRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println()
-	selected, err := wizard.PromptSelect("Select server to remove", options, 0)
+	selected, err := wizard.PromptSelect("Select profile to remove", options, 0)
 	if err != nil {
 		return err
 	}
@@ -278,19 +279,19 @@ func runServerRemove(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	if err := server.RemoveServer(selected); err != nil {
+	if err := server.RemoveProfile(selected); err != nil {
 		return err
 	}
 
 	fmt.Println()
-	ui.Success(fmt.Sprintf("Server \"%s\" removed", selected))
+	ui.Success(fmt.Sprintf("Profile \"%s\" removed", selected))
 	fmt.Println()
 
 	return nil
 }
 
-// runServerStatus handles muxi server status
-func runServerStatus(cmd *cobra.Command, args []string) error {
+// runProfilesStatus handles muxi profiles status
+func runProfilesStatus(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 
 	client, err := server.NewClient(profile)
@@ -298,10 +299,10 @@ func runServerStatus(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get server name for display
-	serverName := profile
-	if serverName == "" {
-		serverName = server.GetDefaultServer()
+	// Get profile name for display
+	profileName := profile
+	if profileName == "" {
+		profileName = server.GetDefaultProfile()
 	}
 
 	// Check health first
@@ -314,7 +315,7 @@ func runServerStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println()
-	fmt.Printf("  Server: %s (%s)\n", serverName, client.BaseURL)
+	fmt.Printf("  Profile: %s (%s)\n", profileName, client.BaseURL)
 	fmt.Println()
 
 	// Status from health endpoint
@@ -388,8 +389,8 @@ func formatLatency(d time.Duration) string {
 	return fmt.Sprintf("%.2fs", d.Seconds())
 }
 
-// runServerPing handles muxi server ping
-func runServerPing(cmd *cobra.Command, args []string) error {
+// runProfilesPing handles muxi profiles ping
+func runProfilesPing(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 
 	client, err := server.NewClient(profile)
@@ -397,13 +398,13 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get server name for display
-	serverName := profile
-	if serverName == "" {
-		serverName = server.GetDefaultServer()
+	// Get profile name for display
+	profileName := profile
+	if profileName == "" {
+		profileName = server.GetDefaultProfile()
 	}
 
-	fmt.Printf("PING %s (%s)\n", serverName, client.BaseURL)
+	fmt.Printf("PING %s (%s)\n", profileName, client.BaseURL)
 
 	// Handle Ctrl+C
 	sigChan := make(chan os.Signal, 1)
@@ -418,7 +419,7 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 		case <-sigChan:
 			// Print summary
 			fmt.Println()
-			fmt.Printf("--- %s ping statistics ---\n", serverName)
+			fmt.Printf("--- %s ping statistics ---\n", profileName)
 			lossPercent := float64(seq-successCount) / float64(seq) * 100
 			fmt.Printf("%d packets transmitted, %d received, %.0f%% packet loss\n",
 				seq, successCount, lossPercent)
@@ -439,7 +440,7 @@ func runServerPing(cmd *cobra.Command, args []string) error {
 			} else {
 				successCount++
 				totalLatency += latency
-				fmt.Printf("%d bytes from %s: seq=%d time=%s\n", bytes, serverName, seq, formatLatency(latency))
+				fmt.Printf("%d bytes from %s: seq=%d time=%s\n", bytes, profileName, seq, formatLatency(latency))
 			}
 
 			time.Sleep(1 * time.Second)

@@ -133,7 +133,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 
 	serverName := profile
 	if serverName == "" {
-		serverName = server.GetDefaultServer()
+		serverName = server.GetDefaultProfile()
 	}
 
 	// Check if formation already exists
