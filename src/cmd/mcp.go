@@ -40,6 +40,8 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	resp, err := client.GetMCPServers()
 	if err != nil {
 		return err

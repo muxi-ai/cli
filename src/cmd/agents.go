@@ -39,6 +39,8 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	resp, err := client.GetAgents()
 	if err != nil {
 		return err
