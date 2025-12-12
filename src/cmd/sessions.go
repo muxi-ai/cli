@@ -113,10 +113,10 @@ func runSessionsList(cmd *cobra.Command, args []string) error {
 
 	// Print header
 	fmt.Println()
-	fmt.Printf("  %-24s %-12s %s\n",
-		"SESSION ID", "STATUS", "LAST ACTIVITY")
-	fmt.Printf("  %-24s %-12s %s\n",
-		"──────────────────────", "──────────", "─────────────────")
+	fmt.Printf("  %-24s %-16s %-12s %s\n",
+		"SESSION ID", "USER", "STATUS", "LAST ACTIVITY")
+	fmt.Printf("  %-24s %-16s %-12s %s\n",
+		"──────────────────────", "──────────────", "──────────", "─────────────────")
 
 	// Print sessions
 	for _, s := range sessions.Sessions {
@@ -130,8 +130,13 @@ func runSessionsList(cmd *cobra.Command, args []string) error {
 			statusIcon = ui.GreenText("●")
 			statusText = "active"
 		}
-		fmt.Printf("  %-24s %s %-9s %s\n",
+		user := s.UserID
+		if user == "" {
+			user = ui.DimmedText("-")
+		}
+		fmt.Printf("  %-24s %-16s %s %-10s %s\n",
 			s.ID,
+			user,
 			statusIcon,
 			statusText,
 			lastActivity)
