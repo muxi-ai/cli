@@ -21,15 +21,13 @@ var logsCmd = &cobra.Command{
 	Long: `Stream real-time logs from a formation.
 
 Streams Server-Sent Events (SSE) from the formation's log endpoint.
-Use filter flags to narrow down the logs you want to see.
+At least one filter flag is required.
 
-Requires admin API key.
-
-Examples:
-  muxi logs
+Requires admin API key.`,
+	Example: `  muxi logs -u alice
   muxi logs --level error
   muxi logs --agent weather-bot
-  muxi logs -u alice`,
+  muxi logs -u alice --level error`,
 	RunE: runLogs,
 }
 
@@ -49,6 +47,11 @@ func runLogs(cmd *cobra.Command, args []string) error {
 	level, _ := cmd.Flags().GetString("level")
 	agent, _ := cmd.Flags().GetString("agent")
 	requestID, _ := cmd.Flags().GetString("request")
+
+	// Require at least one filter
+	if userFilter == "" && level == "" && agent == "" && requestID == "" {
+		return cmd.Help()
+	}
 
 	client, err := formation.ClientFromFlags(cmd)
 	if err != nil {
