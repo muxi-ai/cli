@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/scaffold"
+	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -73,11 +75,17 @@ func printConfigOutput(data interface{}, format string) error {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		return enc.Encode(data)
-	case "yaml":
-		return yaml.NewEncoder(os.Stdout).Encode(data)
 	default:
-		// Pretty print as yaml by default
-		return yaml.NewEncoder(os.Stdout).Encode(data)
+		// Pretty print as yaml with syntax highlighting and indentation
+		var buf bytes.Buffer
+		enc := yaml.NewEncoder(&buf)
+		enc.SetIndent(2)
+		if err := enc.Encode(data); err != nil {
+			return err
+		}
+		fmt.Println()
+		fmt.Println(ui.IndentString(ui.RenderYAML(buf.String()), 2))
+		return nil
 	}
 }
 
