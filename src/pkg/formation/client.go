@@ -309,8 +309,12 @@ func (c *Client) GetSOP(name string) (*SOP, error) {
 }
 
 // GetSessions lists sessions for a user
-func (c *Client) GetSessions(userID string) (*SessionsListResponse, error) {
-	resp, err := c.GetWithUser("/sessions", userID)
+func (c *Client) GetSessions(userID string, limit int) (*SessionsListResponse, error) {
+	path := "/sessions"
+	if limit > 0 {
+		path = fmt.Sprintf("/sessions?limit=%d", limit)
+	}
+	resp, err := c.GetWithUser(path, userID)
 	if err != nil {
 		return nil, err
 	}

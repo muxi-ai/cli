@@ -35,6 +35,8 @@ func init() {
 	rootCmd.AddCommand(sessionsCmd)
 	sessionsCmd.AddCommand(sessionsShowCmd)
 
+	sessionsCmd.Flags().Int("limit", 10, "Maximum number of sessions to return")
+
 	formation.AddCommonFlags(sessionsCmd)
 	formation.AddCommonFlags(sessionsShowCmd)
 }
@@ -45,10 +47,12 @@ func runSessions(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	limit, _ := cmd.Flags().GetInt("limit")
+
 	spinner := ui.NewSpinner("Fetching sessions...")
 	spinner.Start()
 
-	sessions, err := client.GetSessions(userID)
+	sessions, err := client.GetSessions(userID, limit)
 	if err != nil {
 		spinner.StopWithError("Failed to fetch sessions")
 		return err
