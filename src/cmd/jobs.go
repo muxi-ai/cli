@@ -15,7 +15,7 @@ var jobsCmd = &cobra.Command{
 	GroupID: "formation",
 	Long: `List and manage async chat requests.
 
-When an async request is created, it returns immediately with a job_id.
+When an async request is created, it returns a job_id.
 Use these commands to check status or cancel in-progress requests.`,
 }
 
