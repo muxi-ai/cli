@@ -259,7 +259,7 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 		switch role {
 		case "user":
 			// User message: >  content
-			fmt.Printf("\n %s  %s  %s\n", timestamp, goldStyle.Render(">"), userStyle.Render(content))
+			fmt.Printf("\n  %s %s  %s\n", timestamp, goldStyle.Render(">"), userStyle.Render(content))
 
 		case "assistant":
 			// Assistant message: 𝐌 with markdown rendering
@@ -271,7 +271,7 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 					lines := strings.Split(rendered, "\n")
 					for i, line := range lines {
 						if i > 0 {
-							lines[i] = "      " + line
+							lines[i] = "       " + line
 						}
 					}
 					rendered = strings.Join(lines, "\n")
@@ -281,14 +281,14 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 			if m.GetAgent() != "" {
 				agent = m.GetAgent()
 			}
-			fmt.Printf("\n %s  %s %s\n", timestamp, goldStyle.Render(agent), rendered)
+			fmt.Printf("\n  %s %s %s\n", timestamp, goldStyle.Render(agent), rendered)
 
 		case "system":
 			// System message: dimmed
-			fmt.Printf("\n %s  %s\n", timestamp, dimStyle.Render(content))
+			fmt.Printf("\n  %s %s\n", timestamp, dimStyle.Render(content))
 
 		default:
-			fmt.Printf("\n %s  %s: %s\n", timestamp, role, content)
+			fmt.Printf("\n  %s %s: %s\n", timestamp, role, content)
 		}
 	}
 
