@@ -77,13 +77,13 @@ func runSopsList(cmd *cobra.Command, args []string) error {
 			sopType = "template"
 		}
 		fmt.Printf("    • %s (%s)\n", s.Name, sopType)
-		if s.Description != "" {
-			desc := s.Description
-			if len(desc) > 60 {
-				desc = desc[:57] + "..."
-			}
-			fmt.Printf("      %s\n", ui.DimmedText(desc))
+		desc := s.Description
+		if desc == "" {
+			desc = "—"
+		} else if len(desc) > 60 {
+			desc = desc[:57] + "..."
 		}
+		fmt.Printf("      %s\n", ui.DimmedText(desc))
 		fmt.Println()
 	}
 
