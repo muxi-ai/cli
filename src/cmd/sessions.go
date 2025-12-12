@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/glamour"
@@ -53,19 +54,35 @@ var sessionsMessagesCmd = &cobra.Command{
 	RunE: runSessionsMessages,
 }
 
+var sessionsRestoreCmd = &cobra.Command{
+	Use:   "restore <session-id>",
+	Short: "Restore session from file",
+	Long: `Restore a session from a JSON file.
+
+The file should be in the same format as 'muxi sessions messages --json' output.`,
+	Example: `  muxi sessions restore sess_abc123 --file backup.json
+  muxi sessions restore sess_abc123 -f session.json`,
+	Args: cobra.ExactArgs(1),
+	RunE: runSessionsRestore,
+}
+
 func init() {
 	rootCmd.AddCommand(sessionsCmd)
 	sessionsCmd.AddCommand(sessionsListCmd)
 	sessionsCmd.AddCommand(sessionsShowCmd)
 	sessionsCmd.AddCommand(sessionsMessagesCmd)
+	sessionsCmd.AddCommand(sessionsRestoreCmd)
 
 	sessionsListCmd.Flags().Int("limit", 10, "Maximum number of sessions to return")
 	sessionsMessagesCmd.Flags().IntP("lines", "n", 0, "Limit number of messages (0 = all)")
 	sessionsMessagesCmd.Flags().Bool("json", false, "Output as JSON")
+	sessionsRestoreCmd.Flags().StringP("file", "f", "", "JSON file to restore from (required)")
+	sessionsRestoreCmd.MarkFlagRequired("file")
 
 	formation.AddCommonFlags(sessionsListCmd)
 	formation.AddCommonFlags(sessionsShowCmd)
 	formation.AddCommonFlags(sessionsMessagesCmd)
+	formation.AddCommonFlags(sessionsRestoreCmd)
 }
 
 func runSessionsList(cmd *cobra.Command, args []string) error {
@@ -251,6 +268,69 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	fmt.Println()
+
+	return nil
+}
+
+func runSessionsRestore(cmd *cobra.Command, args []string) error {
+	sessionID := args[0]
+	filePath, _ := cmd.Flags().GetString("file")
+
+	client, userID, err := formation.ClientAndUserFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Read file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Parse JSON - accept both full response format and just messages array
+	var messages []formation.Message
+
+	// Try full format first (from --json output)
+	var fullFormat formation.SessionMessagesResponse
+	if err := json.Unmarshal(data, &fullFormat); err == nil && len(fullFormat.Messages) > 0 {
+		messages = fullFormat.Messages
+	} else {
+		// Try messages array directly
+		if err := json.Unmarshal(data, &messages); err != nil {
+			return fmt.Errorf("invalid JSON format: expected messages array or session messages response")
+		}
+	}
+
+	// Validate messages
+	if len(messages) == 0 {
+		return fmt.Errorf("no messages found in file")
+	}
+
+	for i, m := range messages {
+		if m.Role == "" {
+			return fmt.Errorf("message %d: missing 'role' field", i+1)
+		}
+		if m.Content == "" {
+			return fmt.Errorf("message %d: missing 'content' field", i+1)
+		}
+		if m.Role != "user" && m.Role != "assistant" && m.Role != "system" {
+			return fmt.Errorf("message %d: invalid role '%s' (must be user, assistant, or system)", i+1, m.Role)
+		}
+	}
+
+	spinner := ui.NewSpinner(fmt.Sprintf("Restoring %d messages...", len(messages)))
+	spinner.Start()
+
+	err = client.RestoreSession(sessionID, userID, messages)
+	if err != nil {
+		spinner.StopWithError("Failed to restore session")
+		return err
+	}
+
+	spinner.StopWithSuccess("Session restored")
+	fmt.Println()
+	ui.Success(fmt.Sprintf("Restored %d messages to session %s", len(messages), sessionID))
 	fmt.Println()
 
 	return nil

@@ -334,6 +334,21 @@ func (c *Client) GetSessionMessages(sessionID, userID string) (*SessionMessagesR
 	return parseResponse[SessionMessagesResponse](resp)
 }
 
+// RestoreSession restores a session from messages
+func (c *Client) RestoreSession(sessionID, userID string, messages []Message) error {
+	payload := struct {
+		Messages []Message `json:"messages"`
+	}{Messages: messages}
+
+	resp, err := c.PostWithUser("/sessions/"+sessionID+"/restore", payload, userID)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
 // GetJobs lists jobs for a user
 func (c *Client) GetJobs(userID string) (*JobsListResponse, error) {
 	resp, err := c.GetWithUser("/jobs/"+userID, userID)
