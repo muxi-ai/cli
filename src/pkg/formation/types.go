@@ -153,8 +153,9 @@ type MCPServer struct {
 
 // MCPListResponse from GET /mcp/servers
 type MCPListResponse struct {
-	Servers []MCPServer `json:"servers"`
-	Count   int         `json:"count"`
+	Servers    []MCPServer `json:"servers"`
+	MCPServers []MCPServer `json:"mcp_servers"` // Alternative field name
+	Count      int         `json:"count"`
 }
 
 // MCPConfigResponse from GET /mcp

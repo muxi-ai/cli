@@ -48,7 +48,13 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(resp.Servers) == 0 {
+	// Handle both "servers" and "mcp_servers" field names from API
+	servers := resp.Servers
+	if len(servers) == 0 && len(resp.MCPServers) > 0 {
+		servers = resp.MCPServers
+	}
+
+	if len(servers) == 0 {
 		fmt.Println()
 		ui.Dimmed("  No MCP servers configured")
 		fmt.Println()
@@ -59,7 +65,7 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 
 	if verbose {
 		// Verbose: show detailed info for each server
-		for i, server := range resp.Servers {
+		for i, server := range servers {
 			if i > 0 {
 				fmt.Println()
 			}
@@ -72,7 +78,7 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  %-16s %-10s %-12s %s\n",
 			"──────────────", "────────", "──────────", "─────")
 
-		for _, server := range resp.Servers {
+		for _, server := range servers {
 			statusIcon := ui.GreenText("●")
 			statusText := "connected"
 			if !server.Enabled {
