@@ -3,7 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
@@ -192,6 +195,17 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 		displayMessages = displayMessages[len(displayMessages)-lines:]
 	}
 
+	// Styles
+	goldStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#e48d20"))
+	userStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45"))
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#808080"))
+
+	// Markdown renderer
+	renderer, _ := glamour.NewTermRenderer(
+		glamour.WithStylePath("dark"),
+		glamour.WithWordWrap(76),
+	)
+
 	// Print header
 	fmt.Println()
 	fmt.Printf("  Session: %s (%d messages)\n", ui.BoldText(sessionID), messages.Count)
@@ -199,27 +213,42 @@ func runSessionsMessages(cmd *cobra.Command, args []string) error {
 
 	// Print messages
 	for _, m := range displayMessages {
-		timestamp := m.Timestamp.Format("15:04:05")
-		role := m.Role
+		timestamp := dimStyle.Render(m.Timestamp.Format("15:04"))
 
-		// Color role
-		var roleDisplay string
-		switch role {
+		switch m.Role {
 		case "user":
-			roleDisplay = ui.CyanText("user")
-		case "assistant":
-			if m.Agent != "" {
-				roleDisplay = ui.GreenText(m.Agent)
-			} else {
-				roleDisplay = ui.GreenText("assistant")
-			}
-		case "system":
-			roleDisplay = ui.DimmedText("system")
-		default:
-			roleDisplay = role
-		}
+			// User message: >  content
+			fmt.Printf("\n %s  %s  %s\n", timestamp, goldStyle.Render(">"), userStyle.Render(m.Content))
 
-		fmt.Printf("  [%s] %s: %s\n", ui.DimmedText(timestamp), roleDisplay, m.Content)
+		case "assistant":
+			// Assistant message: 𝐌 with markdown rendering
+			rendered := m.Content
+			if renderer != nil {
+				if r, err := renderer.Render(m.Content); err == nil {
+					rendered = strings.TrimSpace(r)
+					// Indent each line
+					lines := strings.Split(rendered, "\n")
+					for i, line := range lines {
+						if i > 0 {
+							lines[i] = "      " + line
+						}
+					}
+					rendered = strings.Join(lines, "\n")
+				}
+			}
+			agent := "𝐌"
+			if m.Agent != "" {
+				agent = m.Agent
+			}
+			fmt.Printf("\n %s  %s %s\n", timestamp, goldStyle.Render(agent), rendered)
+
+		case "system":
+			// System message: dimmed
+			fmt.Printf("\n %s  %s\n", timestamp, dimStyle.Render(m.Content))
+
+		default:
+			fmt.Printf("\n %s  %s: %s\n", timestamp, m.Role, m.Content)
+		}
 	}
 
 	fmt.Println()
