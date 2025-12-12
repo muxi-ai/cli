@@ -25,12 +25,13 @@ Requires admin API key.`,
 }
 
 func init() {
-	rootCmd.AddCommand(auditCmd)
-
-	formation.AddFormationFlag(auditCmd)
-	formation.AddProfileFlag(auditCmd)
-	auditCmd.Flags().IntP("lines", "n", 50, "Number of entries to show")
-	auditCmd.Flags().Bool("clear", false, "Clear the audit log")
+	// TODO: Uncomment when audit endpoints are implemented in runtime
+	// rootCmd.AddCommand(auditCmd)
+	//
+	// formation.AddFormationFlag(auditCmd)
+	// formation.AddProfileFlag(auditCmd)
+	// auditCmd.Flags().IntP("lines", "n", 50, "Number of entries to show")
+	// auditCmd.Flags().Bool("clear", false, "Clear the audit log")
 }
 
 func runAudit(cmd *cobra.Command, args []string) error {
