@@ -213,12 +213,12 @@ type SOPsListResponse struct {
 
 // Session represents a user session
 type Session struct {
-	ID           string    `json:"id"`
-	UserID       string    `json:"user_id"`
-	MessageCount int       `json:"message_count"`
-	LastActivity time.Time `json:"last_activity"`
-	Status       string    `json:"status"` // active, inactive
-	CreatedAt    time.Time `json:"created_at"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"user_id"`
+	MessageCount int        `json:"message_count"`
+	LastActivity *time.Time `json:"last_activity,omitempty"`
+	Status       string     `json:"status"` // active, inactive
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
 }
 
 // SessionsListResponse from GET /sessions

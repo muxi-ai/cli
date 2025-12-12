@@ -120,10 +120,14 @@ func runSessionsList(cmd *cobra.Command, args []string) error {
 
 	// Print sessions
 	for _, s := range sessions.Sessions {
+		lastActivity := "unknown"
+		if s.LastActivity != nil {
+			lastActivity = formatTimeAgo(*s.LastActivity)
+		}
 		fmt.Printf("  %-20s  %-10d  %s\n",
 			s.ID,
 			s.MessageCount,
-			formatTimeAgo(s.LastActivity))
+			lastActivity)
 	}
 
 	fmt.Println()
