@@ -136,7 +136,6 @@ func runSopsShow(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		fmt.Println("  Content:")
 		fmt.Println("  " + ui.DimmedText("────────────────────────────────────────"))
-		fmt.Println()
 		if raw {
 			fmt.Println(sop.Content)
 		} else {
