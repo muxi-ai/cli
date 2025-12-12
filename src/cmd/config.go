@@ -81,9 +81,15 @@ func printConfigOutput(data interface{}, format string) error {
 		if err != nil {
 			return err
 		}
-		var mapData interface{}
+		var mapData map[string]interface{}
 		if err := json.Unmarshal(jsonBytes, &mapData); err != nil {
 			return err
+		}
+
+		// Rename schema_version to schema for cleaner output
+		if v, ok := mapData["schema_version"]; ok {
+			mapData["schema"] = v
+			delete(mapData, "schema_version")
 		}
 
 		// Pretty print as yaml with syntax highlighting and indentation
