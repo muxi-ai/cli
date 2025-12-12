@@ -111,11 +111,15 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 
 	if trigger.Content != "" {
 		raw, _ := cmd.Flags().GetBool("raw")
+		fmt.Println("  Content:")
+		fmt.Println("  " + ui.DimmedText("────────────────────────────────────────"))
+		fmt.Println()
 		if raw {
 			fmt.Println(trigger.Content)
 		} else {
 			fmt.Println(ui.RenderMarkdown(trigger.Content))
 		}
+		fmt.Println("  " + ui.DimmedText("────────────────────────────────────────"))
 	}
 	fmt.Println()
 
