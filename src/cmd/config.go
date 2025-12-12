@@ -423,11 +423,11 @@ var resourceToCLI = map[string]string{
 	"/v1/logging":      "muxi config logging --remote",
 }
 
-// replaceResourceWithCLI recursively replaces "resource" keys with "cli" commands
+// replaceResourceWithCLI recursively replaces "resource" keys with "command" hints
 func replaceResourceWithCLI(data map[string]interface{}) {
 	if resource, ok := data["resource"].(string); ok {
 		if cli, found := resourceToCLI[resource]; found {
-			data["cli"] = cli
+			data["command"] = cli
 		}
 		delete(data, "resource")
 	}
