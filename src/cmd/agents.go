@@ -73,7 +73,13 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(resp.Agents) == 0 {
+	// Use AgentList if Agents is empty (per spec)
+	agents := resp.Agents
+	if len(agents) == 0 {
+		agents = resp.AgentList
+	}
+
+	if len(agents) == 0 {
 		fmt.Println()
 		ui.Dimmed("  No agents configured")
 		fmt.Println()
@@ -84,7 +90,7 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 
 	if verbose {
 		// Verbose: show detailed info for each agent
-		for i, agent := range resp.Agents {
+		for i, agent := range agents {
 			if i > 0 {
 				fmt.Println()
 				fmt.Println("  " + ui.DimmedText("───────────────────────────────────────"))
@@ -99,7 +105,7 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  %-20s %-14s %-13s %s\n",
 			"──────────────────", "────────────", "───────────", "─────────────────────")
 
-		for _, agent := range resp.Agents {
+		for _, agent := range agents {
 			statusIcon := ui.GreenText("●")
 			statusText := "active"
 			if agent.Status == "disabled" {

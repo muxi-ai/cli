@@ -29,11 +29,12 @@ type APIError struct {
 	Data    json.RawMessage `json:"data,omitempty"`
 }
 
-// HealthResponse from GET /health
+// HealthResponse from GET /health (plain JSON, no envelope)
 type HealthResponse struct {
 	Status      string `json:"status"`
 	FormationID string `json:"formation_id,omitempty"`
 	Version     string `json:"version,omitempty"`
+	Timestamp   string `json:"timestamp,omitempty"`
 }
 
 // StatusResponse from GET /status
@@ -135,8 +136,9 @@ type Agent struct {
 
 // AgentListResponse from GET /agents
 type AgentListResponse struct {
-	Agents []Agent `json:"agents"`
-	Count  int     `json:"count"`
+	Agents    []Agent `json:"agents"`
+	AgentList []Agent `json:"agent_list"` // Alternative field name per spec
+	Count     int     `json:"count"`
 }
 
 // MCPServer represents an MCP server
@@ -160,8 +162,13 @@ type MCPListResponse struct {
 
 // MCPConfigResponse from GET /mcp
 type MCPConfigResponse struct {
-	DefaultRetryAttempts  int `json:"default_retry_attempts"`
-	DefaultTimeoutSeconds int `json:"default_timeout_seconds"`
+	Defaults struct {
+		RetryAttempts  int `json:"retry_attempts"`
+		TimeoutSeconds int `json:"timeout_seconds"`
+	} `json:"defaults"`
+	// Legacy fields for backward compatibility
+	DefaultRetryAttempts  int `json:"default_retry_attempts,omitempty"`
+	DefaultTimeoutSeconds int `json:"default_timeout_seconds,omitempty"`
 	Servers               struct {
 		Total    int    `json:"total"`
 		Resource string `json:"resource"`
@@ -396,10 +403,50 @@ type LoggingDestination struct {
 type OverlordConfigResponse struct {
 	Persona    string `json:"persona,omitempty"`
 	SystemNote string `json:"system_note,omitempty"`
-	Routing    struct {
-		Strategy string `json:"strategy,omitempty"`
-		Fallback string `json:"fallback,omitempty"`
-	} `json:"routing,omitempty"`
+
+	Clarification struct {
+		Style              string `json:"style,omitempty"`
+		PersistLearnedInfo bool   `json:"persist_learned_info,omitempty"`
+		MaxRounds          struct {
+			Direct     int `json:"direct,omitempty"`
+			Brainstorm int `json:"brainstorm,omitempty"`
+			Planning   int `json:"planning,omitempty"`
+			Execution  int `json:"execution,omitempty"`
+		} `json:"max_rounds,omitempty"`
+	} `json:"clarification,omitempty"`
+
+	Workflow struct {
+		RoutingStrategy      string `json:"routing_strategy,omitempty"`
+		AutoDecomposition    bool   `json:"auto_decomposition,omitempty"`
+		PlanApprovalThreshold int   `json:"plan_approval_threshold,omitempty"`
+		ComplexityMethod     string `json:"complexity_method,omitempty"`
+		ParallelExecution    bool   `json:"parallel_execution,omitempty"`
+		MaxParallelTasks     int    `json:"max_parallel_tasks,omitempty"`
+		EnableAgentAffinity  bool   `json:"enable_agent_affinity,omitempty"`
+		ErrorRecovery        string `json:"error_recovery,omitempty"`
+		Timeouts             struct {
+			TaskTimeout     int `json:"task_timeout,omitempty"`
+			WorkflowTimeout int `json:"workflow_timeout,omitempty"`
+		} `json:"timeouts,omitempty"`
+	} `json:"workflow,omitempty"`
+
+	Response struct {
+		Format    string `json:"format,omitempty"`
+		Streaming bool   `json:"streaming,omitempty"`
+		Progress  bool   `json:"progress,omitempty"`
+	} `json:"response,omitempty"`
+
+	LLM struct {
+		Provider    string  `json:"provider,omitempty"`
+		Model       string  `json:"model,omitempty"`
+		Temperature float64 `json:"temperature,omitempty"`
+		MaxTokens   int     `json:"max_tokens,omitempty"`
+	} `json:"llm,omitempty"`
+
+	Caching struct {
+		Enabled bool `json:"enabled,omitempty"`
+		TTL     int  `json:"ttl,omitempty"`
+	} `json:"caching,omitempty"`
 }
 
 // ChatRequest for POST /chat
