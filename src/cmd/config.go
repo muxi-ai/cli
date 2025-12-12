@@ -490,7 +490,15 @@ func writeYAMLField(buf *bytes.Buffer, key string, value interface{}, indent int
 			buf.WriteString(fmt.Sprintf("%s  - %v\n", indentStr, item))
 		}
 	case string:
-		buf.WriteString(fmt.Sprintf("%s%s: %s\n", indentStr, key, v))
+		if strings.Contains(v, "\n") {
+			// Multi-line string: use YAML literal block scalar
+			buf.WriteString(fmt.Sprintf("%s%s: |\n", indentStr, key))
+			for _, line := range strings.Split(strings.TrimSuffix(v, "\n"), "\n") {
+				buf.WriteString(fmt.Sprintf("%s  %s\n", indentStr, line))
+			}
+		} else {
+			buf.WriteString(fmt.Sprintf("%s%s: %s\n", indentStr, key, v))
+		}
 	case float64:
 		if v == float64(int(v)) {
 			buf.WriteString(fmt.Sprintf("%s%s: %d\n", indentStr, key, int(v)))
