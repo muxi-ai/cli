@@ -16,7 +16,13 @@ var jobsCmd = &cobra.Command{
 	Long: `List and manage async jobs for a user.
 
 Jobs are created when triggers or chat requests are processed asynchronously.`,
-	RunE: runJobsList,
+}
+
+var jobsListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List async jobs",
+	RunE:    runJobsList,
 }
 
 var jobsCancelCmd = &cobra.Command{
@@ -28,10 +34,11 @@ var jobsCancelCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(jobsCmd)
+	jobsCmd.AddCommand(jobsListCmd)
 	jobsCmd.AddCommand(jobsCancelCmd)
 
 	// Common flags for jobs commands
-	formation.AddCommonFlags(jobsCmd)
+	formation.AddCommonFlags(jobsListCmd)
 	formation.AddCommonFlags(jobsCancelCmd)
 }
 
