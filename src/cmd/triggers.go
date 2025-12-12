@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"text/tabwriter"
-	"os"
 
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -62,17 +60,13 @@ func runTriggers(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println()
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintf(w, "    %s\t%s\n", ui.BoldText("NAME"), ui.BoldText("DESCRIPTION"))
-
-	for _, t := range resp.Triggers {
-		desc := t.Description
-		if desc == "" {
-			desc = ui.DimmedText("-")
-		}
-		fmt.Fprintf(w, "    %s\t%s\n", t.Name, desc)
+	ui.Bold("  Triggers:")
+	fmt.Println()
+	for _, name := range resp.Triggers {
+		fmt.Printf("    • %s\n", name)
 	}
-	w.Flush()
+	fmt.Println()
+	ui.Dimmed(fmt.Sprintf("  Use 'muxi triggers show <name>' for details"))
 	fmt.Println()
 
 	return nil
@@ -93,16 +87,21 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	fmt.Printf("  Trigger: %s\n", ui.BoldText(trigger.Name))
-	if trigger.Description != "" {
-		fmt.Printf("  Description: %s\n", trigger.Description)
-	}
 	fmt.Println()
 
-	if trigger.Template != "" {
+	if len(trigger.DataFields) > 0 {
+		fmt.Println("  Data Fields:")
+		for _, field := range trigger.DataFields {
+			fmt.Printf("    • ${{ data.%s }}\n", field)
+		}
+		fmt.Println()
+	}
+
+	if trigger.Content != "" {
 		fmt.Println("  Template:")
 		fmt.Println("  ─────────")
 		// Indent each line of the template
-		for _, line := range splitLines(trigger.Template) {
+		for _, line := range splitLines(trigger.Content) {
 			fmt.Printf("  %s\n", line)
 		}
 	}

@@ -271,14 +271,14 @@ func (c *Client) GetTriggers() (*TriggersListResponse, error) {
 }
 
 // GetTrigger gets details for a specific trigger
-func (c *Client) GetTrigger(name string) (*Trigger, error) {
+func (c *Client) GetTrigger(name string) (*TriggerDetail, error) {
 	resp, err := c.GetClient("/triggers/" + name)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return parseResponse[Trigger](resp)
+	return parseResponse[TriggerDetail](resp)
 }
 
 // GetSOPs lists all SOPs

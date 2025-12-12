@@ -173,17 +173,18 @@ type SecretsListResponse struct {
 	Count   int               `json:"count"`
 }
 
-// Trigger represents a trigger definition
-type Trigger struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Template    string `json:"template,omitempty"`
+// TriggersListResponse from GET /triggers
+// Note: API returns trigger names as strings, not objects
+type TriggersListResponse struct {
+	Triggers []string `json:"triggers"`
+	Count    int      `json:"count"`
 }
 
-// TriggersListResponse from GET /triggers
-type TriggersListResponse struct {
-	Triggers []Trigger `json:"triggers"`
-	Count    int       `json:"count"`
+// TriggerDetail from GET /triggers/{name}
+type TriggerDetail struct {
+	Name       string   `json:"name"`
+	Content    string   `json:"content"`
+	DataFields []string `json:"data_fields,omitempty"`
 }
 
 // SOP represents a Standard Operating Procedure
