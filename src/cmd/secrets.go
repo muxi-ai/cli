@@ -122,6 +122,8 @@ func runRemoteSecretsList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	secretsResp, err := client.GetSecrets()
 	if err != nil {
 		return fmt.Errorf("failed to get secrets: %w", err)

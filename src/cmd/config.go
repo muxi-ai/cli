@@ -56,6 +56,8 @@ func runRemoteConfig(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	configResp, err := client.GetConfig()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
@@ -137,6 +139,8 @@ func runConfigLLM(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
+		formation.PrintBadgeFromFlags(cmd)
+
 		llmSettings, err := client.GetLLMSettings()
 		if err != nil {
 			return fmt.Errorf("failed to get LLM settings: %w", err)
@@ -184,6 +188,8 @@ func runConfigMemory(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+
+		formation.PrintBadgeFromFlags(cmd)
 
 		memoryConfig, err := client.GetMemoryConfig()
 		if err != nil {
@@ -233,6 +239,8 @@ func runConfigOverlord(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+
+		formation.PrintBadgeFromFlags(cmd)
 
 		overlordConfig, err := client.GetOverlordConfig()
 		if err != nil {
