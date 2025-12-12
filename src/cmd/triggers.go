@@ -86,6 +86,8 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	trigger, err := client.GetTrigger(triggerName)
 	if err != nil {
 		fmt.Println()
@@ -93,8 +95,6 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		return nil
 	}
-
-	formation.PrintBadgeFromFlags(cmd)
 
 	fmt.Println()
 	fmt.Printf("  Trigger: %s\n", ui.BoldText(trigger.Name))
