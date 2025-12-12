@@ -44,30 +44,34 @@ func runRequest(cmd *cobra.Command, args []string) error {
 	formation.PrintBadgeFromFlags(cmd)
 
 	fmt.Println()
-	fmt.Printf("  Request ID: %s\n", status.RequestID)
+	fmt.Printf("  %s\n", ui.BoldText(status.RequestID))
 
-	// Status with color
-	var statusDisplay string
+	// Status with icon
+	var statusIcon, statusText string
 	switch status.Status {
 	case "completed":
-		statusDisplay = ui.GreenText("completed")
+		statusIcon = ui.GreenText("●")
+		statusText = "completed"
 	case "processing":
-		statusDisplay = ui.CyanText("processing")
+		statusIcon = ui.CyanText("●")
+		statusText = "processing"
 	case "failed":
-		statusDisplay = ui.RedText("failed")
+		statusIcon = ui.RedText("●")
+		statusText = "failed"
 	default:
-		statusDisplay = status.Status
+		statusIcon = ui.DimmedText("○")
+		statusText = status.Status
 	}
-	fmt.Printf("  Status:     %s\n", statusDisplay)
+	fmt.Printf("   Status:    %s %s\n", statusIcon, statusText)
 
 	if status.Progress != "" {
-		fmt.Printf("  Progress:   %s\n", status.Progress)
+		fmt.Printf("   Progress:  %s\n", status.Progress)
 	}
 	if status.Error != "" {
-		fmt.Printf("  Error:      %s\n", ui.RedText(status.Error))
+		fmt.Printf("   Error:     %s\n", ui.RedText(status.Error))
 	}
 	if status.CompletedAt != nil {
-		fmt.Printf("  Completed:  %s\n", status.CompletedAt.Format("Jan 2, 2006 3:04pm"))
+		fmt.Printf("   Completed: %s\n", status.CompletedAt.Format("Jan 2, 2006 3:04pm"))
 	}
 	fmt.Println()
 
