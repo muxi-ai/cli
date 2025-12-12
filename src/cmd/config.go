@@ -536,7 +536,8 @@ func writeYAMLField(buf *bytes.Buffer, key string, value interface{}, indent int
 
 // writeYAMLArrayItem writes a map as a YAML array item (with leading "- ")
 func writeYAMLArrayItem(buf *bytes.Buffer, data map[string]interface{}, indent int) {
-	indentStr := strings.Repeat("  ", indent)
+	baseIndent := strings.Repeat("  ", indent)
+	contentIndent := baseIndent + "  " // Content after "- " aligns here
 	
 	// Sort keys for consistent output
 	keys := make([]string, 0, len(data))
@@ -545,23 +546,19 @@ func writeYAMLArrayItem(buf *bytes.Buffer, data map[string]interface{}, indent i
 	}
 	sort.Strings(keys)
 
-	first := true
-	for _, key := range keys {
+	for i, key := range keys {
 		value := data[key]
-		if first {
-			// First key gets the "- " prefix
-			buf.WriteString(fmt.Sprintf("%s- %s: ", indentStr, key))
-			first = false
+		if i == 0 {
+			buf.WriteString(fmt.Sprintf("%s- %s:", baseIndent, key))
 		} else {
-			// Subsequent keys are indented to align
-			buf.WriteString(fmt.Sprintf("%s  %s: ", indentStr, key))
+			buf.WriteString(fmt.Sprintf("%s%s:", contentIndent, key))
 		}
-		writeYAMLValue(buf, value, indent+1)
+		writeYAMLValueForArrayItem(buf, value, indent+1)
 	}
 }
 
-// writeYAMLValue writes a value (used for array item values)
-func writeYAMLValue(buf *bytes.Buffer, value interface{}, indent int) {
+// writeYAMLValueForArrayItem writes a value within an array item context
+func writeYAMLValueForArrayItem(buf *bytes.Buffer, value interface{}, indent int) {
 	indentStr := strings.Repeat("  ", indent)
 
 	switch v := value.(type) {
@@ -573,7 +570,8 @@ func writeYAMLValue(buf *bytes.Buffer, value interface{}, indent int) {
 		}
 		sort.Strings(keys)
 		for _, key := range keys {
-			writeYAMLField(buf, key, v[key], indent)
+			buf.WriteString(fmt.Sprintf("%s  %s:", indentStr, key))
+			writeYAMLValueForArrayItem(buf, v[key], indent+1)
 		}
 	case []interface{}:
 		buf.WriteString("\n")
@@ -586,22 +584,22 @@ func writeYAMLValue(buf *bytes.Buffer, value interface{}, indent int) {
 		}
 	case string:
 		if strings.Contains(v, "\n") {
-			buf.WriteString("|\n")
+			buf.WriteString(" |\n")
 			for _, line := range strings.Split(strings.TrimSuffix(v, "\n"), "\n") {
-				buf.WriteString(fmt.Sprintf("%s%s\n", indentStr, line))
+				buf.WriteString(fmt.Sprintf("%s  %s\n", indentStr, line))
 			}
 		} else {
-			buf.WriteString(fmt.Sprintf("%s\n", v))
+			buf.WriteString(fmt.Sprintf(" %s\n", v))
 		}
 	case float64:
 		if v == float64(int(v)) {
-			buf.WriteString(fmt.Sprintf("%d\n", int(v)))
+			buf.WriteString(fmt.Sprintf(" %d\n", int(v)))
 		} else {
-			buf.WriteString(fmt.Sprintf("%v\n", v))
+			buf.WriteString(fmt.Sprintf(" %v\n", v))
 		}
 	case bool:
-		buf.WriteString(fmt.Sprintf("%t\n", v))
+		buf.WriteString(fmt.Sprintf(" %t\n", v))
 	default:
-		buf.WriteString(fmt.Sprintf("%v\n", v))
+		buf.WriteString(fmt.Sprintf(" %v\n", v))
 	}
 }
