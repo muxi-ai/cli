@@ -26,9 +26,10 @@ var formationCmd = &cobra.Command{
 }
 
 var formationListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List deployed formations",
-	RunE:  runFormationList,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List deployed formations",
+	RunE:    runFormationList,
 }
 
 var formationGetCmd = &cobra.Command{

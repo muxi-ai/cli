@@ -17,9 +17,10 @@ var mcpCmd = &cobra.Command{
 }
 
 var mcpListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List MCP servers in the formation",
-	RunE:  runMCPList,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List MCP servers in the formation",
+	RunE:    runMCPList,
 }
 
 func init() {

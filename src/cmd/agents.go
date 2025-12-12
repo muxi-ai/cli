@@ -16,9 +16,10 @@ var agentsCmd = &cobra.Command{
 }
 
 var agentsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List agents in the formation",
-	RunE:  runAgentsList,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List agents in the formation",
+	RunE:    runAgentsList,
 }
 
 func init() {
