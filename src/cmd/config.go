@@ -59,7 +59,10 @@ func runRemoteConfig(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	formation.PrintBadgeFromFlags(cmd)
+	raw, _ := cmd.Flags().GetBool("raw")
+	if !raw {
+		formation.PrintBadgeFromFlags(cmd)
+	}
 
 	configResp, err := client.GetConfig()
 	if err != nil {
@@ -67,10 +70,10 @@ func runRemoteConfig(cmd *cobra.Command, args []string) error {
 	}
 
 	output, _ := cmd.Flags().GetString("output")
-	return printConfigOutput(configResp, output)
+	return printConfigOutput(configResp, output, raw)
 }
 
-func printConfigOutput(data interface{}, format string) error {
+func printConfigOutput(data interface{}, format string, raw bool) error {
 	switch format {
 	case "json":
 		enc := json.NewEncoder(os.Stdout)
@@ -93,8 +96,13 @@ func printConfigOutput(data interface{}, format string) error {
 		// Build ordered output (schema, version, id, description first)
 		orderedYAML := buildOrderedConfigYAML(mapData)
 
-		fmt.Println()
-		fmt.Println(ui.IndentString(ui.RenderYAML(orderedYAML), 2))
+		if raw {
+			// Raw output: no colors, no indent, no badge
+			fmt.Print(orderedYAML)
+		} else {
+			fmt.Println()
+			fmt.Println(ui.IndentString(ui.RenderYAML(orderedYAML), 2))
+		}
 		return nil
 	}
 }
@@ -157,7 +165,10 @@ func runConfigLLM(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		formation.PrintBadgeFromFlags(cmd)
+		raw, _ := cmd.Flags().GetBool("raw")
+		if !raw {
+			formation.PrintBadgeFromFlags(cmd)
+		}
 
 		llmSettings, err := client.GetLLMSettings()
 		if err != nil {
@@ -165,7 +176,7 @@ func runConfigLLM(cmd *cobra.Command, args []string) error {
 		}
 
 		output, _ := cmd.Flags().GetString("output")
-		return printConfigOutput(llmSettings, output)
+		return printConfigOutput(llmSettings, output, raw)
 	}
 
 	if err := scaffold.ConfigureLLM(); err != nil {
@@ -207,7 +218,10 @@ func runConfigMemory(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		formation.PrintBadgeFromFlags(cmd)
+		raw, _ := cmd.Flags().GetBool("raw")
+		if !raw {
+			formation.PrintBadgeFromFlags(cmd)
+		}
 
 		memoryConfig, err := client.GetMemoryConfig()
 		if err != nil {
@@ -215,7 +229,7 @@ func runConfigMemory(cmd *cobra.Command, args []string) error {
 		}
 
 		output, _ := cmd.Flags().GetString("output")
-		return printConfigOutput(memoryConfig, output)
+		return printConfigOutput(memoryConfig, output, raw)
 	}
 
 	if err := scaffold.ConfigureMemory(); err != nil {
@@ -258,7 +272,10 @@ func runConfigOverlord(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		formation.PrintBadgeFromFlags(cmd)
+		raw, _ := cmd.Flags().GetBool("raw")
+		if !raw {
+			formation.PrintBadgeFromFlags(cmd)
+		}
 
 		overlordConfig, err := client.GetOverlordConfig()
 		if err != nil {
@@ -266,7 +283,7 @@ func runConfigOverlord(cmd *cobra.Command, args []string) error {
 		}
 
 		output, _ := cmd.Flags().GetString("output")
-		return printConfigOutput(overlordConfig, output)
+		return printConfigOutput(overlordConfig, output, raw)
 	}
 
 	if err := scaffold.ConfigureOverlord(); err != nil {
@@ -356,21 +373,25 @@ Examples:
 }
 
 func init() {
-	// Add --remote and --output flags to config and subcommands
+	// Add --remote, --output, and --raw flags to config and subcommands
 	configCmd.Flags().Bool("remote", false, "Fetch config from remote Formation API")
 	configCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	configCmd.Flags().Bool("raw", false, "Output plain YAML without formatting (no colors, no indent, no badge)")
 	formation.AddCommonFlags(configCmd)
 
 	configLLMCmd.Flags().Bool("remote", false, "Fetch LLM settings from remote Formation API")
 	configLLMCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	configLLMCmd.Flags().Bool("raw", false, "Output plain YAML without formatting (no colors, no indent, no badge)")
 	formation.AddCommonFlags(configLLMCmd)
 
 	configMemoryCmd.Flags().Bool("remote", false, "Fetch memory config from remote Formation API")
 	configMemoryCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	configMemoryCmd.Flags().Bool("raw", false, "Output plain YAML without formatting (no colors, no indent, no badge)")
 	formation.AddCommonFlags(configMemoryCmd)
 
 	configOverlordCmd.Flags().Bool("remote", false, "Fetch overlord config from remote Formation API")
 	configOverlordCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	configOverlordCmd.Flags().Bool("raw", false, "Output plain YAML without formatting (no colors, no indent, no badge)")
 	formation.AddCommonFlags(configOverlordCmd)
 
 	// Add flags to config a2a
