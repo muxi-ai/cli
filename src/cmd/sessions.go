@@ -11,17 +11,24 @@ import (
 
 var sessionsCmd = &cobra.Command{
 	Use:     "sessions",
-	Short:   "List user sessions",
+	Short:   "Manage user sessions",
 	GroupID: "formation",
-	Long: `List active sessions for a user in the current formation.
+	Long: `Manage user sessions in the current formation.
 
-Sessions are ephemeral and stored in memory. Only active sessions with 
-recent activity are displayed. Inactive sessions are automatically 
-cleaned up by the formation.
+Sessions are ephemeral and stored in memory. Inactive sessions are 
+automatically cleaned up by the formation.`,
+}
+
+var sessionsListCmd = &cobra.Command{
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List user sessions",
+	Long: `List active sessions for a user.
 
 Requires a user ID (via -u flag, .muxi file, or global default).`,
-	Example: `  muxi sessions -u alice`,
-	RunE:    runSessions,
+	Example: `  muxi sessions list -u alice
+  muxi sessions list --limit 20`,
+	RunE: runSessionsList,
 }
 
 var sessionsShowCmd = &cobra.Command{
@@ -45,19 +52,20 @@ var sessionsMessagesCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(sessionsCmd)
+	sessionsCmd.AddCommand(sessionsListCmd)
 	sessionsCmd.AddCommand(sessionsShowCmd)
 	sessionsCmd.AddCommand(sessionsMessagesCmd)
 
-	sessionsCmd.Flags().Int("limit", 10, "Maximum number of sessions to return")
+	sessionsListCmd.Flags().Int("limit", 10, "Maximum number of sessions to return")
 	sessionsMessagesCmd.Flags().IntP("lines", "n", 0, "Limit number of messages (0 = all)")
 	sessionsMessagesCmd.Flags().Bool("json", false, "Output as JSON")
 
-	formation.AddCommonFlags(sessionsCmd)
+	formation.AddCommonFlags(sessionsListCmd)
 	formation.AddCommonFlags(sessionsShowCmd)
 	formation.AddCommonFlags(sessionsMessagesCmd)
 }
 
-func runSessions(cmd *cobra.Command, args []string) error {
+func runSessionsList(cmd *cobra.Command, args []string) error {
 	client, userID, err := formation.ClientAndUserFromFlags(cmd)
 	if err != nil {
 		return err
