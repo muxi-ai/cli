@@ -19,17 +19,27 @@ Jobs are created when triggers or chat requests are processed asynchronously.`,
 }
 
 var jobsListCmd = &cobra.Command{
-	Use:     "list",
+	Use:   "list [user-id]",
 	Aliases: []string{"ls"},
-	Short:   "List async jobs",
-	RunE:    runJobsList,
+	Short: "List async jobs",
+	Long: `List async jobs for a user.
+
+User ID can be provided as argument or will use default user if set.`,
+	Example: `  muxi jobs list
+  muxi jobs list alice`,
+	RunE: runJobsList,
 }
 
 var jobsCancelCmd = &cobra.Command{
-	Use:   "cancel <job_id>",
+	Use:   "cancel <job-id> [user-id]",
 	Short: "Cancel an async job",
-	Args:  RequireArgs(1),
-	RunE:  runJobsCancel,
+	Long: `Cancel an async job.
+
+User ID can be provided as second argument or will use default user if set.`,
+	Example: `  muxi jobs cancel job_123
+  muxi jobs cancel job_123 alice`,
+	Args: RequireArgs(1),
+	RunE: runJobsCancel,
 }
 
 func init() {
@@ -37,15 +47,28 @@ func init() {
 	jobsCmd.AddCommand(jobsListCmd)
 	jobsCmd.AddCommand(jobsCancelCmd)
 
-	// Common flags for jobs commands
-	formation.AddCommonFlags(jobsListCmd)
-	formation.AddCommonFlags(jobsCancelCmd)
+	// Formation and profile flags only (user from arg or default)
+	formation.AddFormationFlag(jobsListCmd)
+	formation.AddProfileFlag(jobsListCmd)
+	formation.AddFormationFlag(jobsCancelCmd)
+	formation.AddProfileFlag(jobsCancelCmd)
 }
 
 func runJobsList(cmd *cobra.Command, args []string) error {
-	client, userID, err := formation.ClientAndUserFromFlags(cmd)
+	client, err := formation.ClientFromFlags(cmd)
 	if err != nil {
 		return err
+	}
+
+	// User from arg or default
+	var userID string
+	if len(args) > 0 {
+		userID = args[0]
+	} else {
+		userID, err = formation.MustResolveUserID("")
+		if err != nil {
+			return fmt.Errorf("user ID required: provide as argument or set default with: muxi set default user")
+		}
 	}
 
 	resp, err := client.GetJobs(userID)
@@ -116,9 +139,20 @@ func runJobsList(cmd *cobra.Command, args []string) error {
 func runJobsCancel(cmd *cobra.Command, args []string) error {
 	jobID := args[0]
 
-	client, userID, err := formation.ClientAndUserFromFlags(cmd)
+	client, err := formation.ClientFromFlags(cmd)
 	if err != nil {
 		return err
+	}
+
+	// User from second arg or default
+	var userID string
+	if len(args) > 1 {
+		userID = args[1]
+	} else {
+		userID, err = formation.MustResolveUserID("")
+		if err != nil {
+			return fmt.Errorf("user ID required: provide as second argument or set default with: muxi set default user")
+		}
 	}
 
 	spinner := ui.NewSpinner(fmt.Sprintf("Cancelling job '%s'...", jobID))
