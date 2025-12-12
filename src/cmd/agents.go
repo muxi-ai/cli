@@ -202,7 +202,7 @@ func runAgentsShow(cmd *cobra.Command, args []string) error {
 	} else {
 		// Formatted output with syntax highlighting and indentation
 		fmt.Println()
-		fmt.Println(ui.IndentString(ui.RenderYAML(string(yamlBytes)), 3))
+		fmt.Println(ui.IndentString(ui.RenderYAML(string(yamlBytes)), 2))
 	}
 
 	return nil
