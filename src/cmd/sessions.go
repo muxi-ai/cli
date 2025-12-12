@@ -12,19 +12,21 @@ var sessionsCmd = &cobra.Command{
 	Use:     "sessions",
 	Short:   "List user sessions",
 	GroupID: "formation",
-	Long: `List sessions for a user in the current formation.
+	Long: `List active sessions for a user in the current formation.
+
+Sessions are ephemeral and stored in memory. Only active sessions with 
+recent activity are displayed. Inactive sessions are automatically 
+cleaned up by the formation.
 
 Requires a user ID (via -u flag, .muxi file, or global default).`,
-	Example: `  muxi sessions -u test-user
-  muxi sessions --active`,
-	RunE: runSessions,
+	Example: `  muxi sessions -u alice`,
+	RunE:    runSessions,
 }
 
 func init() {
 	rootCmd.AddCommand(sessionsCmd)
 
 	formation.AddCommonFlags(sessionsCmd)
-	sessionsCmd.Flags().Bool("active", false, "Show only active sessions")
 }
 
 func runSessions(cmd *cobra.Command, args []string) error {
@@ -32,8 +34,6 @@ func runSessions(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
-	activeOnly, _ := cmd.Flags().GetBool("active")
 
 	spinner := ui.NewSpinner("Fetching sessions...")
 	spinner.Start()
@@ -50,54 +50,28 @@ func runSessions(cmd *cobra.Command, args []string) error {
 
 	if sessions.Count == 0 {
 		fmt.Println()
-		ui.Dimmed("  No sessions found")
+		ui.Dimmed("  No active sessions")
 		fmt.Println()
 		return nil
 	}
 
-	// Filter if --active
-	displaySessions := sessions.Sessions
-	if activeOnly {
-		var filtered []formation.Session
-		for _, s := range sessions.Sessions {
-			if s.Status == "active" {
-				filtered = append(filtered, s)
-			}
-		}
-		displaySessions = filtered
-		if len(filtered) == 0 {
-			fmt.Println()
-			ui.Dimmed("  No active sessions found")
-			fmt.Println()
-			return nil
-		}
-	}
-
 	// Print header
 	fmt.Println()
-	fmt.Printf("  %-20s  %-10s  %-18s  %s\n",
+	fmt.Printf("  %-20s  %-10s  %s\n",
 		ui.BoldText("SESSION ID"),
 		ui.BoldText("MESSAGES"),
-		ui.BoldText("LAST ACTIVITY"),
-		ui.BoldText("STATUS"))
+		ui.BoldText("LAST ACTIVITY"))
 
 	// Print sessions
-	for _, s := range displaySessions {
-		statusIcon := "○"
-		if s.Status == "active" {
-			statusIcon = ui.GreenText("●")
-		}
-
-		fmt.Printf("  %-20s  %-10d  %-18s  %s %s\n",
+	for _, s := range sessions.Sessions {
+		fmt.Printf("  %-20s  %-10d  %s\n",
 			s.ID,
 			s.MessageCount,
-			formatTimeAgo(s.LastActivity),
-			statusIcon,
-			s.Status)
+			formatTimeAgo(s.LastActivity))
 	}
 
 	fmt.Println()
-	ui.Dimmed(fmt.Sprintf("  %d session(s) for user %s", len(displaySessions), userID))
+	ui.Dimmed(fmt.Sprintf("  %d session(s) for user %s", sessions.Count, userID))
 	fmt.Println()
 
 	return nil
