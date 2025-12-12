@@ -183,22 +183,10 @@ func (c *Client) Health() (*HealthResponse, error) {
 		return nil, fmt.Errorf("formation returned: %s", resp.Status)
 	}
 
-	// Formation API wraps everything in APIResponse envelope
-	var apiResp APIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
-	}
-
-	if !apiResp.Success {
-		if apiResp.Error != nil {
-			return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
-		}
-		return nil, fmt.Errorf("health check failed")
-	}
-
+	// Health endpoint returns plain JSON (no envelope)
 	var result HealthResponse
-	if err := json.Unmarshal(apiResp.Data, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse health data: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse health response: %w", err)
 	}
 
 	return &result, nil
