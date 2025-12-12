@@ -28,9 +28,10 @@ var serverAddCmd = &cobra.Command{
 }
 
 var serverListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List server connections",
-	RunE:  runServerList,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List server connections",
+	RunE:    runServerList,
 }
 
 var serverRemoveCmd = &cobra.Command{
