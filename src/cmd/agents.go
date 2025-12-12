@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -66,32 +65,35 @@ func runAgentsList(cmd *cobra.Command, args []string) error {
 			displayAgentVerbose(agent)
 		}
 	} else {
-		// Build markdown table
-		var sb strings.Builder
-		sb.WriteString("| ID | Role | Status | Model |\n")
-		sb.WriteString("|---|---|---|---|\n")
+		// Table format
+		fmt.Printf("  %-20s %-14s %-13s %s\n",
+			"ID", "ROLE", "STATUS", "MODEL")
+		fmt.Printf("  %-20s %-14s %-13s %s\n",
+			"──────────────────", "────────────", "───────────", "─────────────────────")
 
 		for _, agent := range resp.Agents {
-			status := "● active"
+			statusIcon := ui.GreenText("●")
+			statusText := "active"
 			if agent.Status == "disabled" {
-				status = "○ disabled"
+				statusIcon = ui.DimmedText("○")
+				statusText = "disabled"
 			} else if agent.Status != "" && agent.Status != "active" {
-				status = "○ " + agent.Status
+				statusIcon = ui.DimmedText("○")
+				statusText = agent.Status
 			}
 
 			model := agent.Model
 			if model == "" {
-				model = "-"
+				model = ui.DimmedText("-")
 			}
 
-			sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
-				agent.ID,
-				agent.Role,
-				status,
-				model))
+			fmt.Printf("  %-20s %-14s %s %-10s %s\n",
+				truncateStr(agent.ID, 20),
+				truncateStr(agent.Role, 14),
+				statusIcon,
+				statusText,
+				model)
 		}
-
-		fmt.Println(ui.RenderMarkdown(sb.String()))
 	}
 
 	fmt.Println()
