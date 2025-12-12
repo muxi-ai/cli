@@ -405,17 +405,36 @@ func cleanConfigOutput(data map[string]interface{}) {
 		delete(data, "formation_id")
 	}
 
-	// Recursively remove "resource" keys
-	removeResourceKeys(data)
+	// Replace "resource" keys with CLI commands
+	replaceResourceWithCLI(data)
 }
 
-// removeResourceKeys recursively removes "resource" keys from nested maps
-func removeResourceKeys(data map[string]interface{}) {
-	delete(data, "resource")
+// resourceToCLI maps API resource paths to CLI commands
+var resourceToCLI = map[string]string{
+	"/v1/agents":       "muxi agents ls",
+	"/v1/mcp/servers":  "muxi mcp ls",
+	"/v1/secrets":      "muxi secrets ls --remote",
+	"/v1/llm/settings": "muxi config llm --remote",
+	"/v1/memory":       "muxi config memory --remote",
+	"/v1/overlord":     "muxi config overlord --remote",
+	"/v1/a2a":          "muxi config a2a --remote",
+	"/v1/async":        "muxi config async --remote",
+	"/v1/scheduler":    "muxi scheduler status",
+	"/v1/logging":      "muxi config logging --remote",
+}
+
+// replaceResourceWithCLI recursively replaces "resource" keys with "cli" commands
+func replaceResourceWithCLI(data map[string]interface{}) {
+	if resource, ok := data["resource"].(string); ok {
+		if cli, found := resourceToCLI[resource]; found {
+			data["cli"] = cli
+		}
+		delete(data, "resource")
+	}
 
 	for _, v := range data {
 		if nested, ok := v.(map[string]interface{}); ok {
-			removeResourceKeys(nested)
+			replaceResourceWithCLI(nested)
 		}
 	}
 }
