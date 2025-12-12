@@ -113,20 +113,27 @@ func runSessionsList(cmd *cobra.Command, args []string) error {
 
 	// Print header
 	fmt.Println()
-	fmt.Printf("  %-20s  %-10s  %s\n",
-		ui.BoldText("SESSION ID"),
-		ui.BoldText("MESSAGES"),
-		ui.BoldText("LAST ACTIVITY"))
+	fmt.Printf("  %-24s %-12s %s\n",
+		"SESSION ID", "STATUS", "LAST ACTIVITY")
+	fmt.Printf("  %-24s %-12s %s\n",
+		"──────────────────────", "──────────", "─────────────────")
 
 	// Print sessions
 	for _, s := range sessions.Sessions {
 		lastActivity := "unknown"
 		if s.LastActivity != nil {
-			lastActivity = formatTimeAgo(*s.LastActivity)
+			lastActivity = formatTimeAgo(s.LastActivity.Time)
 		}
-		fmt.Printf("  %-20s  %-10d  %s\n",
+		statusIcon := ui.DimmedText("○")
+		statusText := "inactive"
+		if s.Active {
+			statusIcon = ui.GreenText("●")
+			statusText = "active"
+		}
+		fmt.Printf("  %-24s %s %-9s %s\n",
 			s.ID,
-			s.MessageCount,
+			statusIcon,
+			statusText,
 			lastActivity)
 	}
 

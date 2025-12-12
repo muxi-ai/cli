@@ -2,8 +2,57 @@ package formation
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
+
+// FlexTime handles both ISO 8601 strings and Unix timestamps
+type FlexTime struct {
+	time.Time
+}
+
+func (ft *FlexTime) UnmarshalJSON(data []byte) error {
+	// Try string first (ISO 8601)
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		if s == "" {
+			ft.Time = time.Time{}
+			return nil
+		}
+		t, err := time.Parse(time.RFC3339, s)
+		if err != nil {
+			// Try other formats
+			t, err = time.Parse("2006-01-02T15:04:05Z", s)
+		}
+		if err != nil {
+			return fmt.Errorf("cannot parse time string: %s", s)
+		}
+		ft.Time = t
+		return nil
+	}
+
+	// Try Unix timestamp (seconds or milliseconds)
+	var n int64
+	if err := json.Unmarshal(data, &n); err == nil {
+		if n > 1e12 {
+			// Milliseconds
+			ft.Time = time.UnixMilli(n)
+		} else {
+			// Seconds
+			ft.Time = time.Unix(n, 0)
+		}
+		return nil
+	}
+
+	// Try float (seconds with decimals)
+	var f float64
+	if err := json.Unmarshal(data, &f); err == nil {
+		ft.Time = time.Unix(int64(f), int64((f-float64(int64(f)))*1e9))
+		return nil
+	}
+
+	return fmt.Errorf("cannot unmarshal time from: %s", string(data))
+}
 
 // APIResponse is the standard envelope for all Formation API responses
 type APIResponse struct {
@@ -213,12 +262,11 @@ type SOPsListResponse struct {
 
 // Session represents a user session
 type Session struct {
-	ID           string     `json:"id"`
-	UserID       string     `json:"user_id"`
-	MessageCount int        `json:"message_count"`
-	LastActivity *time.Time `json:"last_activity,omitempty"`
-	Status       string     `json:"status"` // active, inactive
-	CreatedAt    *time.Time `json:"created_at,omitempty"`
+	ID           string    `json:"session_id"`
+	UserID       string    `json:"user_id,omitempty"`
+	LastActivity *FlexTime `json:"last_activity,omitempty"`
+	Active       bool      `json:"active,omitempty"`
+	CreatedAt    *FlexTime `json:"created_at,omitempty"`
 }
 
 // SessionsListResponse from GET /sessions
