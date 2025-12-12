@@ -56,14 +56,20 @@ func runTriggers(cmd *cobra.Command, args []string) error {
 
 	if resp.Count == 0 {
 		fmt.Println()
-		ui.Dimmed("  No triggers defined")
+		ui.Dimmed("  No triggers found")
 		fmt.Println()
 		return nil
 	}
 
 	fmt.Println()
+	if resp.Count == 1 {
+		fmt.Println("  1 trigger found:")
+	} else {
+		fmt.Printf("  %d triggers found:\n", resp.Count)
+	}
+	fmt.Println()
 	for _, name := range resp.Triggers {
-		fmt.Printf("  • %s\n", name)
+		fmt.Printf("    • %s\n", name)
 	}
 	fmt.Println()
 	ui.Dimmed("  Use 'muxi triggers show <name>' for details")
