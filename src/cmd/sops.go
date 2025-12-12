@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"text/tabwriter"
 
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -51,6 +49,8 @@ func runSopsList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	resp, err := client.GetSOPs()
 	if err != nil {
 		return fmt.Errorf("failed to get SOPs: %w", err)
@@ -58,31 +58,36 @@ func runSopsList(cmd *cobra.Command, args []string) error {
 
 	if resp.Count == 0 {
 		fmt.Println()
-		ui.Dimmed("  No SOPs defined in this formation")
+		ui.Dimmed("  No SOPs found")
 		fmt.Println()
 		return nil
 	}
 
 	fmt.Println()
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintf(w, "    %s\t%s\t%s\n", ui.BoldText("NAME"), ui.BoldText("TYPE"), ui.BoldText("DESCRIPTION"))
+	if resp.Count == 1 {
+		fmt.Println("  1 SOP found:")
+	} else {
+		fmt.Printf("  %d SOPs found:\n", resp.Count)
+	}
+	fmt.Println()
 
 	for _, s := range resp.SOPs {
 		sopType := s.Type
 		if sopType == "" {
 			sopType = "template"
 		}
-		desc := s.Description
-		if desc == "" {
-			desc = ui.DimmedText("-")
+		fmt.Printf("    • %s (%s)\n", s.Name, sopType)
+		if s.Description != "" {
+			desc := s.Description
+			if len(desc) > 60 {
+				desc = desc[:57] + "..."
+			}
+			fmt.Printf("      %s\n", ui.DimmedText(desc))
 		}
-		// Truncate long descriptions
-		if len(desc) > 50 {
-			desc = desc[:47] + "..."
-		}
-		fmt.Fprintf(w, "    %s\t%s\t%s\n", s.Name, sopType, desc)
+		fmt.Println()
 	}
-	w.Flush()
+
+	ui.Dimmed("  Use 'muxi sops show <name>' for details")
 	fmt.Println()
 
 	return nil
@@ -96,34 +101,44 @@ func runSopsShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	sop, err := client.GetSOP(name)
 	if err != nil {
 		return fmt.Errorf("failed to get SOP '%s': %w", name, err)
 	}
 
+	sopType := sop.Type
+	if sopType == "" {
+		sopType = "template"
+	}
+
 	fmt.Println()
-	fmt.Printf("  SOP: %s\n", ui.BoldText(sop.Name))
+	fmt.Printf("  %s (%s)\n", ui.BoldText(sop.Name), sopType)
+	if sop.Description != "" {
+		fmt.Printf("  %s\n", ui.DimmedText(sop.Description))
+	}
 	fmt.Println()
 
-	if sop.Description != "" {
-		fmt.Printf("    Description:  %s\n", sop.Description)
-	}
-	if sop.Type != "" {
-		fmt.Printf("    Type:         %s\n", sop.Type)
-	}
 	if sop.Steps > 0 {
-		fmt.Printf("    Steps:        %d\n", sop.Steps)
+		fmt.Printf("  Steps:   %d\n", sop.Steps)
 	}
 	if len(sop.Agents) > 0 {
-		fmt.Printf("    Agents:       %v\n", sop.Agents)
+		fmt.Printf("  Agents:  %v\n", sop.Agents)
 	}
-	fmt.Println()
+	if sop.Steps > 0 || len(sop.Agents) > 0 {
+		fmt.Println()
+	}
 
 	if sop.Content != "" {
-		fmt.Println("    Content:")
-		fmt.Println("    " + ui.DimmedText("─────────────────────────────────────────"))
-		fmt.Println(ui.Indent(sop.Content, 2))
-		fmt.Println("    " + ui.DimmedText("─────────────────────────────────────────"))
+		fmt.Println("  Content:")
+		fmt.Println("  " + ui.DimmedText("─────────────────────────────────────────"))
+		// Indent content by 2 spaces
+		lines := splitLines(sop.Content)
+		for _, line := range lines {
+			fmt.Printf("  %s\n", line)
+		}
+		fmt.Println("  " + ui.DimmedText("─────────────────────────────────────────"))
 		fmt.Println()
 	}
 
