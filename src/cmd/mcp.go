@@ -68,6 +68,8 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 		for i, server := range servers {
 			if i > 0 {
 				fmt.Println()
+				fmt.Println("  " + ui.DimmedText("───────────────────────────────────────"))
+				fmt.Println()
 			}
 			displayMCPServerVerbose(server)
 		}
@@ -115,15 +117,14 @@ func runMCPList(cmd *cobra.Command, args []string) error {
 }
 
 func displayMCPServerVerbose(server formation.MCPServer) {
-	fmt.Printf("  Server: %s\n", server.ID)
+	fmt.Printf("  %s\n", ui.BoldText(server.ID))
 	if server.Name != "" && server.Name != server.ID {
-		fmt.Printf("  Name:        %s\n", server.Name)
+		fmt.Printf("   Name:        %s\n", server.Name)
 	}
-	fmt.Printf("  Type:        %s\n", server.Type)
+	fmt.Printf("   Type:        %s\n", server.Type)
 	if server.Description != "" {
-		fmt.Printf("  Description: %s\n", server.Description)
+		fmt.Printf("   Description: %s\n", server.Description)
 	}
-	fmt.Println()
 
 	// Status
 	statusIcon := ui.GreenText("●")
@@ -135,7 +136,7 @@ func displayMCPServerVerbose(server formation.MCPServer) {
 		statusIcon = ui.DimmedText("○")
 		statusText = server.Status
 	}
-	fmt.Printf("  Status:      %s %s\n", statusIcon, statusText)
+	fmt.Printf("   Status:      %s %s\n", statusIcon, statusText)
 
 	// Tools
 	toolsCount := server.ToolsCount
@@ -144,14 +145,14 @@ func displayMCPServerVerbose(server formation.MCPServer) {
 	}
 
 	if toolsCount > 0 {
-		fmt.Printf("  Tools:       %d available\n", toolsCount)
+		fmt.Printf("   Tools:       %d available\n", toolsCount)
 		if len(server.Tools) > 0 {
 			// Show first few tools
 			maxShow := 5
 			if len(server.Tools) <= maxShow {
-				fmt.Printf("               %s\n", strings.Join(server.Tools, ", "))
+				fmt.Printf("                %s\n", strings.Join(server.Tools, ", "))
 			} else {
-				fmt.Printf("               %s, +%d more\n",
+				fmt.Printf("                %s, +%d more\n",
 					strings.Join(server.Tools[:maxShow], ", "),
 					len(server.Tools)-maxShow)
 			}
