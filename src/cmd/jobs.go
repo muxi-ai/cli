@@ -15,7 +15,7 @@ var jobsCmd = &cobra.Command{
 	GroupID: "formation",
 	Long: `List and manage async chat requests.
 
-When you call POST /chat with mode: "async", it returns immediately with a job_id.
+When an async request is created, it returns immediately with a job_id.
 Use these commands to check status or cancel in-progress requests.`,
 }
 
@@ -25,7 +25,6 @@ var jobsListCmd = &cobra.Command{
 	Short:   "List async chat requests",
 	Long: `List async chat requests and their status.
 
-Shows requests created via POST /chat with mode: "async".
 Status can be: processing, completed, or failed.`,
 	Example: `  muxi jobs list
   muxi jobs list alice`,
