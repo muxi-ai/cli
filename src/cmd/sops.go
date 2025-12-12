@@ -116,28 +116,30 @@ func runSopsShow(cmd *cobra.Command, args []string) error {
 		sopType = "template"
 	}
 
+	// Front matter (unrendered)
 	fmt.Println()
 	fmt.Printf("  %s (%s)\n", ui.BoldText(sop.Name), sopType)
 	if sop.Description != "" {
-		fmt.Printf("  %s\n", ui.DimmedText(sop.Description))
+		fmt.Printf("  %s\n", sop.Description)
 	}
-	fmt.Println()
-
 	if sop.Steps > 0 {
 		fmt.Printf("  Steps:   %d\n", sop.Steps)
 	}
 	if len(sop.Agents) > 0 {
 		fmt.Printf("  Agents:  %v\n", sop.Agents)
 	}
-	if sop.Steps > 0 || len(sop.Agents) > 0 {
-		fmt.Println()
-	}
 
+	// Content (rendered markdown)
 	if sop.Content != "" {
+		fmt.Println()
+		fmt.Println("  Content:")
+		fmt.Println("  " + ui.DimmedText("────────────────────────────────────────"))
+		fmt.Println()
 		rendered := ui.RenderMarkdown(sop.Content)
 		fmt.Println(rendered)
-		fmt.Println()
+		fmt.Println("  " + ui.DimmedText("────────────────────────────────────────"))
 	}
+	fmt.Println()
 
 	return nil
 }

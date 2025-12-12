@@ -131,9 +131,9 @@ func PrintBadge(formationID, serverName string) {
 	// Subtract 1 for the variation selector in ⚙︎ (U+FE0E)
 	visualWidth := utf8.RuneCountInString(content) - 1
 
-	fmt.Println(dim("  ╭" + strings.Repeat("─", visualWidth) + "╮"))
-	fmt.Println(dim("  │") + content + dim("│"))
-	fmt.Println(dim("  ╰" + strings.Repeat("─", visualWidth) + "╯"))
+	fmt.Println(dim(" ╭" + strings.Repeat("─", visualWidth) + "╮"))
+	fmt.Println(dim(" │") + content + dim("│"))
+	fmt.Println(dim(" ╰" + strings.Repeat("─", visualWidth) + "╯"))
 }
 
 // PrintBadgeFromFlags prints the badge using resolved flag values
