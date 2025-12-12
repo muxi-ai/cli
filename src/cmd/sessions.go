@@ -23,10 +23,20 @@ Requires a user ID (via -u flag, .muxi file, or global default).`,
 	RunE:    runSessions,
 }
 
+var sessionsShowCmd = &cobra.Command{
+	Use:   "show <session-id>",
+	Short: "Show session details",
+	Long:  `Display detailed information about a specific session.`,
+	Args:  cobra.ExactArgs(1),
+	RunE:  runSessionsShow,
+}
+
 func init() {
 	rootCmd.AddCommand(sessionsCmd)
+	sessionsCmd.AddCommand(sessionsShowCmd)
 
 	formation.AddCommonFlags(sessionsCmd)
+	formation.AddCommonFlags(sessionsShowCmd)
 }
 
 func runSessions(cmd *cobra.Command, args []string) error {
@@ -72,6 +82,36 @@ func runSessions(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	ui.Dimmed(fmt.Sprintf("  %d session(s) for user %s", sessions.Count, userID))
+	fmt.Println()
+
+	return nil
+}
+
+func runSessionsShow(cmd *cobra.Command, args []string) error {
+	sessionID := args[0]
+
+	client, userID, err := formation.ClientAndUserFromFlags(cmd)
+	if err != nil {
+		return err
+	}
+
+	session, err := client.GetSession(sessionID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
+	}
+
+	formation.PrintBadgeFromFlags(cmd)
+
+	fmt.Println()
+	fmt.Printf("  Session ID:    %s\n", session.SessionID)
+	fmt.Printf("  User ID:       %s\n", session.UserID)
+	fmt.Printf("  Messages:      %d\n", session.MessageCount)
+	if !session.CreatedAt.IsZero() {
+		fmt.Printf("  Created:       %s\n", session.CreatedAt.Format("Jan 2, 2006 3:04pm"))
+	}
+	if !session.LastActivity.IsZero() {
+		fmt.Printf("  Last Activity: %s\n", formatTimeAgo(session.LastActivity))
+	}
 	fmt.Println()
 
 	return nil

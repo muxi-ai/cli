@@ -160,6 +160,72 @@ func runRemoteSecretsList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+var secretsGetCmd = &cobra.Command{
+	Use:   "get <name>",
+	Short: "Get a secret value",
+	Long: `Get a secret value by name.
+
+Use --remote to fetch from a running Formation (value will be masked).
+
+Examples:
+  # Get local secret
+  muxi secrets get OPENAI_API_KEY
+
+  # Get remote secret (masked)
+  muxi secrets get OPENAI_API_KEY --remote`,
+	Args: cobra.ExactArgs(1),
+	RunE: runSecretsGet,
+}
+
+func runSecretsGet(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+	name := args[0]
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
+		if err != nil {
+			return err
+		}
+
+		formation.PrintBadgeFromFlags(cmd)
+
+		secret, err := client.GetSecret(name)
+		if err != nil {
+			return fmt.Errorf("failed to get secret: %w", err)
+		}
+
+		fmt.Println()
+		fmt.Printf("  %s = %s\n", secret.Key, secret.Value)
+		fmt.Println()
+		return nil
+	}
+
+	// Local
+	ctx, err := context.MustDetectFormation()
+	if err != nil {
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"This command must be run inside a formation directory.",
+			"Navigate to your formation:\n  cd my-formation",
+		)
+		return nil
+	}
+
+	mgr := secrets.NewManager(ctx.RootDir)
+	if err := mgr.Initialize(); err != nil {
+		return fmt.Errorf("failed to initialize secrets: %w", err)
+	}
+
+	normalizedName := secrets.NormalizeName(name)
+	value, found := mgr.Get(normalizedName)
+	if !found {
+		return fmt.Errorf("secret '%s' not found", normalizedName)
+	}
+
+	fmt.Println(value)
+	return nil
+}
+
 var secretsSetCmd = &cobra.Command{
 	Use:   "set <name> [value]",
 	Short: "Set a secret value",
@@ -168,106 +234,149 @@ var secretsSetCmd = &cobra.Command{
 If value is not provided, you will be prompted to enter it.
 Secret names are automatically normalized to uppercase with underscores.
 
+Use --remote to set on a running Formation.
+
 Examples:
   # Set with prompt (recommended - value not in shell history)
   muxi secrets set OPENAI_API_KEY
 
   # Set directly (value visible in shell history)
-  muxi secrets set OPENAI_API_KEY sk-...`,
+  muxi secrets set OPENAI_API_KEY sk-...
+  
+  # Set on remote formation
+  muxi secrets set OPENAI_API_KEY --remote`,
 	Args: cobra.RangeArgs(1, 2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-		var value string
+	RunE: runSecretsSet,
+}
 
-		ctx, err := context.MustDetectFormation()
+func runSecretsSet(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+	name := args[0]
+	var value string
+
+	if len(args) > 1 {
+		value = args[1]
+	} else {
+		fmt.Printf("%s: ", name)
+		fmt.Scanln(&value)
+	}
+
+	if value == "" {
+		return fmt.Errorf("secret value cannot be empty")
+	}
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
 		if err != nil {
-			ui.ErrorBlock(
-				"Not in formation directory",
-				"This command must be run inside a formation directory.",
-				"Navigate to your formation:\n  cd my-formation",
-			)
-			return nil
+			return err
 		}
 
-		mgr := secrets.NewManager(ctx.RootDir)
-		if err := mgr.Initialize(); err != nil {
-			return fmt.Errorf("failed to initialize secrets: %w", err)
-		}
-
-		normalizedName := secrets.NormalizeName(name)
-
-		// Tell user if name was normalized
-		if normalizedName != name {
-			ui.Dimmed(fmt.Sprintf("  (normalized: %s → %s)", name, normalizedName))
-		}
-
-		if len(args) > 1 {
-			value = args[1]
-		} else {
-			// Prompt for value
-			fmt.Printf("%s: ", normalizedName)
-			fmt.Scanln(&value)
-		}
-
-		if value == "" {
-			return fmt.Errorf("secret value cannot be empty")
-		}
-
-		if err := mgr.Set(normalizedName, value, true); err != nil {
+		if err := client.SetSecret(name, value); err != nil {
 			return fmt.Errorf("failed to set secret: %w", err)
 		}
 
-		ui.Success(fmt.Sprintf("Secret '%s' saved", normalizedName))
+		formation.PrintBadgeFromFlags(cmd)
+		ui.Success(fmt.Sprintf("Secret '%s' saved", name))
 		return nil
-	},
+	}
+
+	// Local
+	ctx, err := context.MustDetectFormation()
+	if err != nil {
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"This command must be run inside a formation directory.",
+			"Navigate to your formation:\n  cd my-formation",
+		)
+		return nil
+	}
+
+	mgr := secrets.NewManager(ctx.RootDir)
+	if err := mgr.Initialize(); err != nil {
+		return fmt.Errorf("failed to initialize secrets: %w", err)
+	}
+
+	normalizedName := secrets.NormalizeName(name)
+
+	if normalizedName != name {
+		ui.Dimmed(fmt.Sprintf("  (normalized: %s → %s)", name, normalizedName))
+	}
+
+	if err := mgr.Set(normalizedName, value, true); err != nil {
+		return fmt.Errorf("failed to set secret: %w", err)
+	}
+
+	ui.Success(fmt.Sprintf("Secret '%s' saved", normalizedName))
+	return nil
 }
 
 var secretsDeleteCmd = &cobra.Command{
 	Use:   "delete <name>",
 	Short: "Delete a secret",
-	Long: `Delete a secret from secrets.enc.
+	Long: `Delete a secret.
+
+Use --remote to delete from a running Formation.
 
 Examples:
-  muxi secrets delete OPENAI_API_KEY`,
+  muxi secrets delete OPENAI_API_KEY
+  muxi secrets delete OPENAI_API_KEY --remote`,
 	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
+	RunE: runSecretsDelete,
+}
 
-		ctx, err := context.MustDetectFormation()
+func runSecretsDelete(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+	name := args[0]
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
 		if err != nil {
-			ui.ErrorBlock(
-				"Not in formation directory",
-				"This command must be run inside a formation directory.",
-				"Navigate to your formation:\n  cd my-formation",
-			)
-			return nil
+			return err
 		}
 
-		mgr := secrets.NewManager(ctx.RootDir)
-		if err := mgr.Initialize(); err != nil {
-			return fmt.Errorf("failed to initialize secrets: %w", err)
-		}
-
-		normalizedName := secrets.NormalizeName(name)
-
-		// Tell user if name was normalized
-		if normalizedName != name {
-			ui.Dimmed(fmt.Sprintf("  (normalized: %s → %s)", name, normalizedName))
-		}
-
-		deleted, err := mgr.Delete(normalizedName)
-		if err != nil {
+		if err := client.DeleteSecret(name); err != nil {
 			return fmt.Errorf("failed to delete secret: %w", err)
 		}
 
-		if !deleted {
-			ui.Warning(fmt.Sprintf("Secret '%s' not found", normalizedName))
-			return nil
-		}
-
-		ui.Success(fmt.Sprintf("Secret '%s' deleted", normalizedName))
+		formation.PrintBadgeFromFlags(cmd)
+		ui.Success(fmt.Sprintf("Secret '%s' deleted", name))
 		return nil
-	},
+	}
+
+	// Local
+	ctx, err := context.MustDetectFormation()
+	if err != nil {
+		ui.ErrorBlock(
+			"Not in formation directory",
+			"This command must be run inside a formation directory.",
+			"Navigate to your formation:\n  cd my-formation",
+		)
+		return nil
+	}
+
+	mgr := secrets.NewManager(ctx.RootDir)
+	if err := mgr.Initialize(); err != nil {
+		return fmt.Errorf("failed to initialize secrets: %w", err)
+	}
+
+	normalizedName := secrets.NormalizeName(name)
+
+	if normalizedName != name {
+		ui.Dimmed(fmt.Sprintf("  (normalized: %s → %s)", name, normalizedName))
+	}
+
+	deleted, err := mgr.Delete(normalizedName)
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+
+	if !deleted {
+		ui.Warning(fmt.Sprintf("Secret '%s' not found", normalizedName))
+		return nil
+	}
+
+	ui.Success(fmt.Sprintf("Secret '%s' deleted", normalizedName))
+	return nil
 }
 
 var secretsSetupCmd = &cobra.Command{
@@ -570,6 +679,16 @@ func init() {
 	secretsListCmd.Flags().Bool("with-values", false, "Show secret values (use with caution)")
 	secretsListCmd.Flags().Bool("remote", false, "Fetch secrets from remote Formation API")
 	formation.AddCommonFlags(secretsListCmd)
+
+	secretsGetCmd.Flags().Bool("remote", false, "Fetch from remote Formation API")
+	formation.AddCommonFlags(secretsGetCmd)
+
+	secretsSetCmd.Flags().Bool("remote", false, "Set on remote Formation")
+	formation.AddCommonFlags(secretsSetCmd)
+
+	secretsDeleteCmd.Flags().Bool("remote", false, "Delete from remote Formation")
+	formation.AddCommonFlags(secretsDeleteCmd)
+
 	secretsSetupCmd.Flags().Bool("dry-run", false, "Preview what would be prompted")
 	secretsSyncCmd.Flags().BoolP("interactive", "i", false, "Confirm deletions interactively")
 	secretsSyncCmd.Flags().Bool("dry-run", false, "Preview changes without applying")
@@ -577,6 +696,7 @@ func init() {
 
 	// Add subcommands
 	secretsCmd.AddCommand(secretsListCmd)
+	secretsCmd.AddCommand(secretsGetCmd)
 	secretsCmd.AddCommand(secretsSetCmd)
 	secretsCmd.AddCommand(secretsDeleteCmd)
 	secretsCmd.AddCommand(secretsSetupCmd)

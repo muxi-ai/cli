@@ -757,6 +757,144 @@ func (c *Client) Chat(req *ChatRequest) (*ChatResponse, error) {
 	return parseResponse[ChatResponse](resp)
 }
 
+// GetFormationInfo gets basic formation info
+func (c *Client) GetFormationInfo() (*FormationInfoResponse, error) {
+	resp, err := c.Get("/formation")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[FormationInfoResponse](resp)
+}
+
+// GetOverlordPersona gets the overlord persona text
+func (c *Client) GetOverlordPersona() (*OverlordPersonaResponse, error) {
+	resp, err := c.Get("/overlord/persona")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[OverlordPersonaResponse](resp)
+}
+
+// GetSecret gets a single secret by key (masked)
+func (c *Client) GetSecret(key string) (*SecretResponse, error) {
+	resp, err := c.Get("/secrets/" + key)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[SecretResponse](resp)
+}
+
+// SetSecret sets a secret value
+func (c *Client) SetSecret(key, value string) error {
+	body := map[string]string{"value": value}
+	resp, err := c.Put("/secrets/"+key, body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// DeleteSecret deletes a secret
+func (c *Client) DeleteSecret(key string) error {
+	resp, err := c.Delete("/secrets/" + key)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return checkResponse(resp)
+}
+
+// GetSession gets details for a specific session
+func (c *Client) GetSession(sessionID, userID string) (*SessionDetailResponse, error) {
+	resp, err := c.GetWithUser("/sessions/"+sessionID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[SessionDetailResponse](resp)
+}
+
+// GetLoggingDestinations lists logging destinations
+func (c *Client) GetLoggingDestinations() (*LoggingDestinationsResponse, error) {
+	resp, err := c.Get("/logging/destinations")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[LoggingDestinationsResponse](resp)
+}
+
+// BulkLinkIdentifiers associates multiple identifiers to a user
+func (c *Client) BulkLinkIdentifiers(userID string, identifiers []string) (*BulkIdentifiersResponse, error) {
+	// Convert strings to interface slice
+	ids := make([]interface{}, len(identifiers))
+	for i, id := range identifiers {
+		ids[i] = id
+	}
+
+	body := BulkIdentifiersRequest{
+		MuxiUserID:  userID,
+		Identifiers: ids,
+	}
+
+	resp, err := c.Post("/users/identifiers", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[BulkIdentifiersResponse](resp)
+}
+
+// StreamEvents returns SSE stream for user events (caller must close)
+func (c *Client) StreamEvents(userID string) (*http.Response, error) {
+	url := c.BaseURL + "/events/" + userID
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.ClientKey == "" {
+		return nil, fmt.Errorf("client key required but not set")
+	}
+	req.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
+	req.Header.Set("Accept", "text/event-stream")
+
+	streamClient := &http.Client{}
+	return streamClient.Do(req)
+}
+
+// StreamRequest returns SSE stream for a specific request (caller must close)
+func (c *Client) StreamRequest(userID, sessionID, requestID string) (*http.Response, error) {
+	url := c.BaseURL + "/stream/" + userID + "/" + sessionID + "/" + requestID
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.ClientKey == "" {
+		return nil, fmt.Errorf("client key required but not set")
+	}
+	req.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
+	req.Header.Set("Accept", "text/event-stream")
+
+	streamClient := &http.Client{}
+	return streamClient.Do(req)
+}
+
 // StreamLogs returns the response body for SSE log streaming (caller must close)
 func (c *Client) StreamLogs(userID, level, agent, requestID string) (*http.Response, error) {
 	path := "/logs/stream"

@@ -617,3 +617,51 @@ type UserResolveResponse struct {
 	MuxiUserID     string `json:"muxi_user_id"`
 	InternalUserID int    `json:"internal_user_id"`
 }
+
+// FormationInfoResponse from GET /formation
+type FormationInfoResponse struct {
+	FormationID string `json:"formation_id"`
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+}
+
+// OverlordPersonaResponse from GET /overlord/persona
+type OverlordPersonaResponse struct {
+	Persona string `json:"persona"`
+}
+
+// SecretResponse from GET /secrets/{key}
+type SecretResponse struct {
+	Key   string `json:"key"`
+	Value string `json:"value"` // masked
+}
+
+// SessionDetailResponse from GET /sessions/{session_id}
+type SessionDetailResponse struct {
+	SessionID    string    `json:"session_id"`
+	UserID       string    `json:"user_id"`
+	CreatedAt    time.Time `json:"created_at"`
+	LastActivity time.Time `json:"last_activity"`
+	MessageCount int       `json:"message_count"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// LoggingDestinationsResponse from GET /logging/destinations
+type LoggingDestinationsResponse struct {
+	Destinations []LoggingDestination `json:"destinations"`
+	Count        int                  `json:"count"`
+}
+
+// BulkIdentifiersRequest for POST /users/identifiers
+type BulkIdentifiersRequest struct {
+	MuxiUserID  string        `json:"muxi_user_id,omitempty"`
+	Identifiers []interface{} `json:"identifiers"` // Can be strings or objects
+}
+
+// BulkIdentifiersResponse from POST /users/identifiers
+type BulkIdentifiersResponse struct {
+	MuxiUserID            string   `json:"muxi_user_id"`
+	InternalUserID        int      `json:"internal_user_id"`
+	IdentifiersAssociated int      `json:"identifiers_associated"`
+	NewIdentifiers        []string `json:"new_identifiers"`
+}
