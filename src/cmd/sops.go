@@ -41,6 +41,7 @@ func init() {
 
 	formation.AddFormationFlag(sopsShowCmd)
 	formation.AddProfileFlag(sopsShowCmd)
+	sopsShowCmd.Flags().Bool("raw", false, "Show raw content without markdown rendering")
 }
 
 func runSopsList(cmd *cobra.Command, args []string) error {
@@ -129,14 +130,18 @@ func runSopsShow(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  Agents:  %v\n", sop.Agents)
 	}
 
-	// Content (rendered markdown)
+	// Content
 	if sop.Content != "" {
+		raw, _ := cmd.Flags().GetBool("raw")
 		fmt.Println()
 		fmt.Println("  Content:")
 		fmt.Println("  " + ui.DimmedText("────────────────────────────────────────"))
 		fmt.Println()
-		rendered := ui.RenderMarkdown(sop.Content)
-		fmt.Println(rendered)
+		if raw {
+			fmt.Println(sop.Content)
+		} else {
+			fmt.Println(ui.RenderMarkdown(sop.Content))
+		}
 		fmt.Println("  " + ui.DimmedText("────────────────────────────────────────"))
 	}
 	fmt.Println()

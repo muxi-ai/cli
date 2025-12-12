@@ -39,6 +39,7 @@ func init() {
 	formation.AddProfileFlag(triggersCmd)
 	formation.AddFormationFlag(triggersShowCmd)
 	formation.AddProfileFlag(triggersShowCmd)
+	triggersShowCmd.Flags().Bool("raw", false, "Show raw content without markdown rendering")
 }
 
 func runTriggers(cmd *cobra.Command, args []string) error {
@@ -109,8 +110,12 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 	}
 
 	if trigger.Content != "" {
-		rendered := ui.RenderMarkdown(trigger.Content)
-		fmt.Println(rendered)
+		raw, _ := cmd.Flags().GetBool("raw")
+		if raw {
+			fmt.Println(trigger.Content)
+		} else {
+			fmt.Println(ui.RenderMarkdown(trigger.Content))
+		}
 	}
 	fmt.Println()
 
