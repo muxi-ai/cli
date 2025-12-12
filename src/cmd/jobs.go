@@ -11,20 +11,22 @@ import (
 
 var jobsCmd = &cobra.Command{
 	Use:     "jobs",
-	Short:   "Manage async jobs",
+	Short:   "Manage async chat requests",
 	GroupID: "formation",
-	Long: `List and manage async jobs for a user.
+	Long: `List and manage async chat requests.
 
-Jobs are created when triggers or chat requests are processed asynchronously.`,
+When you call POST /chat with mode: "async", it returns immediately with a job_id.
+Use these commands to check status or cancel in-progress requests.`,
 }
 
 var jobsListCmd = &cobra.Command{
-	Use:   "list [user-id]",
+	Use:     "list [user-id]",
 	Aliases: []string{"ls"},
-	Short: "List async jobs",
-	Long: `List async jobs for a user.
+	Short:   "List async chat requests",
+	Long: `List async chat requests and their status.
 
-User ID can be provided as argument or will use default user if set.`,
+Shows requests created via POST /chat with mode: "async".
+Status can be: processing, completed, or failed.`,
 	Example: `  muxi jobs list
   muxi jobs list alice`,
 	RunE: runJobsList,
@@ -32,10 +34,10 @@ User ID can be provided as argument or will use default user if set.`,
 
 var jobsCancelCmd = &cobra.Command{
 	Use:   "cancel <job-id> [user-id]",
-	Short: "Cancel an async job",
-	Long: `Cancel an async job.
+	Short: "Cancel an async chat request",
+	Long: `Cancel an in-progress async chat request.
 
-User ID can be provided as second argument or will use default user if set.`,
+Only requests with status "processing" can be cancelled.`,
 	Example: `  muxi jobs cancel job_123
   muxi jobs cancel job_123 alice`,
 	Args: RequireArgs(1),
