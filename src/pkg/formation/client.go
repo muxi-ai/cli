@@ -135,19 +135,6 @@ func (c *Client) PostWithUser(path string, body interface{}, userID string) (*ht
 	return c.DoWithUserID("POST", path, reader, userID)
 }
 
-// Patch performs an authenticated PATCH request (admin key)
-func (c *Client) Patch(path string, body interface{}) (*http.Response, error) {
-	var reader io.Reader
-	if body != nil {
-		data, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
-		}
-		reader = bytes.NewReader(data)
-	}
-	return c.Do("PATCH", path, reader, true)
-}
-
 // Put performs an authenticated PUT request (admin key)
 func (c *Client) Put(path string, body interface{}) (*http.Response, error) {
 	var reader io.Reader
