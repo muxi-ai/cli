@@ -20,8 +20,7 @@ This document covers the implementation patterns for `muxi config *` commands.
 
 Config commands support a `--remote` flag to fetch configuration from a running Formation. This is **read-only** and useful for inspecting deployed formations.
 
-> **Note:** Remote configuration modification (PATCH/DELETE) endpoints are **deprecated**.
-> To change configuration, update your `formation.afs` and deploy a new version using `muxi deploy`.
+To change configuration, update your `formation.afs` locally and deploy a new version using `muxi deploy`.
 
 ### Commands with --remote Support
 

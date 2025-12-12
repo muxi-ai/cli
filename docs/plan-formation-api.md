@@ -7,26 +7,6 @@
 
 ---
 
-## Deprecated Endpoints (2025-12-12)
-
-The following configuration modification endpoints are **deprecated**. Config changes require deploying a new formation version via `muxi deploy`:
-
-| Deprecated Endpoint | Alternative |
-|---------------------|-------------|
-| `PATCH /memory` | Update formation.afs, redeploy |
-| `DELETE /memory/{item}` | Update formation.afs, redeploy |
-| `PATCH /mcp` | Update formation.afs, redeploy |
-| `PATCH /llm/settings` | Update formation.afs, redeploy |
-| `DELETE /llm/settings/{item}` | Update formation.afs, redeploy |
-| `PATCH /async` | Update formation.afs, redeploy |
-| `PATCH /scheduler` | Update formation.afs, redeploy |
-| `PATCH /a2a/outbound` | Update formation.afs, redeploy |
-| `DELETE /a2a/outbound/{item}` | Update formation.afs, redeploy |
-
-> **Rationale:** Enforcing version-based configuration ensures all config changes are tracked, reproducible, and can be rolled back.
-
----
-
 ## Overview
 
 Implement CLI commands for interacting with **deployed formations** via the Formation API. This is distinct from the Server API:
@@ -829,9 +809,9 @@ data: {"session_id": "sess_abc123", "message_id": "msg_xyz"}
 | `GET /status` | `muxi info` | 1 |
 | `GET /config` | `muxi config --remote` | 2 |
 | `GET /overlord` | `muxi config overlord --remote` | 2 |
-| `GET/POST/PATCH/DELETE /agents` | `muxi agents` | 1 |
-| `GET/POST/PUT/DELETE /secrets` | `muxi secrets --remote` | 2 |
-| `GET/PATCH /llm/settings` | `muxi config llm --remote` | 2 |
+| `GET /agents` | `muxi agents` | 1 |
+| `GET /secrets` | `muxi secrets --remote` | 2 |
+| `GET /llm/settings` | `muxi config llm --remote` | 2 |
 | `GET/DELETE /audit` | `muxi audit` | 4 |
 | `GET /sops` | `muxi sops` | 1 |
 | `POST /chat` | `muxi chat` | 6 |
@@ -841,21 +821,21 @@ data: {"session_id": "sess_abc123", "message_id": "msg_xyz"}
 | `GET/DELETE /requests/{id}` | `muxi jobs` (combined) | 4 |
 | `GET /triggers` | `muxi triggers` | 1 |
 | `POST /triggers/{name}` | `muxi trigger` | 4 |
-| `GET/POST/PATCH/DELETE /logging` | `muxi config logging --remote` | 2 |
+| `GET /logging` | `muxi config logging --remote` | 2 |
 | `GET /logs/stream` | `muxi stream` | 4 |
-| `GET/PATCH /memory` | `muxi config memory --remote` | 2 |
+| `GET /memory` | `muxi config memory --remote` | 2 |
 | `GET/DELETE /memory/buffer` | `muxi clear` | 3 |
 | `GET/POST/DELETE /memories` | `muxi memory` | 5 |
-| `GET/PATCH /async` | `muxi config async --remote` | 2 |
-| `GET/PATCH /scheduler` | `muxi scheduler` | 5 |
+| `GET /async` | `muxi config async --remote` | 2 |
+| `GET /scheduler` | `muxi scheduler` | 5 |
 | `GET/POST/DELETE /scheduler/jobs` | `muxi scheduler` | 5 |
-| `GET/PATCH /a2a` | `muxi config a2a --remote` | 2 |
+| `GET /a2a` | `muxi config a2a --remote` | 2 |
 | `GET /sessions` | `muxi sessions` | 3 |
 | `GET/DELETE /sessions/{id}` | `muxi sessions`, `muxi clear` | 3 |
 | `GET /sessions/{id}/messages` | `muxi history` | 3 |
 | `GET/POST/DELETE /users/identifiers` | `muxi users` | 5 |
-| `GET/PATCH /mcp` | `muxi mcp` | 1 |
-| `GET/POST/PATCH/DELETE /mcp/servers` | `muxi mcp` | 1 |
+| `GET /mcp` | `muxi mcp` | 1 |
+| `GET /mcp/servers` | `muxi mcp` | 1 |
 
 ---
 
