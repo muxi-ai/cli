@@ -86,12 +86,15 @@ func runTriggersShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	formation.PrintBadgeFromFlags(cmd)
-
 	trigger, err := client.GetTrigger(triggerName)
 	if err != nil {
-		return fmt.Errorf("failed to get trigger: %w", err)
+		fmt.Println()
+		fmt.Printf("  Trigger '%s' not found\n", triggerName)
+		fmt.Println()
+		return nil
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	fmt.Println()
 	fmt.Printf("  Trigger: %s\n", ui.BoldText(trigger.Name))

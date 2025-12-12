@@ -101,12 +101,15 @@ func runSopsShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	formation.PrintBadgeFromFlags(cmd)
-
 	sop, err := client.GetSOP(name)
 	if err != nil {
-		return fmt.Errorf("failed to get SOP '%s': %w", name, err)
+		fmt.Println()
+		fmt.Printf("  SOP '%s' not found\n", name)
+		fmt.Println()
+		return nil
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	sopType := sop.Type
 	if sopType == "" {
