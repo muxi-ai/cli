@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -201,11 +202,14 @@ func runMCPShow(cmd *cobra.Command, args []string) error {
 	// Remove "source" key
 	delete(config, "source")
 
-	// Convert to YAML
-	yamlBytes, err := yaml.Marshal(config)
-	if err != nil {
+	// Convert to YAML with 2-space indent
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(config); err != nil {
 		return fmt.Errorf("failed to convert to YAML: %w", err)
 	}
+	yamlBytes := buf.Bytes()
 
 	if raw {
 		// Raw output for piping
