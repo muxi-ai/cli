@@ -2,17 +2,17 @@
 
 **Last Updated:** 2025-12-12
 **Version:** 0.20251212.0
-**Status:** ✅ Phase 2 Complete - Formation API Commands Working
+**Status:** ✅ Phase 4 Complete - Formation API Commands Working
 
 ---
 
 ## 🎯 Current State
 
 ### Overview
-MUXI CLI is **fully functional** with complete scaffolding system, secrets management, all config commands, full registry integration, **complete server/formation lifecycle commands** with SSE streaming progress, and **Phase 2 Formation API commands**.
+MUXI CLI is **fully functional** with complete scaffolding system, secrets management, all config commands, full registry integration, **complete server/formation lifecycle commands** with SSE streaming progress, and **Phase 4 Formation API commands**.
 
 ### Recent Changes (2025-12-12)
-- ✅ **Phase 2 Formation API Commands COMPLETE:**
+- ✅ **Phase 4 Formation API Commands COMPLETE:**
   - `muxi agents list|ls [-v]` - List agents with badge, status, verbose mode
   - `muxi agents show <id> [--raw]` - Show agent config as YAML
   - `muxi mcp list|ls [-v]` - List MCP servers with badge, status, verbose mode
@@ -292,7 +292,7 @@ muxi server ping [--profile string]
 ## 📝 Recent Changes
 
 ### 2025-12-12
-- ✅ **Phase 2 Formation API Commands Complete**
+- ✅ **Phase 4 Formation API Commands Complete**
 - ✅ `muxi agents list|ls [-v]` and `muxi agents show <id> [--raw]`
 - ✅ `muxi mcp list|ls [-v]` and `muxi mcp show <id> [--raw]`
 - ✅ `muxi sops list|ls` and `muxi sops show <id> [--raw]`
@@ -338,13 +338,13 @@ muxi server ping [--profile string]
 ### Formation API Commands
 See **[docs/plan-formation-api.md](docs/plan-formation-api.md)** for full implementation plan.
 
-**Phase 1 - Foundation: ✅ COMPLETE**
+**Phase 3 - Foundation: ✅ COMPLETE**
 - [x] `pkg/formation/client.go` - Formation API HTTP client
 - [x] `pkg/formation/auth.go` - API key resolution
 - [x] `pkg/formation/types.go` - Response types
 - [x] `pkg/formation/flags.go` - Common flags
 
-**Phase 2 - List/Show Commands: ✅ COMPLETE (2025-12-12)**
+**Phase 4 - List/Show Commands: ✅ COMPLETE (2025-12-12)**
 - [x] `muxi agents list|ls [-v]` - List agents with verbose mode
 - [x] `muxi agents show <id> [--raw]` - Show agent YAML config
 - [x] `muxi mcp list|ls [-v]` - List MCP servers with verbose mode
@@ -358,7 +358,7 @@ See **[docs/plan-formation-api.md](docs/plan-formation-api.md)** for full implem
 - [x] `muxi config --remote [--raw]` - Full config with syntax highlighting
 - [x] `muxi config llm|memory|overlord --remote [--raw]` - Subconfig endpoints
 
-**Phase 3 - Interactive Commands: PENDING**
+**Phase 5 - Interactive Commands: PENDING**
 - [ ] `muxi chat` - Interactive chat with formation (needs UX design)
 - [ ] Tab completion for bash/zsh/fish
 
