@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/scaffold"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 var configCmd = &cobra.Command{
@@ -86,21 +87,14 @@ func printConfigOutput(data interface{}, format string) error {
 			return err
 		}
 
-		// Rename schema_version to schema for cleaner output
-		if v, ok := mapData["schema_version"]; ok {
-			mapData["schema"] = v
-			delete(mapData, "schema_version")
-		}
+		// Clean up the config output
+		cleanConfigOutput(mapData)
 
-		// Pretty print as yaml with syntax highlighting and indentation
-		var buf bytes.Buffer
-		enc := yaml.NewEncoder(&buf)
-		enc.SetIndent(2)
-		if err := enc.Encode(mapData); err != nil {
-			return err
-		}
+		// Build ordered output (schema, version, id, description first)
+		orderedYAML := buildOrderedConfigYAML(mapData)
+
 		fmt.Println()
-		fmt.Println(ui.IndentString(ui.RenderYAML(buf.String()), 2))
+		fmt.Println(ui.IndentString(ui.RenderYAML(orderedYAML), 2))
 		return nil
 	}
 }
@@ -395,4 +389,98 @@ func init() {
 
 	// Add config to root
 	rootCmd.AddCommand(configCmd)
+}
+
+// cleanConfigOutput removes "resource" keys and renames fields for cleaner output
+func cleanConfigOutput(data map[string]interface{}) {
+	// Rename schema_version to schema
+	if v, ok := data["schema_version"]; ok {
+		data["schema"] = v
+		delete(data, "schema_version")
+	}
+
+	// Rename formation_id to id
+	if v, ok := data["formation_id"]; ok {
+		data["id"] = v
+		delete(data, "formation_id")
+	}
+
+	// Recursively remove "resource" keys
+	removeResourceKeys(data)
+}
+
+// removeResourceKeys recursively removes "resource" keys from nested maps
+func removeResourceKeys(data map[string]interface{}) {
+	delete(data, "resource")
+
+	for _, v := range data {
+		if nested, ok := v.(map[string]interface{}); ok {
+			removeResourceKeys(nested)
+		}
+	}
+}
+
+// buildOrderedConfigYAML creates YAML with specific field order
+func buildOrderedConfigYAML(data map[string]interface{}) string {
+	var buf bytes.Buffer
+
+	// Priority fields in order
+	priorityKeys := []string{"schema", "version", "id", "description"}
+
+	// Write priority fields first
+	for _, key := range priorityKeys {
+		if v, ok := data[key]; ok {
+			writeYAMLField(&buf, key, v, 0)
+			delete(data, key)
+		}
+	}
+
+	// Write remaining fields (sorted for consistency)
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		writeYAMLField(&buf, key, data[key], 0)
+	}
+
+	return buf.String()
+}
+
+// writeYAMLField writes a single YAML field with proper indentation
+func writeYAMLField(buf *bytes.Buffer, key string, value interface{}, indent int) {
+	indentStr := strings.Repeat("  ", indent)
+
+	switch v := value.(type) {
+	case map[string]interface{}:
+		buf.WriteString(fmt.Sprintf("%s%s:\n", indentStr, key))
+		// Sort nested keys
+		nestedKeys := make([]string, 0, len(v))
+		for k := range v {
+			nestedKeys = append(nestedKeys, k)
+		}
+		sort.Strings(nestedKeys)
+		for _, nk := range nestedKeys {
+			writeYAMLField(buf, nk, v[nk], indent+1)
+		}
+	case []interface{}:
+		buf.WriteString(fmt.Sprintf("%s%s:\n", indentStr, key))
+		for _, item := range v {
+			buf.WriteString(fmt.Sprintf("%s  - %v\n", indentStr, item))
+		}
+	case string:
+		buf.WriteString(fmt.Sprintf("%s%s: %s\n", indentStr, key, v))
+	case float64:
+		if v == float64(int(v)) {
+			buf.WriteString(fmt.Sprintf("%s%s: %d\n", indentStr, key, int(v)))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s%s: %v\n", indentStr, key, v))
+		}
+	case bool:
+		buf.WriteString(fmt.Sprintf("%s%s: %t\n", indentStr, key, v))
+	default:
+		buf.WriteString(fmt.Sprintf("%s%s: %v\n", indentStr, key, v))
+	}
 }
