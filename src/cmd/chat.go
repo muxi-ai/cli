@@ -37,6 +37,10 @@ func init() {
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
+	// TODO: Generate a session ID (UUID) if not provided via --session flag
+	// and send it with every /chat request (session_id field).
+	// This allows the formation to maintain conversation context.
+
 	// Get flags
 	flags := formation.GetCommonFlags(cmd)
 
