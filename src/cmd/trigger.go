@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -102,7 +103,16 @@ func runTrigger(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		spinner.StopWithError("Trigger failed")
 		fmt.Println()
-		fmt.Printf("  %s\n", ui.RedText(err.Error()))
+		// Extract just the message part (after "CODE: prefix: ")
+		errMsg := err.Error()
+		if idx := strings.Index(errMsg, ": "); idx != -1 {
+			errMsg = errMsg[idx+2:]
+			// Check for second colon (e.g., "INVALID_REQUEST: Template rendering failed: actual message")
+			if idx2 := strings.Index(errMsg, ": "); idx2 != -1 {
+				errMsg = errMsg[idx2+2:]
+			}
+		}
+		fmt.Printf("  %s\n", errMsg)
 		fmt.Println()
 		os.Exit(1)
 	}
