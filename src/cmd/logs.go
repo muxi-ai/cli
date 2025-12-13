@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
+	"github.com/tidwall/gjson"
 )
 
 var logsCmd = &cobra.Command{
@@ -129,13 +129,12 @@ func streamLogs(ctx context.Context, client *formation.Client, userID, level, ag
 				continue
 			}
 
-			var logEvent formation.LogStreamEvent
-			if err := json.Unmarshal([]byte(data), &logEvent); err != nil {
-				// Skip malformed events
-				continue
-			}
+			// Extract timestamp using gjson (fast, no full parse)
+			ts := gjson.Get(data, "timestamp").Int()
+			t := time.UnixMilli(ts)
+			timestamp := t.Format("02-Jan-2006 15:04:05 MST")
 
-			displayLogEvent(logEvent)
+			fmt.Printf("  [%s] %s\n", ui.DimmedText(timestamp), data)
 		}
 	}
 
@@ -143,54 +142,4 @@ func streamLogs(ctx context.Context, client *formation.Client, userID, level, ag
 		return err
 	}
 	return ctx.Err()
-}
-
-func displayLogEvent(event formation.LogStreamEvent) {
-	// Format timestamp (Unix ms to time)
-	t := time.UnixMilli(event.Timestamp)
-	timestamp := t.Format("15:04:05")
-
-	// Color-code level
-	var levelDisplay string
-	switch strings.ToUpper(event.Level) {
-	case "ERROR", "CRITICAL":
-		levelDisplay = ui.RedText("ERROR")
-	case "WARN", "WARNING":
-		levelDisplay = ui.YellowText("WARN ")
-	case "INFO":
-		levelDisplay = ui.CyanText("INFO ")
-	case "DEBUG":
-		levelDisplay = ui.DimmedText("DEBUG")
-	default:
-		levelDisplay = fmt.Sprintf("%-5s", event.Level)
-	}
-
-	// Build context parts
-	var context []string
-	if event.UserID != "" {
-		context = append(context, fmt.Sprintf("user=%s", event.UserID))
-	}
-	if event.AgentID != "" {
-		context = append(context, fmt.Sprintf("agent=%s", event.AgentID))
-	}
-	if event.SessionID != "" {
-		context = append(context, fmt.Sprintf("session=%s", event.SessionID))
-	}
-	if event.RequestID != "" {
-		// Truncate request ID
-		reqID := event.RequestID
-		if len(reqID) > 12 {
-			reqID = reqID[:12]
-		}
-		context = append(context, fmt.Sprintf("req=%s", reqID))
-	}
-
-	// Format context string
-	contextStr := ""
-	if len(context) > 0 {
-		contextStr = " " + ui.DimmedText(strings.Join(context, " "))
-	}
-
-	// Print log line
-	fmt.Printf("  [%s] %s  %s%s\n", timestamp, levelDisplay, event.Message, contextStr)
 }
