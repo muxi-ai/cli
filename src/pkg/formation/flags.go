@@ -18,16 +18,16 @@ type CommonFlags struct {
 	UserID      string
 }
 
-// AddCommonFlags adds -F, -p, -u flags to a command
+// AddCommonFlags adds -f, -p, -u flags to a command
 func AddCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("formation", "F", "", "Formation ID (default: from formation.yaml)")
+	cmd.Flags().StringP("formation", "f", "", "Formation ID (default: from formation.yaml)")
 	cmd.Flags().StringP("profile", "p", "", "Server profile (default: from .muxi or global)")
 	cmd.Flags().StringP("user", "u", "", "User ID for user-scoped operations")
 }
 
-// AddFormationFlag adds just the -F flag
+// AddFormationFlag adds just the -f flag
 func AddFormationFlag(cmd *cobra.Command) {
-	cmd.Flags().StringP("formation", "F", "", "Formation ID (default: from formation.yaml)")
+	cmd.Flags().StringP("formation", "f", "", "Formation ID (default: from formation.yaml)")
 }
 
 // AddProfileFlag adds just the -p flag
