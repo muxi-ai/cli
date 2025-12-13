@@ -92,6 +92,8 @@ func runTrigger(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	// Fire trigger
 	spinner := ui.NewSpinner(fmt.Sprintf("Firing trigger '%s'...", triggerName))
 	spinner.Start()
@@ -99,7 +101,10 @@ func runTrigger(cmd *cobra.Command, args []string) error {
 	resp, err := client.TriggerTrigger(triggerName, data, async)
 	if err != nil {
 		spinner.StopWithError("Trigger failed")
-		return err
+		fmt.Println()
+		fmt.Printf("  %s\n", ui.RedText(err.Error()))
+		fmt.Println()
+		os.Exit(1)
 	}
 
 	spinner.StopWithSuccess("Trigger fired")
@@ -110,7 +115,7 @@ func runTrigger(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  Status:     %s\n", ui.CyanText("async"))
 		fmt.Printf("  Job ID:     %s\n", resp.JobID)
 		fmt.Println()
-		ui.Dimmed(fmt.Sprintf("  Track progress: muxi jobs -u <user>"))
+		ui.Dimmed(fmt.Sprintf("  Track progress: muxi requests list"))
 	} else {
 		fmt.Printf("  Status:     %s\n", ui.GreenText(resp.Status))
 		fmt.Printf("  Request ID: %s\n", resp.RequestID)
