@@ -27,9 +27,11 @@ At least one filter flag is required.
 
 Requires admin API key.`,
 	Example: `  muxi logs -u alice
+  muxi logs -s sess_abc123
+  muxi logs --request req_xyz
   muxi logs --level error
   muxi logs --agent weather-bot
-  muxi logs -u alice --level error`,
+  muxi logs --event "chat.*"`,
 	RunE: runLogs,
 }
 
@@ -39,19 +41,23 @@ func init() {
 	formation.AddFormationFlag(logsCmd)
 	formation.AddProfileFlag(logsCmd)
 	logsCmd.Flags().StringP("user", "u", "", "Filter by user ID")
-	logsCmd.Flags().String("level", "", "Filter by log level (debug, info, warn, error)")
-	logsCmd.Flags().String("agent", "", "Filter by agent ID")
+	logsCmd.Flags().StringP("session", "s", "", "Filter by session ID")
 	logsCmd.Flags().String("request", "", "Filter by request ID")
+	logsCmd.Flags().String("agent", "", "Filter by agent ID")
+	logsCmd.Flags().String("level", "", "Filter by log level (debug, info, warn, error, critical)")
+	logsCmd.Flags().String("event", "", "Filter by event type (supports wildcards, e.g. chat.*)")
 }
 
 func runLogs(cmd *cobra.Command, args []string) error {
-	userFilter, _ := cmd.Flags().GetString("user")
-	level, _ := cmd.Flags().GetString("level")
-	agent, _ := cmd.Flags().GetString("agent")
+	userID, _ := cmd.Flags().GetString("user")
+	sessionID, _ := cmd.Flags().GetString("session")
 	requestID, _ := cmd.Flags().GetString("request")
+	agentID, _ := cmd.Flags().GetString("agent")
+	level, _ := cmd.Flags().GetString("level")
+	eventType, _ := cmd.Flags().GetString("event")
 
 	// Require at least one filter
-	if userFilter == "" && level == "" && agent == "" && requestID == "" {
+	if userID == "" && sessionID == "" && requestID == "" && agentID == "" && level == "" && eventType == "" {
 		return cmd.Help()
 	}
 
@@ -75,10 +81,20 @@ func runLogs(cmd *cobra.Command, args []string) error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
+	// Build filters
+	filters := formation.LogFilters{
+		UserID:    userID,
+		SessionID: sessionID,
+		RequestID: requestID,
+		AgentID:   agentID,
+		Level:     level,
+		EventType: eventType,
+	}
+
 	// Start streaming in a goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- streamLogs(ctx, client, userFilter, level, agent, requestID)
+		errChan <- streamLogs(ctx, client, filters)
 	}()
 
 	// Wait for signal or error
@@ -98,8 +114,8 @@ func runLogs(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func streamLogs(ctx context.Context, client *formation.Client, userID, level, agent, requestID string) error {
-	resp, err := client.StreamLogsWithContext(ctx, userID, level, agent, requestID)
+func streamLogs(ctx context.Context, client *formation.Client, filters formation.LogFilters) error {
+	resp, err := client.StreamLogsWithContext(ctx, filters)
 	if err != nil {
 		return err
 	}

@@ -873,26 +873,42 @@ func (c *Client) StreamRequest(userID, sessionID, requestID string) (*http.Respo
 	return streamClient.Do(req)
 }
 
+// LogFilters for GET /logs/stream
+type LogFilters struct {
+	UserID    string
+	SessionID string
+	RequestID string
+	AgentID   string
+	Level     string
+	EventType string
+}
+
 // StreamLogs returns the response body for SSE log streaming (caller must close)
-func (c *Client) StreamLogs(userID, level, agentID, requestID string) (*http.Response, error) {
-	return c.StreamLogsWithContext(context.Background(), userID, level, agentID, requestID)
+func (c *Client) StreamLogs(filters LogFilters) (*http.Response, error) {
+	return c.StreamLogsWithContext(context.Background(), filters)
 }
 
 // StreamLogsWithContext returns the response body for SSE log streaming with context support
-func (c *Client) StreamLogsWithContext(ctx context.Context, userID, level, agentID, requestID string) (*http.Response, error) {
+func (c *Client) StreamLogsWithContext(ctx context.Context, filters LogFilters) (*http.Response, error) {
 	path := "/logs/stream"
 	params := []string{}
-	if userID != "" {
-		params = append(params, "user_id="+userID)
+	if filters.UserID != "" {
+		params = append(params, "user_id="+filters.UserID)
 	}
-	if level != "" {
-		params = append(params, "level="+level)
+	if filters.SessionID != "" {
+		params = append(params, "session_id="+filters.SessionID)
 	}
-	if agentID != "" {
-		params = append(params, "agent_id="+agentID)
+	if filters.RequestID != "" {
+		params = append(params, "request_id="+filters.RequestID)
 	}
-	if requestID != "" {
-		params = append(params, "request_id="+requestID)
+	if filters.AgentID != "" {
+		params = append(params, "agent_id="+filters.AgentID)
+	}
+	if filters.Level != "" {
+		params = append(params, "level="+filters.Level)
+	}
+	if filters.EventType != "" {
+		params = append(params, "event_type="+filters.EventType)
 	}
 	if len(params) > 0 {
 		path += "?" + strings.Join(params, "&")
