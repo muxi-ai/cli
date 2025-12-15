@@ -166,7 +166,7 @@ var (
 			Foreground(lipgloss.Color("#808080")) // Explicit gray for all terminals
 
 	goldStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#e48d20")) // Orange (matches muxi brand)
+			Foreground(lipgloss.Color("#c98b45")) // Gold (matches muxi brand)
 
 	cyanStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("86"))

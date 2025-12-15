@@ -32,7 +32,7 @@ var (
 	cyan   = color.New(color.FgCyan)
 	dimmed = color.New(color.Faint)
 	bold   = color.New(color.Bold)
-	gold   = color.RGB(228, 141, 32) // Brand color #e48d20 (orange)
+	gold   = color.RGB(201, 139, 69) // Brand color #c98b45 (gold)
 )
 
 // Success prints a success message with ✓ symbol (full line green, bold)
