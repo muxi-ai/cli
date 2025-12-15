@@ -123,6 +123,19 @@ func (c *Client) PostClient(path string, body interface{}) (*http.Response, erro
 	return c.Do("POST", path, reader, false)
 }
 
+// PostClientWithUser performs a POST request with client key and user ID
+func (c *Client) PostClientWithUser(path string, body interface{}, userID string) (*http.Response, error) {
+	var reader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		reader = bytes.NewReader(data)
+	}
+	return c.DoWithUserID("POST", path, reader, userID)
+}
+
 // PostWithUser performs a POST request with client key and user ID
 func (c *Client) PostWithUser(path string, body interface{}, userID string) (*http.Response, error) {
 	var reader io.Reader
@@ -428,20 +441,52 @@ func (c *Client) GetOverlordConfig() (*OverlordConfigResponse, error) {
 }
 
 // TriggerTrigger fires a trigger with optional data
-func (c *Client) TriggerTrigger(name string, data json.RawMessage, async bool) (*TriggerResponse, error) {
+func (c *Client) TriggerTrigger(name string, data json.RawMessage, async bool, userID string) (*TriggerResponse, error) {
 	path := "/triggers/" + name
-	if async {
-		path += "?async=true"
+
+	body := TriggerRequest{
+		Data:     data,
+		UseAsync: async,
 	}
 
-	body := TriggerRequest{Data: data}
-	resp, err := c.PostClient(path, body)
+	var resp *http.Response
+	var err error
+	if userID != "" {
+		resp, err = c.PostClientWithUser(path, body, userID)
+	} else {
+		resp, err = c.PostClient(path, body)
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return parseResponse[TriggerResponse](resp)
+	// Parse response and extract request ID from envelope
+	if err := checkResponse(resp); err != nil {
+		return nil, err
+	}
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if !apiResp.Success {
+		if apiResp.Error != nil {
+			return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+		}
+		return nil, fmt.Errorf("request failed")
+	}
+
+	var triggerResp TriggerResponse
+	if err := json.Unmarshal(apiResp.Data, &triggerResp); err != nil {
+		return nil, fmt.Errorf("failed to parse trigger response: %w", err)
+	}
+
+	// Copy request ID from envelope
+	triggerResp.RequestID = apiResp.Request.ID
+
+	return &triggerResp, nil
 }
 
 // GetSchedulerConfig gets scheduler configuration
@@ -696,8 +741,8 @@ func (c *Client) GetLoggingConfig() (*LoggingConfigResponse, error) {
 }
 
 // GetRequestStatus gets request status
-func (c *Client) GetRequestStatus(requestID string) (*RequestStatusResponse, error) {
-	resp, err := c.Get("/requests/" + requestID)
+func (c *Client) GetRequestStatus(requestID, userID string) (*RequestStatusResponse, error) {
+	resp, err := c.GetWithUser("/requests/"+requestID, userID)
 	if err != nil {
 		return nil, err
 	}

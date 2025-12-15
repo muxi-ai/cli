@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/muxi-ai/cli/pkg/formation"
@@ -62,6 +63,7 @@ func init() {
 	formation.AddProfileFlag(requestsListCmd)
 	formation.AddFormationFlag(requestsShowCmd)
 	formation.AddProfileFlag(requestsShowCmd)
+	formation.AddUserFlag(requestsShowCmd)
 	formation.AddFormationFlag(requestsCancelCmd)
 	formation.AddProfileFlag(requestsCancelCmd)
 }
@@ -85,6 +87,14 @@ func runRequestsList(cmd *cobra.Command, args []string) error {
 
 	resp, err := client.GetRequests(userID)
 	if err != nil {
+		// Handle not found gracefully
+		if strings.Contains(err.Error(), "NOT_FOUND") {
+			formation.PrintBadgeFromFlags(cmd)
+			fmt.Println()
+			ui.Dimmed("  No requests found")
+			fmt.Println()
+			return nil
+		}
 		return err
 	}
 
@@ -154,8 +164,24 @@ func runRequestsShow(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	status, err := client.GetRequestStatus(requestID)
+	userFlag, _ := cmd.Flags().GetString("user")
+	userID, err := formation.MustResolveUserID(userFlag)
 	if err != nil {
+		return err
+	}
+
+	status, err := client.GetRequestStatus(requestID, userID)
+	if err != nil {
+		// Handle not found gracefully
+		if strings.Contains(err.Error(), "NOT_FOUND") {
+			formation.PrintBadgeFromFlags(cmd)
+			fmt.Println()
+			fmt.Printf("  Request '%s' not found\n", requestID)
+			fmt.Println()
+			ui.Dimmed("  The request may have expired or been deleted.")
+			fmt.Println()
+			return nil
+		}
 		return fmt.Errorf("failed to get request status: %w", err)
 	}
 

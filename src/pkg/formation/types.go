@@ -579,15 +579,18 @@ type ChatResponse struct {
 
 // TriggerRequest for POST /triggers/{name}
 type TriggerRequest struct {
-	Data json.RawMessage `json:"data"`
+	Data      json.RawMessage `json:"data"`
+	SessionID string          `json:"session_id,omitempty"`
+	UseAsync  bool            `json:"use_async"`
 }
 
 // TriggerResponse from POST /triggers/{name}
+// Async: status="processing", Content empty
+// Sync: status="completed", Content has response
 type TriggerResponse struct {
-	RequestID string `json:"request_id"`
-	Status    string `json:"status"` // completed, async
-	Response  string `json:"response,omitempty"`
-	JobID     string `json:"job_id,omitempty"`
+	RequestID string `json:"-"`                // From envelope request.id (not in data)
+	Status    string `json:"status"`           // "processing" or "completed"
+	Content   string `json:"content,omitempty"` // Response content (sync only)
 }
 
 // LogStreamEvent from GET /logs/stream (SSE)

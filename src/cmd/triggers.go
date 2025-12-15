@@ -52,10 +52,13 @@ var triggersRunCmd = &cobra.Command{
 Triggers are predefined entry points that can process structured data
 and invoke agents or workflows.
 
+By default, triggers run asynchronously and return a job ID.
+Use --sync to wait for the response.
+
 Examples:
   muxi triggers run github-issue --data '{"issue": {"number": 123}}'
   muxi triggers run webhook --file event.json
-  muxi triggers run daily-report --async`,
+  muxi triggers run daily-report --sync   # Wait for response`,
 	Args: RequireArgs(1),
 	RunE: runTriggersRun,
 }
@@ -75,9 +78,10 @@ func init() {
 
 	formation.AddFormationFlag(triggersRunCmd)
 	formation.AddProfileFlag(triggersRunCmd)
+	formation.AddUserFlag(triggersRunCmd)
 	triggersRunCmd.Flags().String("data", "", "JSON data to send with the trigger")
 	triggersRunCmd.Flags().String("file", "", "JSON file to read trigger data from")
-	triggersRunCmd.Flags().Bool("async", false, "Run trigger asynchronously (returns job ID)")
+	triggersRunCmd.Flags().Bool("sync", false, "Wait for trigger response (default is async)")
 }
 
 func runTriggers(cmd *cobra.Command, args []string) error {
@@ -167,7 +171,10 @@ func runTriggersRun(cmd *cobra.Command, args []string) error {
 	triggerName := args[0]
 	dataStr, _ := cmd.Flags().GetString("data")
 	filePath, _ := cmd.Flags().GetString("file")
-	async, _ := cmd.Flags().GetBool("async")
+	sync, _ := cmd.Flags().GetBool("sync")
+	async := !sync // Default is async (async=true), --sync makes it sync (async=false)
+	userFlag, _ := cmd.Flags().GetString("user")
+	userID := formation.ResolveUserID(userFlag)
 
 	// Validate that we have either --data or --file (or neither), but not both
 	if dataStr != "" && filePath != "" {
@@ -224,7 +231,7 @@ func runTriggersRun(cmd *cobra.Command, args []string) error {
 	spinner := ui.NewSpinner(fmt.Sprintf("Running trigger '%s'...", triggerName))
 	spinner.Start()
 
-	resp, err := client.TriggerTrigger(triggerName, data, async)
+	resp, err := client.TriggerTrigger(triggerName, data, async, userID)
 	if err != nil {
 		spinner.StopWithError("Trigger failed")
 		fmt.Println()
@@ -246,21 +253,34 @@ func runTriggersRun(cmd *cobra.Command, args []string) error {
 
 	// Display result
 	fmt.Println()
-	if async {
-		fmt.Printf("  Status:     %s\n", ui.CyanText("async"))
-		fmt.Printf("  Job ID:     %s\n", resp.JobID)
-		fmt.Println()
-		ui.Dimmed(fmt.Sprintf("  Track progress: muxi jobs list"))
-	} else {
-		fmt.Printf("  Status:     %s\n", ui.GreenText(resp.Status))
+	fmt.Printf("  Mode:       %s\n", map[bool]string{true: "async", false: "sync"}[async])
+	fmt.Printf("  Status:     %s\n", formatStatus(resp.Status))
+	if resp.RequestID != "" {
 		fmt.Printf("  Request ID: %s\n", resp.RequestID)
-		if resp.Response != "" {
-			fmt.Println()
-			fmt.Printf("  Response:\n")
-			fmt.Printf("  %s\n", resp.Response)
-		}
+	}
+	if async && resp.RequestID != "" {
+		fmt.Println()
+		ui.Dimmed(fmt.Sprintf("  Track progress: muxi requests show %s", resp.RequestID))
+	}
+	if !async && resp.Content != "" {
+		fmt.Println()
+		fmt.Println("  Response:")
+		fmt.Println(ui.IndentString(resp.Content, 2))
 	}
 	fmt.Println()
 
 	return nil
+}
+
+func formatStatus(status string) string {
+	switch status {
+	case "processing":
+		return ui.CyanText("♨ " + status)
+	case "completed":
+		return ui.GreenText("✓ " + status)
+	case "failed":
+		return ui.RedText("✗ " + status)
+	default:
+		return "● " + status
+	}
 }
