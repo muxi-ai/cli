@@ -18,12 +18,21 @@ var schedulerCmd = &cobra.Command{
 The scheduler manages automated job execution on a schedule.
 
 Requires admin API key.`,
+}
+
+var schedulerStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show scheduler status and configuration",
+	Long: `Show scheduler status and configuration.
+
+Displays whether scheduler is enabled, timezone, check interval, and limits.`,
 	RunE: runSchedulerStatus,
 }
 
 var schedulerListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List scheduled jobs",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List scheduled jobs",
 	Long: `List all scheduled jobs.
 
 Shows job ID, type, schedule, next run time, and status.`,
@@ -32,10 +41,11 @@ Shows job ID, type, schedule, next run time, and status.`,
 
 func init() {
 	rootCmd.AddCommand(schedulerCmd)
+	schedulerCmd.AddCommand(schedulerStatusCmd)
 	schedulerCmd.AddCommand(schedulerListCmd)
 
-	formation.AddFormationFlag(schedulerCmd)
-	formation.AddProfileFlag(schedulerCmd)
+	formation.AddFormationFlag(schedulerStatusCmd)
+	formation.AddProfileFlag(schedulerStatusCmd)
 
 	formation.AddFormationFlag(schedulerListCmd)
 	formation.AddProfileFlag(schedulerListCmd)
