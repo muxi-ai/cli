@@ -271,7 +271,7 @@ func runMemoryBufferList(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Printf("  Buffer for user '%s'\n\n", userID)
 	fmt.Printf("    Total Messages: %d\n", resp.TotalMessages)
-	fmt.Printf("    Buffer Size:    %d KB\n", resp.BufferSizeKB)
+	fmt.Printf("    Buffer Size:    %.2f KB\n", resp.BufferSizeKB)
 
 	if len(resp.Sessions) == 0 {
 		fmt.Println()
@@ -317,7 +317,7 @@ func runMemoryBufferStatus(cmd *cobra.Command, args []string) error {
 	fmt.Printf("    Total Entries:  %d\n", resp.TotalEntries)
 	fmt.Printf("    Total Users:    %d\n", resp.TotalUsers)
 	fmt.Printf("    Total Sessions: %d\n", resp.TotalSessions)
-	fmt.Printf("    Buffer Size:    %d KB\n", resp.BufferSizeKB)
+	fmt.Printf("    Buffer Size:    %.2f KB\n", resp.BufferSizeKB)
 	fmt.Printf("    Max Size:       %d\n", resp.MaxSize)
 	fmt.Printf("    Utilization:    %.1f%%\n", resp.Utilization*100)
 	fmt.Println()

@@ -450,7 +450,7 @@ type UserBufferResponse struct {
 	UserID        string          `json:"user_id"`
 	TotalMessages int             `json:"total_messages"`
 	Sessions      []BufferSession `json:"sessions"`
-	BufferSizeKB  int             `json:"buffer_size_kb"`
+	BufferSizeKB  float64         `json:"buffer_size_kb"`
 }
 
 // BufferSession represents a session in user's buffer
@@ -465,7 +465,7 @@ type BufferStatsResponse struct {
 	TotalEntries  int     `json:"total_entries"`
 	TotalUsers    int     `json:"total_users"`
 	TotalSessions int     `json:"total_sessions"`
-	BufferSizeKB  int     `json:"buffer_size_kb"`
+	BufferSizeKB  float64 `json:"buffer_size_kb"`
 	MaxSize       int     `json:"max_size"`
 	Utilization   float64 `json:"utilization"`
 }
