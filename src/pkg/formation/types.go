@@ -445,11 +445,45 @@ type MemoryConfigResponse struct {
 	} `json:"working"`
 }
 
-// MemoryBufferResponse from GET /memory/buffer
-type MemoryBufferResponse struct {
-	UserID       string `json:"user_id"`
-	MessageCount int    `json:"message_count"`
-	SizeBytes    int    `json:"size_bytes"`
+// UserBufferResponse from GET /memory/buffer
+type UserBufferResponse struct {
+	UserID        string          `json:"user_id"`
+	TotalMessages int             `json:"total_messages"`
+	Sessions      []BufferSession `json:"sessions"`
+	BufferSizeKB  int             `json:"buffer_size_kb"`
+}
+
+// BufferSession represents a session in user's buffer
+type BufferSession struct {
+	SessionID    string    `json:"session_id"`
+	MessageCount int       `json:"message_count"`
+	LastActivity time.Time `json:"last_activity"`
+}
+
+// BufferStatsResponse from GET /memory/buffer/stats
+type BufferStatsResponse struct {
+	TotalEntries  int     `json:"total_entries"`
+	TotalUsers    int     `json:"total_users"`
+	TotalSessions int     `json:"total_sessions"`
+	BufferSizeKB  int     `json:"buffer_size_kb"`
+	MaxSize       int     `json:"max_size"`
+	Utilization   float64 `json:"utilization"`
+}
+
+// BufferClearedResponse from DELETE /memory/buffer
+type BufferClearedResponse struct {
+	Message         string `json:"message"`
+	UserID          string `json:"user_id,omitempty"`
+	MessagesCleared int    `json:"messages_cleared"`
+	SessionsCleared int    `json:"sessions_cleared"`
+}
+
+// SessionBufferClearedResponse from DELETE /memory/buffer/{session_id}
+type SessionBufferClearedResponse struct {
+	Message         string `json:"message"`
+	UserID          string `json:"user_id,omitempty"`
+	SessionID       string `json:"session_id"`
+	MessagesCleared int    `json:"messages_cleared"`
 }
 
 // LLMSettingsResponse from GET /llm/settings

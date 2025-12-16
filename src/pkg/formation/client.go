@@ -690,26 +690,65 @@ func (c *Client) GetMCPTools() (*MCPToolsResponse, error) {
 	return parseResponse[MCPToolsResponse](resp)
 }
 
-// GetMemoryBuffer gets buffer status for a user
-func (c *Client) GetMemoryBuffer(userID string) (*MemoryBufferResponse, error) {
+// GetUserBuffer gets buffer data for a user (GET /memory/buffer)
+func (c *Client) GetUserBuffer(userID string) (*UserBufferResponse, error) {
 	resp, err := c.GetWithUser("/memory/buffer", userID)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return parseResponse[MemoryBufferResponse](resp)
+	return parseResponse[UserBufferResponse](resp)
 }
 
-// GetMemoryBuffers lists all buffers (admin)
-func (c *Client) GetMemoryBuffers() (*MemoryBuffersResponse, error) {
-	resp, err := c.Get("/memory/buffers")
+// GetBufferStats gets aggregate buffer stats (GET /memory/buffer/stats)
+func (c *Client) GetBufferStats() (*BufferStatsResponse, error) {
+	resp, err := c.Get("/memory/buffer/stats")
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return parseResponse[MemoryBuffersResponse](resp)
+	return parseResponse[BufferStatsResponse](resp)
+}
+
+// ClearUserBuffer clears buffer for a specific user (DELETE /memory/buffer with user header)
+func (c *Client) ClearUserBuffer(userID string) (*BufferClearedResponse, error) {
+	resp, err := c.DeleteWithUser("/memory/buffer", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[BufferClearedResponse](resp)
+}
+
+// ClearAllBuffers clears all buffers (DELETE /memory/buffer without user header, admin)
+func (c *Client) ClearAllBuffers() (*BufferClearedResponse, error) {
+	resp, err := c.Delete("/memory/buffer")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[BufferClearedResponse](resp)
+}
+
+// ClearSessionBuffer clears buffer for a specific session (DELETE /memory/buffer/{session_id})
+func (c *Client) ClearSessionBuffer(sessionID, userID string) (*SessionBufferClearedResponse, error) {
+	var resp *http.Response
+	var err error
+	if userID != "" {
+		resp, err = c.DeleteWithUser("/memory/buffer/"+sessionID, userID)
+	} else {
+		resp, err = c.Delete("/memory/buffer/" + sessionID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[SessionBufferClearedResponse](resp)
 }
 
 // GetAsyncConfig gets async configuration
