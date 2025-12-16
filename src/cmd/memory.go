@@ -18,7 +18,6 @@ var memoryCmd = &cobra.Command{
 	Long: `View memory configuration and manage user memories.
 
 Memory stores context and preferences for users across sessions.`,
-	RunE: runMemoryStatus,
 }
 
 var memoryStatusCmd = &cobra.Command{
