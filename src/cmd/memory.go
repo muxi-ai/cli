@@ -378,7 +378,7 @@ func runMemoryBufferClear(cmd *cobra.Command, args []string) error {
 	if allFlag {
 		if !forceFlag {
 			fmt.Println()
-			fmt.Print("  Clear ALL buffers for ALL users? (y/N): ")
+			fmt.Print("  " + ui.RedText("Clear ALL buffers for ALL users? (y/N): "))
 			reader := bufio.NewReader(os.Stdin)
 			answer, _ := reader.ReadString('\n')
 			answer = strings.TrimSpace(strings.ToLower(answer))
