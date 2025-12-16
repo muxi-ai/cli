@@ -97,6 +97,49 @@ func (c *Client) GetWithUser(path, userID string) (*http.Response, error) {
 	return c.DoWithUserID("GET", path, nil, userID)
 }
 
+// GetAdminWithUser performs a GET request with admin key and optional user ID
+func (c *Client) GetAdminWithUser(path, userID string) (*http.Response, error) {
+	url := c.BaseURL + path
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if c.AdminKey == "" {
+		return nil, fmt.Errorf("admin key required but not set")
+	}
+	req.Header.Set("X-MUXI-ADMIN-KEY", c.AdminKey)
+	if userID != "" {
+		req.Header.Set("X-Muxi-User-ID", userID)
+	}
+	return c.HTTPClient.Do(req)
+}
+
+// PostAdminWithUser performs a POST request with admin key and optional user ID
+func (c *Client) PostAdminWithUser(path string, body interface{}, userID string) (*http.Response, error) {
+	url := c.BaseURL + path
+	var reader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		reader = bytes.NewReader(data)
+	}
+	req, err := http.NewRequest("POST", url, reader)
+	if err != nil {
+		return nil, err
+	}
+	if c.AdminKey == "" {
+		return nil, fmt.Errorf("admin key required but not set")
+	}
+	req.Header.Set("X-MUXI-ADMIN-KEY", c.AdminKey)
+	req.Header.Set("Content-Type", "application/json")
+	if userID != "" {
+		req.Header.Set("X-Muxi-User-ID", userID)
+	}
+	return c.HTTPClient.Do(req)
+}
+
 // Post performs an authenticated POST request (admin key)
 func (c *Client) Post(path string, body interface{}) (*http.Response, error) {
 	var reader io.Reader
@@ -500,15 +543,32 @@ func (c *Client) GetSchedulerConfig() (*SchedulerConfigResponse, error) {
 	return parseResponse[SchedulerConfigResponse](resp)
 }
 
-// GetSchedulerJobs lists scheduler jobs
-func (c *Client) GetSchedulerJobs() (*SchedulerJobsResponse, error) {
-	resp, err := c.Get("/scheduler/jobs")
+// GetSchedulerJobs lists scheduler jobs (optionally filtered by user ID)
+func (c *Client) GetSchedulerJobs(userID string) (*SchedulerJobsResponse, error) {
+	resp, err := c.GetAdminWithUser("/scheduler/jobs", userID)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	return parseResponse[SchedulerJobsResponse](resp)
+}
+
+// CreateSchedulerJob creates a new scheduled job
+func (c *Client) CreateSchedulerJob(jobType, schedule, message, userID string) (*ScheduledJob, error) {
+	body := CreateSchedulerJobRequest{
+		Type:     jobType,
+		Schedule: schedule,
+		Message:  message,
+	}
+
+	resp, err := c.PostAdminWithUser("/scheduler/jobs", body, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[ScheduledJob](resp)
 }
 
 // GetUserIdentifiers lists all user identifier mappings (admin)

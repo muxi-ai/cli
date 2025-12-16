@@ -360,16 +360,25 @@ type AuditLogResponse struct {
 
 // ScheduledJob represents a scheduled job
 type ScheduledJob struct {
-	ID        string    `json:"id"`
-	Type      string    `json:"type"` // one_time, recurring
-	Schedule  string    `json:"schedule,omitempty"`
-	RunAt     time.Time `json:"run_at,omitempty"`
-	Message   string    `json:"message"`
-	UserID    string    `json:"user_id"`
-	SessionID string    `json:"session_id,omitempty"`
-	Enabled   bool      `json:"enabled"`
-	LastRun   time.Time `json:"last_run,omitempty"`
-	NextRun   time.Time `json:"next_run,omitempty"`
+	ID           string            `json:"id"`
+	Type         string            `json:"type"` // one_time, recurring
+	Schedule     string            `json:"schedule,omitempty"`
+	RunAt        time.Time         `json:"run_at,omitempty"`
+	Message      string            `json:"message"`
+	UserID       string            `json:"user_id"`
+	SessionID    string            `json:"session_id,omitempty"`
+	Enabled      bool              `json:"enabled"`
+	LastRun      time.Time         `json:"last_run,omitempty"`
+	NextRun      time.Time         `json:"next_run,omitempty"`
+	FailureCount int               `json:"failure_count,omitempty"`
+	History      []ScheduledJobRun `json:"history,omitempty"`
+}
+
+// ScheduledJobRun represents a single execution of a scheduled job
+type ScheduledJobRun struct {
+	RunAt      time.Time `json:"run_at"`
+	Status     string    `json:"status"` // completed, failed
+	DurationMs int       `json:"duration_ms,omitempty"`
 }
 
 // SchedulerJobsResponse from GET /scheduler/jobs
@@ -380,11 +389,18 @@ type SchedulerJobsResponse struct {
 
 // SchedulerConfigResponse from GET /scheduler
 type SchedulerConfigResponse struct {
-	Enabled               bool   `json:"enabled"`
-	Timezone              string `json:"timezone"`
-	CheckIntervalMinutes  int    `json:"check_interval_minutes"`
-	MaxConcurrentJobs     int    `json:"max_concurrent_jobs"`
-	MaxFailuresBeforePause int   `json:"max_failures_before_pause"`
+	Enabled                bool   `json:"enabled"`
+	Timezone               string `json:"timezone"`
+	CheckIntervalMinutes   int    `json:"check_interval_minutes"`
+	MaxConcurrentJobs      int    `json:"max_concurrent_jobs"`
+	MaxFailuresBeforePause int    `json:"max_failures_before_pause"`
+}
+
+// CreateSchedulerJobRequest for POST /scheduler/jobs
+type CreateSchedulerJobRequest struct {
+	Type     string `json:"type"`     // one_time, recurring
+	Schedule string `json:"schedule"` // cron expr or ISO datetime
+	Message  string `json:"message"`  // prompt to send
 }
 
 // UserIdentifier represents a user identifier mapping
@@ -489,7 +505,18 @@ type A2AConfigResponse struct {
 
 // LoggingConfigResponse from GET /logging
 type LoggingConfigResponse struct {
-	Destinations []LoggingDestination `json:"destinations"`
+	Enabled bool           `json:"enabled"`
+	Streams []LoggingStream `json:"streams"`
+}
+
+// LoggingStream represents a logging stream in the config
+type LoggingStream struct {
+	Transport   string   `json:"transport"` // stdout, file, stream
+	Destination string   `json:"destination,omitempty"`
+	Level       string   `json:"level"`
+	Format      string   `json:"format"` // text, jsonl
+	Protocol    string   `json:"protocol,omitempty"`
+	Events      []string `json:"events,omitempty"`
 }
 
 // LoggingDestination represents a logging destination
@@ -668,17 +695,16 @@ type RequestStatusResponse struct {
 
 // SchedulerJobDetail from GET /scheduler/jobs/{job_id}
 type SchedulerJobDetail struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"`
-	Schedule    string    `json:"schedule,omitempty"`
-	RunAt       string    `json:"run_at,omitempty"`
-	Message     string    `json:"message"`
-	UserID      string    `json:"user_id"`
-	Enabled     bool      `json:"enabled"`
-	NextRun     time.Time `json:"next_run,omitempty"`
-	LastRun     time.Time `json:"last_run,omitempty"`
-	RunCount    int       `json:"run_count"`
-	FailCount   int       `json:"fail_count"`
+	ID           string    `json:"id"`
+	Type         string    `json:"type"`
+	Schedule     string    `json:"schedule,omitempty"`
+	RunAt        string    `json:"run_at,omitempty"`
+	Message      string    `json:"message"`
+	UserID       string    `json:"user_id"`
+	Enabled      bool      `json:"enabled"`
+	NextRun      time.Time `json:"next_run,omitempty"`
+	LastRun      time.Time `json:"last_run,omitempty"`
+	FailureCount int       `json:"failure_count"`
 }
 
 // UserResolveRequest for POST /users/resolve

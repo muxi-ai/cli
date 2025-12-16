@@ -135,9 +135,10 @@ var (
 		RunE:  runRegistryAdd,
 	}
 	registryRemoveCmd = &cobra.Command{
-		Use:   "remove",
-		Short: "Remove a registry",
-		RunE:  runRegistryRemove,
+		Use:     "remove",
+		Aliases: []string{"rm"},
+		Short:   "Remove a registry",
+		RunE:    runRegistryRemove,
 	}
 	registryMineCmd = &cobra.Command{
 		Use:   "mine",

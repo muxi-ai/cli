@@ -47,8 +47,9 @@ with an asterisk (*).`,
 }
 
 var profilesRemoveCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Remove a server profile",
+	Use:     "remove",
+	Aliases: []string{"rm"},
+	Short:   "Remove a server profile",
 	Long: `Remove a server profile interactively.
 
 Select from a list of configured profiles to remove.`,
