@@ -97,7 +97,11 @@ func runSopsList(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 	}
 
-	ui.Dimmed("  Use 'muxi sops show <name>' for details")
+	// Build hint with resolved formation/profile
+	flags := formation.GetCommonFlags(cmd)
+	formationID, _ := formation.ResolveFormationID(flags.FormationID)
+	profile := formation.ResolveProfile(flags.Profile)
+	ui.Dimmed(fmt.Sprintf("  View SOP details with: muxi sops show <name> -f %s -p %s", formationID, profile))
 	fmt.Println()
 
 	return nil

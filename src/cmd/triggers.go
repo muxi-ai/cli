@@ -115,7 +115,11 @@ func runTriggers(cmd *cobra.Command, args []string) error {
 		fmt.Printf("    • %s\n", name)
 	}
 	fmt.Println()
-	ui.Dimmed("  Use 'muxi triggers show <name>' for details")
+	// Build hint with resolved formation/profile
+	flags := formation.GetCommonFlags(cmd)
+	formationID, _ := formation.ResolveFormationID(flags.FormationID)
+	profile := formation.ResolveProfile(flags.Profile)
+	ui.Dimmed(fmt.Sprintf("  View trigger details with: muxi triggers show <name> -f %s -p %s", formationID, profile))
 	fmt.Println()
 
 	return nil
@@ -259,8 +263,12 @@ func runTriggersRun(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  Request ID: %s\n", resp.RequestID)
 	}
 	if async && resp.RequestID != "" {
+		// Build hint with resolved formation/profile
+		flags := formation.GetCommonFlags(cmd)
+		formationID, _ := formation.ResolveFormationID(flags.FormationID)
+		profile := formation.ResolveProfile(flags.Profile)
 		fmt.Println()
-		ui.Dimmed(fmt.Sprintf("  Track progress: muxi requests show %s", resp.RequestID))
+		ui.Dimmed(fmt.Sprintf("  Track progress: muxi requests show %s -f %s -p %s", resp.RequestID, formationID, profile))
 	}
 	if !async && resp.Content != "" {
 		fmt.Println()

@@ -81,9 +81,14 @@ func runLoggingStatus(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Build the hint command with resolved formation/profile
+	flags := formation.GetCommonFlags(cmd)
+	formationID, _ := formation.ResolveFormationID(flags.FormationID)
+	profile := formation.ResolveProfile(flags.Profile)
+
 	fmt.Println()
 	ui.Dimmed("  List logging destinations with:")
-	ui.Dimmed("    muxi logging list|ls [--formation <id>]")
+	ui.Dimmed(fmt.Sprintf("    muxi logging list --formation %s --profile %s", formationID, profile))
 	fmt.Println()
 
 	return nil
