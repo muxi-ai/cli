@@ -406,6 +406,20 @@ func runMemoryBufferClear(cmd *cobra.Command, args []string) error {
 
 	// Handle -s <session>
 	if sessionFlag != "" {
+		if !forceFlag {
+			fmt.Println()
+			fmt.Printf("  "+ui.RedText("Clear buffer for session '%s'? (y/N): "), sessionFlag)
+			reader := bufio.NewReader(os.Stdin)
+			answer, _ := reader.ReadString('\n')
+			answer = strings.TrimSpace(strings.ToLower(answer))
+			if answer != "y" && answer != "yes" {
+				fmt.Println()
+				ui.Dimmed("  Cancelled")
+				fmt.Println()
+				return nil
+			}
+		}
+
 		userID := formation.ResolveUserID(userFlag)
 		resp, err := client.ClearSessionBuffer(sessionFlag, userID)
 		if err != nil {
@@ -425,6 +439,20 @@ func runMemoryBufferClear(cmd *cobra.Command, args []string) error {
 	if userID == "" {
 		ui.ErrorBlock("User ID required", "Use -u flag to specify user", "")
 		return nil
+	}
+
+	if !forceFlag {
+		fmt.Println()
+		fmt.Printf("  "+ui.RedText("Clear buffer for user '%s'? (y/N): "), userID)
+		reader := bufio.NewReader(os.Stdin)
+		answer, _ := reader.ReadString('\n')
+		answer = strings.TrimSpace(strings.ToLower(answer))
+		if answer != "y" && answer != "yes" {
+			fmt.Println()
+			ui.Dimmed("  Cancelled")
+			fmt.Println()
+			return nil
+		}
 	}
 
 	resp, err := client.ClearUserBuffer(userID)
