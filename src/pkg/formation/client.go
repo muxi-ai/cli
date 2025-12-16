@@ -701,9 +701,9 @@ func (c *Client) GetUserBuffer(userID string) (*UserBufferResponse, error) {
 	return parseResponse[UserBufferResponse](resp)
 }
 
-// GetBufferStats gets aggregate buffer stats (GET /memory/buffer/stats)
+// GetBufferStats gets aggregate buffer stats (GET /memory/stats)
 func (c *Client) GetBufferStats() (*BufferStatsResponse, error) {
-	resp, err := c.Get("/memory/buffer/stats")
+	resp, err := c.Get("/memory/stats")
 	if err != nil {
 		return nil, err
 	}
