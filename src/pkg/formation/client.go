@@ -622,7 +622,7 @@ func (c *Client) UnlinkUserIdentifier(identifier string) error {
 
 // ResolveUserIdentifier resolves an identifier to a user
 func (c *Client) ResolveUserIdentifier(identifier string) (*UserIdentifier, error) {
-	resp, err := c.Get("/users/identifiers/" + identifier)
+	resp, err := c.Get("/users/" + identifier)
 	if err != nil {
 		return nil, err
 	}
