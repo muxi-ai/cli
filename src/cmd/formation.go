@@ -18,38 +18,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var formationCmd = &cobra.Command{
-	Use:     "formation",
-	Short:   "Manage deployed formations",
+var serverCmd = &cobra.Command{
+	Use:     "server",
+	Short:   "Manage deployed formations on server",
 	GroupID: "server",
 	Long: `List, inspect, and manage formations deployed to a MUXI server.
 
 Use -p (--profile) to specify which server to connect to.`,
 }
 
-var formationListCmd = &cobra.Command{
+var serverListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List deployed formations",
 	Long: `List all formations deployed to the server.
 
 Displays formation ID, status, port, and version.`,
-	RunE: runFormationList,
+	RunE: runServerList,
 }
 
-var formationGetCmd = &cobra.Command{
+var serverGetCmd = &cobra.Command{
 	Use:   "get <id>",
 	Short: "Get formation details",
 	Long: `Get detailed information about a specific formation.
 
 Displays status, version, port, uptime, and configuration.`,
 	Args: RequireArgs(1),
-	RunE: runFormationGet,
+	RunE: runServerGet,
 }
 
-var formationDeleteCmd = &cobra.Command{
-	Use:   "delete <id>",
-	Short: "Delete a formation",
+var serverDeleteCmd = &cobra.Command{
+	Use:     "delete <id>",
+	Aliases: []string{"rm"},
+	Short:   "Delete a formation",
 	Long: `Delete a formation from the server.
 
 This will:
@@ -58,86 +59,86 @@ This will:
 - Remove from registry
 - Clean up formation directory`,
 	Args: RequireArgs(1),
-	RunE: runFormationDelete,
+	RunE: runServerDelete,
 }
 
-var formationStopCmd = &cobra.Command{
+var serverStopCmd = &cobra.Command{
 	Use:   "stop <id>",
 	Short: "Stop a running formation",
 	Long: `Stop a running formation.
 
 The formation process is stopped but the formation remains registered
-on the server. Use 'muxi formation start' to restart it.`,
+on the server. Use 'muxi server start' to restart it.`,
 	Args: RequireArgs(1),
-	RunE: runFormationStop,
+	RunE: runServerStop,
 }
 
-var formationStartCmd = &cobra.Command{
+var serverStartCmd = &cobra.Command{
 	Use:   "start <id>",
 	Short: "Start a stopped formation",
 	Long: `Start a stopped formation.
 
 Restarts a formation that was previously stopped.`,
 	Args: RequireArgs(1),
-	RunE: runFormationStart,
+	RunE: runServerStart,
 }
 
-var formationRestartCmd = &cobra.Command{
+var serverRestartCmd = &cobra.Command{
 	Use:   "restart <id>",
 	Short: "Restart a formation",
 	Args:  RequireArgs(1),
-	RunE:  runFormationRestart,
+	RunE:  runServerRestart,
 }
 
-var formationRollbackCmd = &cobra.Command{
+var serverRollbackCmd = &cobra.Command{
 	Use:   "rollback <id>",
 	Short: "Rollback to previous version",
 	Long:  `Rollback a formation to its previous deployed version.`,
 	Args:  RequireArgs(1),
-	RunE:  runFormationRollback,
+	RunE:  runServerRollback,
 }
 
-var formationLogsCmd = &cobra.Command{
+var serverLogsCmd = &cobra.Command{
 	Use:   "logs <id>",
 	Short: "View formation logs",
 	Args:  RequireArgs(1),
-	RunE:  runFormationLogs,
+	RunE:  runServerLogs,
 }
 
 func init() {
-	rootCmd.AddCommand(formationCmd)
+	rootCmd.AddCommand(serverCmd)
 
-	formationCmd.AddCommand(formationListCmd)
-	formationCmd.AddCommand(formationGetCmd)
-	formationCmd.AddCommand(formationDeleteCmd)
-	formationCmd.AddCommand(formationStopCmd)
-	formationCmd.AddCommand(formationStartCmd)
-	formationCmd.AddCommand(formationRestartCmd)
-	formationCmd.AddCommand(formationRollbackCmd)
-	formationCmd.AddCommand(formationLogsCmd)
+	serverCmd.AddCommand(serverListCmd)
+	serverCmd.AddCommand(serverGetCmd)
+	serverCmd.AddCommand(serverDeleteCmd)
+	serverCmd.AddCommand(serverStopCmd)
+	serverCmd.AddCommand(serverStartCmd)
+	serverCmd.AddCommand(serverRestartCmd)
+	serverCmd.AddCommand(serverRollbackCmd)
+	serverCmd.AddCommand(serverLogsCmd)
 
 	// Flags
-	formationListCmd.Flags().String("profile", "", "Server profile to use")
-	formationGetCmd.Flags().String("profile", "", "Server profile to use")
-	formationGetCmd.Flags().BoolP("verbose", "v", false, "Show internal details (port, pid)")
-	formationDeleteCmd.Flags().String("profile", "", "Server profile to use")
-	formationDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
-	formationDeleteCmd.Flags().Bool("atomic", false, "Skip confirmation prompt (alias for --force)")
-	formationStopCmd.Flags().String("profile", "", "Server profile to use")
-	formationStopCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
-	formationStartCmd.Flags().String("profile", "", "Server profile to use")
-	formationRestartCmd.Flags().String("profile", "", "Server profile to use")
-	formationRestartCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
-	formationRollbackCmd.Flags().String("profile", "", "Server profile to use")
-	formationRollbackCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
-	formationLogsCmd.Flags().String("profile", "", "Server profile to use")
-	formationLogsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
-	formationLogsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
-	formationLogsCmd.Flags().BoolP("follow", "f", false, "Stream new logs (like tail -f)")
+	serverListCmd.Flags().String("profile", "", "Server profile to use")
+	serverGetCmd.Flags().String("profile", "", "Server profile to use")
+	serverGetCmd.Flags().BoolP("verbose", "v", false, "Show internal details (port, pid)")
+	serverDeleteCmd.Flags().String("profile", "", "Server profile to use")
+	serverDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	serverDeleteCmd.Flags().Bool("atomic", false, "Skip confirmation prompt (alias for --force)")
+	serverStopCmd.Flags().String("profile", "", "Server profile to use")
+	serverStopCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	serverStartCmd.Flags().String("profile", "", "Server profile to use")
+	serverRestartCmd.Flags().String("profile", "", "Server profile to use")
+	serverRestartCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	serverRollbackCmd.Flags().String("profile", "", "Server profile to use")
+	serverRollbackCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	serverLogsCmd.Flags().String("profile", "", "Server profile to use")
+	serverLogsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
+	serverLogsCmd.Flags().String("stream", "", "Filter by stream (stdout, stderr)")
+	serverLogsCmd.Flags().BoolP("follow", "f", false, "Stream new logs (like tail -f)")
 }
 
-// runFormationList handles muxi formation list
-func runFormationList(cmd *cobra.Command, args []string) error {
+// runServerList handles muxi server list
+func runServerList(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 
 	client, err := server.NewClient(profile)
@@ -195,8 +196,8 @@ func runFormationList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runFormationGet handles muxi formation get <id>
-func runFormationGet(cmd *cobra.Command, args []string) error {
+// runServerGet handles muxi server get <id>
+func runServerGet(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	formationID := args[0]
@@ -212,7 +213,7 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi formation list"),
+				ui.Command("muxi server list"),
 			)
 			os.Exit(1)
 		}
@@ -295,8 +296,8 @@ func runFormationGet(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runFormationDelete handles muxi formation delete <id>
-func runFormationDelete(cmd *cobra.Command, args []string) error {
+// runServerDelete handles muxi server delete <id>
+func runServerDelete(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
 	atomic, _ := cmd.Flags().GetBool("atomic")
@@ -315,7 +316,7 @@ func runFormationDelete(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi formation list"),
+				ui.Command("muxi server list"),
 			)
 			os.Exit(1)
 		}
@@ -386,8 +387,8 @@ func formatTimestamp(ts string) string {
 	return t.Format("2006-01-02 15:04:05")
 }
 
-// runFormationStop handles muxi formation stop <id>
-func runFormationStop(cmd *cobra.Command, args []string) error {
+// runServerStop handles muxi server stop <id>
+func runServerStop(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
 	formationID := args[0]
@@ -404,7 +405,7 @@ func runFormationStop(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi formation list"),
+				ui.Command("muxi server list"),
 			)
 			os.Exit(1)
 		}
@@ -443,16 +444,16 @@ func runFormationStop(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runFormationStart handles muxi formation start <id>
-func runFormationStart(cmd *cobra.Command, args []string) error {
+// runServerStart handles muxi server start <id>
+func runServerStart(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	formationID := args[0]
 
-	return runFormationStartWithID(formationID, profile)
+	return runServerStartWithID(formationID, profile)
 }
 
-// runFormationStartWithID starts a formation by ID (used by shortcut too)
-func runFormationStartWithID(formationID, profile string) error {
+// runServerStartWithID starts a formation by ID (used by shortcut too)
+func runServerStartWithID(formationID, profile string) error {
 	client, err := server.NewClient(profile)
 	if err != nil {
 		return err
@@ -465,7 +466,7 @@ func runFormationStartWithID(formationID, profile string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi formation list"),
+				ui.Command("muxi server list"),
 			)
 			os.Exit(1)
 		}
@@ -619,8 +620,8 @@ func playStartNotificationSound(success bool) {
 	}
 }
 
-// runFormationRestart handles muxi formation restart <id>
-func runFormationRestart(cmd *cobra.Command, args []string) error {
+// runServerRestart handles muxi server restart <id>
+func runServerRestart(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
 	formationID := args[0]
@@ -631,11 +632,11 @@ func runFormationRestart(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	return runFormationRestartWithID(formationID, profile)
+	return runServerRestartWithID(formationID, profile)
 }
 
-// runFormationRestartWithID restarts a formation by ID (used by shortcut too)
-func runFormationRestartWithID(formationID, profile string) error {
+// runServerRestartWithID restarts a formation by ID (used by shortcut too)
+func runServerRestartWithID(formationID, profile string) error {
 	client, err := server.NewClient(profile)
 	if err != nil {
 		return err
@@ -648,7 +649,7 @@ func runFormationRestartWithID(formationID, profile string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi formation list"),
+				ui.Command("muxi server list"),
 			)
 			os.Exit(1)
 		}
@@ -807,8 +808,8 @@ func playRestartNotificationSound(success bool) {
 	}
 }
 
-// runFormationRollback handles muxi formation rollback <id>
-func runFormationRollback(cmd *cobra.Command, args []string) error {
+// runServerRollback handles muxi server rollback <id>
+func runServerRollback(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
 	formationID := args[0]
@@ -819,11 +820,11 @@ func runFormationRollback(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	return runFormationRollbackWithID(formationID, profile)
+	return runServerRollbackWithID(formationID, profile)
 }
 
-// runFormationRollbackWithID rolls back a formation by ID (used by shortcut too)
-func runFormationRollbackWithID(formationID, profile string) error {
+// runServerRollbackWithID rolls back a formation by ID (used by shortcut too)
+func runServerRollbackWithID(formationID, profile string) error {
 	client, err := server.NewClient(profile)
 	if err != nil {
 		return err
@@ -836,7 +837,7 @@ func runFormationRollbackWithID(formationID, profile string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi formation list"),
+				ui.Command("muxi server list"),
 			)
 			os.Exit(1)
 		}
@@ -990,8 +991,8 @@ func playRollbackNotificationSound(success bool) {
 	}
 }
 
-// runFormationLogs handles muxi formation logs <id>
-func runFormationLogs(cmd *cobra.Command, args []string) error {
+// runServerLogs handles muxi server logs <id>
+func runServerLogs(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	lines, _ := cmd.Flags().GetInt("lines")
 	stream, _ := cmd.Flags().GetString("stream")
@@ -1015,7 +1016,7 @@ func runFormationLogs(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi formation list"),
+				ui.Command("muxi server list"),
 			)
 			os.Exit(1)
 		}

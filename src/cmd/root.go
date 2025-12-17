@@ -94,7 +94,7 @@ func customHelp(cmd *cobra.Command, args []string) {
 
 	// Formation Commands
 	printBoxWithSubtitle("Formation Commands", "MUXI")
-	printColoredCommand("$ muxi formation [command]")
+	printColoredCommand("$ muxi server [command]")
 	printBoxLineDimmed("  or (from formation dir):")
 	printColoredCommand("$ muxi [command]")
 	printBoxBottom()

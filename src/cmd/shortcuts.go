@@ -22,7 +22,7 @@ var getCmd = &cobra.Command{
 	Long: `Get details of the current formation.
 
 Must be run from inside a formation directory.
-This is a shortcut for 'muxi formation get <id>'.`,
+This is a shortcut for 'muxi server get <id>'.`,
 	Args: cobra.NoArgs,
 	RunE: runShortcutGet,
 }
@@ -34,7 +34,7 @@ var stopCmd = &cobra.Command{
 	Long: `Stop the current formation.
 
 Must be run from inside a formation directory.
-This is a shortcut for 'muxi formation stop <id>'.`,
+This is a shortcut for 'muxi server stop <id>'.`,
 	Args: cobra.NoArgs,
 	RunE: runShortcutStop,
 }
@@ -46,7 +46,7 @@ var startCmd = &cobra.Command{
 	Long: `Start the current formation (must be stopped).
 
 Must be run from inside a formation directory.
-This is a shortcut for 'muxi formation start <id>'.`,
+This is a shortcut for 'muxi server start <id>'.`,
 	Args: cobra.NoArgs,
 	RunE: runShortcutStart,
 }
@@ -58,7 +58,7 @@ var restartCmd = &cobra.Command{
 	Long: `Restart the current formation.
 
 Must be run from inside a formation directory.
-This is a shortcut for 'muxi formation restart <id>'.`,
+This is a shortcut for 'muxi server restart <id>'.`,
 	Args: cobra.NoArgs,
 	RunE: runShortcutRestart,
 }
@@ -70,7 +70,7 @@ var deleteCmd = &cobra.Command{
 	Long: `Delete the current formation from the server.
 
 Must be run from inside a formation directory.
-This is a shortcut for 'muxi formation delete <id>'.`,
+This is a shortcut for 'muxi server delete <id>'.`,
 	Args: cobra.NoArgs,
 	RunE: runShortcutDelete,
 }
@@ -82,7 +82,7 @@ var rollbackCmd = &cobra.Command{
 	Long: `Rollback the current formation to its previous version.
 
 Must be run from inside a formation directory.
-This is a shortcut for 'muxi formation rollback <id>'.`,
+This is a shortcut for 'muxi server rollback <id>'.`,
 	Args: cobra.NoArgs,
 	RunE: runShortcutRollback,
 }
@@ -95,7 +95,7 @@ This is a shortcut for 'muxi formation rollback <id>'.`,
 // 	Long: `View logs for the current formation.
 //
 // Must be run from inside a formation directory.
-// This is a shortcut for 'muxi formation logs <id>'.`,
+// This is a shortcut for 'muxi server logs <id>'.`,
 // 	Args: cobra.NoArgs,
 // 	RunE: runShortcutLogs,
 // }
@@ -138,7 +138,7 @@ func init() {
 func requireFormationContext(command string) (*context.FormationContext, error) {
 	ctx, err := context.DetectFormation()
 	if err != nil {
-		return nil, fmt.Errorf("%s not in a formation directory\n\nRun this command from inside a formation directory, or use:\n  %s <formation-id>", ui.RedText("✗"), ui.CyanText("muxi formation "+command))
+		return nil, fmt.Errorf("%s not in a formation directory\n\nRun this command from inside a formation directory, or use:\n  %s <formation-id>", ui.RedText("✗"), ui.CyanText("muxi server "+command))
 	}
 	if ctx.ID == "" {
 		return nil, fmt.Errorf("%s formation config is missing 'id' field", ui.RedText("✗"))
@@ -255,7 +255,7 @@ func runShortcutStart(cmd *cobra.Command, args []string) error {
 
 	profile, _ := cmd.Flags().GetString("profile")
 
-	return runFormationStartWithID(ctx.ID, profile)
+	return runServerStartWithID(ctx.ID, profile)
 }
 
 func runShortcutRestart(cmd *cobra.Command, args []string) error {
@@ -273,7 +273,7 @@ func runShortcutRestart(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 
 	// Delegate to existing restart logic with streaming
-	return runFormationRestartWithID(ctx.ID, profile)
+	return runServerRestartWithID(ctx.ID, profile)
 }
 
 func runShortcutDelete(cmd *cobra.Command, args []string) error {
@@ -340,7 +340,7 @@ func runShortcutRollback(cmd *cobra.Command, args []string) error {
 
 	profile, _ := cmd.Flags().GetString("profile")
 
-	return runFormationRollbackWithID(ctx.ID, profile)
+	return runServerRollbackWithID(ctx.ID, profile)
 }
 
 // runShortcutLogs moved to logs.go for runtime log streaming

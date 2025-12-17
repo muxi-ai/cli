@@ -311,7 +311,7 @@ func Section(title string) {
 //   Formation 'my-bot' does not exist
 //
 //   Check available formations:
-//     muxi formation list
+//     muxi server list
 func ErrorBlock(title string, details string, suggestion string) {
 	red.Printf("%s %s\n\n", SymbolError, title)
 
