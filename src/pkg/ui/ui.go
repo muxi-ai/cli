@@ -242,6 +242,10 @@ func DimmedText(s string) string {
 	return dimmed.Sprint(s)
 }
 
+func GoldText(s string) string {
+	return gold.Sprint(s)
+}
+
 // PromptSuccess shows a prompt with successful input (Next.js style)
 // Example: ✓ Formation name: my-bot
 // Supports leading spaces in prompt for indentation: "  Temperature" -> "  ✓ Temperature: 0.7"

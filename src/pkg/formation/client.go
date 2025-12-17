@@ -869,7 +869,7 @@ func (c *Client) ResolveUser(identifier string, createUser bool) (*UserResolveRe
 	return parseResponse[UserResolveResponse](resp)
 }
 
-// Chat sends a chat message
+// Chat sends a chat message (non-streaming)
 func (c *Client) Chat(req *ChatRequest) (*ChatResponse, error) {
 	resp, err := c.PostClient("/chat", req)
 	if err != nil {
@@ -878,6 +878,63 @@ func (c *Client) Chat(req *ChatRequest) (*ChatResponse, error) {
 	defer resp.Body.Close()
 
 	return parseResponse[ChatResponse](resp)
+}
+
+// ChatStream sends a chat message and returns SSE stream (caller must close)
+func (c *Client) ChatStream(req *ChatRequest, userID string) (*http.Response, error) {
+	url := c.BaseURL + "/chat"
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
+	if userID != "" {
+		httpReq.Header.Set("X-Muxi-User-ID", userID)
+	}
+
+	return c.HTTPClient.Do(httpReq)
+}
+
+// AVChat sends audio/video for transcription/analysis (non-streaming)
+func (c *Client) AVChat(req *AVChatRequest) (*ChatResponse, error) {
+	resp, err := c.PostClient("/avchat", req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[ChatResponse](resp)
+}
+
+// AVChatStream sends audio/video and returns SSE stream (caller must close)
+func (c *Client) AVChatStream(req *AVChatRequest, userID string) (*http.Response, error) {
+	url := c.BaseURL + "/avchat"
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
+	if userID != "" {
+		httpReq.Header.Set("X-Muxi-User-ID", userID)
+	}
+
+	return c.HTTPClient.Do(httpReq)
 }
 
 // GetFormationInfo gets basic formation info

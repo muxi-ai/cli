@@ -619,15 +619,35 @@ type OverlordConfigResponse struct {
 	} `json:"caching,omitempty"`
 }
 
+// ChatFile represents a file attachment for chat
+type ChatFile struct {
+	Filename    string `json:"filename"`
+	Content     string `json:"content"`      // Base64 encoded
+	ContentType string `json:"content_type"` // MIME type
+	Size        int64  `json:"size,omitempty"`
+}
+
 // ChatRequest for POST /chat
 type ChatRequest struct {
-	Message          string `json:"message"`
-	UserID           string `json:"user_id,omitempty"`
-	SessionID        string `json:"session_id,omitempty"`
-	GroupID          string `json:"group_id,omitempty"`
-	Stream           bool   `json:"stream,omitempty"`
-	WebhookURL       string `json:"webhook_url,omitempty"`
-	ThresholdSeconds int    `json:"threshold_seconds,omitempty"`
+	Message          string     `json:"message"`
+	UserID           string     `json:"user_id,omitempty"`
+	SessionID        string     `json:"session_id,omitempty"`
+	GroupID          string     `json:"group_id,omitempty"`
+	Stream           bool       `json:"stream,omitempty"`
+	WebhookURL       string     `json:"webhook_url,omitempty"`
+	ThresholdSeconds int        `json:"threshold_seconds,omitempty"`
+	Files            []ChatFile `json:"files,omitempty"`
+}
+
+// AVChatRequest for POST /avchat
+type AVChatRequest struct {
+	Files          []ChatFile `json:"files"`
+	UserID         string     `json:"user_id,omitempty"`
+	SessionID      string     `json:"session_id,omitempty"`
+	AgentName      string     `json:"agent_name,omitempty"`
+	UseAsync       bool       `json:"use_async,omitempty"`
+	WebhookURL     string     `json:"webhook_url,omitempty"`
+	PromptTemplate string     `json:"prompt_template,omitempty"`
 }
 
 // ChatResponse from POST /chat (non-streaming)
