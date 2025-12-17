@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/defaults"
 	"github.com/muxi-ai/cli/pkg/secrets"
 	"github.com/muxi-ai/cli/pkg/server"
 	"gopkg.in/yaml.v3"
@@ -17,16 +18,9 @@ const (
 )
 
 // ResolveKeys attempts to get API keys from various sources
-// Priority: 1. Environment variables, 2. Formation secrets.enc, 3. Cached keys
+// Priority: 1. Formation secrets.enc, 2. Saved formations config
 func ResolveKeys(formationDir string) (adminKey, clientKey string, err error) {
-	// 1. Check environment variables
-	adminKey = os.Getenv("MUXI_ADMIN_KEY")
-	clientKey = os.Getenv("MUXI_CLIENT_KEY")
-	if adminKey != "" || clientKey != "" {
-		return adminKey, clientKey, nil
-	}
-
-	// 2. Try to load from formation's secrets.enc
+	// 1. Try to load from formation's secrets.enc
 	if formationDir != "" {
 		adminKey, clientKey, err = loadKeysFromSecrets(formationDir)
 		if err == nil && (adminKey != "" || clientKey != "") {
@@ -34,7 +28,7 @@ func ResolveKeys(formationDir string) (adminKey, clientKey string, err error) {
 		}
 	}
 
-	// 3. Try current directory if no formationDir specified
+	// 2. Try current directory if no formationDir specified
 	if formationDir == "" {
 		ctx, err := context.DetectFormation()
 		if err == nil {
@@ -45,7 +39,16 @@ func ResolveKeys(formationDir string) (adminKey, clientKey string, err error) {
 		}
 	}
 
-	return "", "", fmt.Errorf("no API keys found - set MUXI_ADMIN_KEY/MUXI_CLIENT_KEY or configure in secrets.enc")
+	return "", "", fmt.Errorf("no API keys found - configure in secrets.enc or use 'muxi formations add'")
+}
+
+// ResolveKeysFromSaved attempts to get API keys from saved formations config
+func ResolveKeysFromSaved(formationID string) (adminKey, clientKey string, err error) {
+	entry, err := defaults.GetFormation(formationID)
+	if err != nil {
+		return "", "", err
+	}
+	return entry.AdminKey, entry.ClientKey, nil
 }
 
 // loadKeysFromSecrets loads API keys from a formation's secrets.enc file
@@ -76,35 +79,66 @@ func BuildFormationURL(serverURL, formationID string) string {
 
 // NewClientFromContext creates a Formation API client using context detection
 // It resolves: server profile, formation ID, and API keys
+// When a formation ID is provided and not in a formation directory, it checks
+// saved formations in ~/.muxi/cli/formations.yaml
 func NewClientFromContext(profile, formationID string) (*Client, error) {
-	// Resolve server profile
+	// Check if we're in a formation directory
+	ctx, ctxErr := context.DetectFormation()
+	inFormationDir := ctxErr == nil
+
+	// Resolve formation ID
+	if formationID == "" {
+		if !inFormationDir {
+			return nil, fmt.Errorf("formation ID required - use -f flag or run from formation directory")
+		}
+		formationID = ctx.ID
+	}
+
+	// Try to use saved formation config when not in formation directory
+	if !inFormationDir && formationID != "" {
+		return newClientFromSavedFormation(profile, formationID)
+	}
+
+	// In formation directory - use secrets.enc for keys
 	profileEntry, err := server.GetProfile(profile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
 
-	// Resolve formation ID
-	if formationID == "" {
-		ctx, err := context.DetectFormation()
-		if err != nil {
-			return nil, fmt.Errorf("formation ID required: %w", err)
-		}
-		formationID = ctx.ID
-	}
-
-	// Resolve API keys
-	var formationDir string
-	if ctx, err := context.DetectFormation(); err == nil {
-		formationDir = ctx.RootDir
-	}
-	adminKey, clientKey, err := ResolveKeys(formationDir)
+	adminKey, clientKey, err := ResolveKeys(ctx.RootDir)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build client
 	baseURL := BuildFormationURL(profileEntry.URL, formationID)
 	return NewClient(baseURL, adminKey, clientKey), nil
+}
+
+// newClientFromSavedFormation creates a client using saved formation config
+func newClientFromSavedFormation(profileOverride, formationID string) (*Client, error) {
+	// Get saved formation entry
+	entry, err := defaults.GetFormation(formationID)
+	if err != nil {
+		return nil, fmt.Errorf("formation '%s' not found - use 'muxi formations add %s' to configure", formationID, formationID)
+	}
+
+	// Use profile override if provided, otherwise use saved default
+	profileName := profileOverride
+	if profileName == "" {
+		profileName = entry.DefaultProfile
+	}
+
+	profileEntry, err := server.GetProfile(profileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profile '%s': %w", profileName, err)
+	}
+
+	if entry.ClientKey == "" {
+		return nil, fmt.Errorf("formation '%s' has no client key configured", formationID)
+	}
+
+	baseURL := BuildFormationURL(profileEntry.URL, formationID)
+	return NewClient(baseURL, entry.AdminKey, entry.ClientKey), nil
 }
 
 // DotMuxi represents the .muxi file for formation-level settings

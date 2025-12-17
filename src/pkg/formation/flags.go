@@ -71,6 +71,31 @@ func ResolveUserID(flagValue string) string {
 	return defaults.GetEffectiveUserID(formationUserID)
 }
 
+// ResolveUserIDWithFormation resolves user ID considering saved formation config
+// Priority: 1. Flag value, 2. .muxi file, 3. Saved formation default, 4. Global default
+func ResolveUserIDWithFormation(flagValue, formationID string) string {
+	if flagValue != "" {
+		return flagValue
+	}
+
+	// Check .muxi in formation directory
+	if ctx, err := context.DetectFormation(); err == nil {
+		if dotMuxi, err := LoadDotMuxi(ctx.RootDir); err == nil && dotMuxi.UserID != "" {
+			return dotMuxi.UserID
+		}
+	}
+
+	// Check saved formation config
+	if formationID != "" {
+		if entry, err := defaults.GetFormation(formationID); err == nil && entry.DefaultUserID != "" {
+			return entry.DefaultUserID
+		}
+	}
+
+	// Fall back to global default
+	return defaults.GetUserID()
+}
+
 // MustResolveUserID resolves user ID or returns error if not set
 func MustResolveUserID(flagValue string) (string, error) {
 	userID := ResolveUserID(flagValue)
@@ -102,15 +127,18 @@ func ClientFromFlags(cmd *cobra.Command) (*Client, error) {
 
 // ClientAndUserFromFlags creates a client and resolves user ID from flags
 func ClientAndUserFromFlags(cmd *cobra.Command) (*Client, string, error) {
+	flags := GetCommonFlags(cmd)
+	
 	client, err := ClientFromFlags(cmd)
 	if err != nil {
 		return nil, "", err
 	}
 
-	flags := GetCommonFlags(cmd)
-	userID, err := MustResolveUserID(flags.UserID)
-	if err != nil {
-		return nil, "", err
+	// Use formation-aware user ID resolution
+	formationID, _ := ResolveFormationID(flags.FormationID)
+	userID := ResolveUserIDWithFormation(flags.UserID, formationID)
+	if userID == "" {
+		return nil, "", &UserIDRequiredError{}
 	}
 
 	return client, userID, nil
