@@ -192,7 +192,7 @@ func runMemoryList(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Printf("  Memories for user '%s' (%d):\n\n", userID, resp.Count)
 	fmt.Printf("  %-20s %-12s %-35s %s\n", "ID", "TYPE", "DETAIL", "CREATED")
-	fmt.Printf("  %s\n", strings.Repeat("─", 85))
+	fmt.Printf("  %-20s %-12s %-35s %s\n", "──────────────────", "──────────", "───────────────────────────────", "────────────")
 
 	for _, mem := range resp.Memories {
 		created := "-"
@@ -281,7 +281,7 @@ func runMemoryBufferList(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Println()
 		fmt.Printf("    %-25s %-10s %s\n", "SESSION", "MESSAGES", "LAST ACTIVITY")
-		fmt.Printf("    %s\n", strings.Repeat("─", 55))
+		fmt.Printf("    %-25s %-10s %s\n", "───────────────────────", "────────", "───────────────────")
 		for _, sess := range resp.Sessions {
 			lastActivity := "-"
 			if !sess.LastActivity.IsZero() {
