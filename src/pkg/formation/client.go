@@ -643,9 +643,12 @@ func (c *Client) GetMemories(userID string) (*MemoriesListResponse, error) {
 }
 
 // AddMemory adds a memory for a user
-func (c *Client) AddMemory(userID, content string) (*Memory, error) {
-	body := map[string]string{
-		"content": content,
+func (c *Client) AddMemory(userID, memType, detail string) (*Memory, error) {
+	body := map[string]interface{}{
+		"content": map[string]string{
+			"type":   memType,
+			"detail": detail,
+		},
 	}
 
 	resp, err := c.PostWithUser("/memories", body, userID)

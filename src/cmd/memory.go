@@ -38,14 +38,14 @@ Requires -u flag to specify the user.`,
 }
 
 var memoryAddCmd = &cobra.Command{
-	Use:   "add <content>",
+	Use:   "add <type> <detail>",
 	Short: "Add a memory for a user",
 	Long: `Add a new memory entry for a user.
 
 Examples:
-  muxi memory add -u alice "Prefers dark mode"
-  muxi memory add -u alice "Uses TypeScript for all projects"`,
-	Args: RequireArgs(1),
+  muxi memory add -u alice preference "Prefers dark mode"
+  muxi memory add -u alice context "Working on e-commerce project"`,
+	Args: RequireArgs(2),
 	RunE: runMemoryAdd,
 }
 
@@ -191,8 +191,8 @@ func runMemoryList(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	fmt.Printf("  Memories for user '%s' (%d):\n\n", userID, resp.Count)
-	fmt.Printf("  %-20s %-45s %s\n", "ID", "CONTENT", "CREATED")
-	fmt.Printf("  %s\n", strings.Repeat("─", 80))
+	fmt.Printf("  %-20s %-12s %-35s %s\n", "ID", "TYPE", "DETAIL", "CREATED")
+	fmt.Printf("  %s\n", strings.Repeat("─", 85))
 
 	for _, mem := range resp.Memories {
 		created := "-"
@@ -200,14 +200,15 @@ func runMemoryList(cmd *cobra.Command, args []string) error {
 			created = mem.CreatedAt.Format("Jan 2, 2006")
 		}
 
-		content := mem.Content
-		if len(content) > 45 {
-			content = content[:42] + "..."
+		detail := mem.Content.Detail
+		if len(detail) > 35 {
+			detail = detail[:32] + "..."
 		}
 
-		fmt.Printf("  %-20s %-45s %s\n",
+		fmt.Printf("  %-20s %-12s %-35s %s\n",
 			truncate(mem.ID, 20),
-			content,
+			truncate(mem.Content.Type, 12),
+			detail,
 			created)
 	}
 	fmt.Println()
@@ -221,9 +222,10 @@ func runMemoryAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	content := args[0]
+	memType := args[0]
+	detail := args[1]
 
-	mem, err := client.AddMemory(userID, content)
+	mem, err := client.AddMemory(userID, memType, detail)
 	if err != nil {
 		return fmt.Errorf("failed to add memory: %w", err)
 	}

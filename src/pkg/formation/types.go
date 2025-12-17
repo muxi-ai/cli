@@ -417,13 +417,18 @@ type UserIdentifiersResponse struct {
 	Count       int              `json:"count"`
 }
 
+// MemoryContent represents the content of a memory entry
+type MemoryContent struct {
+	Type   string `json:"type"`
+	Detail string `json:"detail"`
+}
+
 // Memory represents a user memory entry
 type Memory struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Content   string    `json:"content"`
-	Type      string    `json:"type,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        string        `json:"id"`
+	UserID    string        `json:"user_id,omitempty"`
+	Content   MemoryContent `json:"content"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 // MemoriesListResponse from GET /memories
