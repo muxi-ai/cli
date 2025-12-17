@@ -118,18 +118,47 @@ This command provides an interactive wizard for:
   - Configuring webhook URL for async delivery
   - Setting retry count and delay
 
+Use --remote to fetch async settings from a running Formation (read-only).
+
 Must be run inside a formation directory.
 
 Examples:
-  # Configure with interactive wizard
-  muxi config async`,
+  # Configure with interactive wizard (local)
+  muxi config async
+
+  # Fetch async settings from remote Formation
+  muxi config async --remote`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := scaffold.ConfigureAsync(); err != nil {
-			return fmt.Errorf("failed to configure async: %w", err)
+	RunE: runConfigAsync,
+}
+
+func runConfigAsync(cmd *cobra.Command, args []string) error {
+	remote, _ := cmd.Flags().GetBool("remote")
+
+	if remote {
+		client, err := formation.ClientFromFlags(cmd)
+		if err != nil {
+			return err
 		}
-		return nil
-	},
+
+		raw, _ := cmd.Flags().GetBool("raw")
+		if !raw {
+			formation.PrintBadgeFromFlags(cmd)
+		}
+
+		asyncSettings, err := client.GetAsyncConfig()
+		if err != nil {
+			return fmt.Errorf("failed to get async settings: %w", err)
+		}
+
+		output, _ := cmd.Flags().GetString("output")
+		return printConfigOutput(asyncSettings, output, raw)
+	}
+
+	if err := scaffold.ConfigureAsync(); err != nil {
+		return fmt.Errorf("failed to configure async: %w", err)
+	}
+	return nil
 }
 
 var configLLMCmd = &cobra.Command{
@@ -428,6 +457,12 @@ func init() {
 	configA2ACmd.Flags().Bool("outbound", false, "Configure outbound A2A (skip direction question)")
 	configA2ACmd.Flags().Bool("no-wizard", false, "Skip interactive prompts")
 	formation.AddCommonFlags(configA2ACmd)
+
+	// Add flags to config async
+	configAsyncCmd.Flags().Bool("remote", false, "Fetch async config from remote Formation API")
+	configAsyncCmd.Flags().StringP("output", "o", "yaml", "Output format: yaml, json")
+	configAsyncCmd.Flags().Bool("raw", false, "Output plain YAML without formatting")
+	formation.AddCommonFlags(configAsyncCmd)
 
 	// Add subcommands to config
 	configCmd.AddCommand(configA2ACmd)

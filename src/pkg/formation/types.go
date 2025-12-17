@@ -523,10 +523,11 @@ type LLMGlobalSettings struct {
 
 // AsyncSettingsResponse from GET /async
 type AsyncSettingsResponse struct {
-	ThresholdSeconds      int `json:"threshold_seconds"`
-	WebhookTimeoutSeconds int `json:"webhook_timeout_seconds"`
-	WebhookRetryAttempts  int `json:"webhook_retry_attempts"`
-	WebhookMaxPayloadMB   int `json:"webhook_max_payload_mb"`
+	ThresholdSeconds int    `json:"threshold_seconds"`
+	EnableEstimation bool   `json:"enable_estimation"`
+	WebhookURL       string `json:"webhook_url,omitempty"`
+	WebhookRetries   int    `json:"webhook_retries"`
+	WebhookTimeout   int    `json:"webhook_timeout"`
 }
 
 // A2AConfigResponse from GET /a2a
