@@ -30,7 +30,7 @@ Each saved formation stores:
 }
 
 var formationsAddCmd = &cobra.Command{
-	Use:   "add [name]",
+	Use:   "add [id]",
 	Short: "Add a formation config",
 	Long: `Add a new formation configuration interactively.
 
@@ -50,7 +50,7 @@ Shows formation name, profile, and user ID.`,
 }
 
 var formationsShowCmd = &cobra.Command{
-	Use:   "show <name>",
+	Use:   "show <id>",
 	Short: "Show formation config",
 	Long: `Show detailed configuration for a saved formation.
 
@@ -60,7 +60,7 @@ Displays profile, user ID, and masked API keys.`,
 }
 
 var formationsRemoveCmd = &cobra.Command{
-	Use:     "remove <name>",
+	Use:     "remove <id>",
 	Aliases: []string{"rm"},
 	Short:   "Remove a formation config",
 	Long:    `Remove a saved formation configuration.`,
@@ -87,13 +87,13 @@ func runFormationsAdd(cmd *cobra.Command, args []string) error {
 		name = args[0]
 	} else {
 		var err error
-		name, err = wizard.PromptString("Formation name", "", nil)
+		name, err = wizard.PromptString("Formation ID", "", nil)
 		if err != nil {
 			return err
 		}
 		name = strings.TrimSpace(name)
 		if name == "" {
-			return fmt.Errorf("formation name cannot be empty")
+			return fmt.Errorf("formation ID cannot be empty")
 		}
 	}
 
@@ -203,7 +203,7 @@ func runFormationsList(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No formations saved")
 		fmt.Println()
-		fmt.Printf("  Add a formation: %s\n", ui.Command("muxi formations add <name>"))
+		fmt.Printf("  Add a formation: %s\n", ui.Command("muxi formations add"))
 		fmt.Println()
 		return nil
 	}
