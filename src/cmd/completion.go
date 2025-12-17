@@ -16,19 +16,10 @@ var completionCmd = &cobra.Command{
 	Short: "Generate autocompletion script for your shell",
 	Long: `Generate shell autocompletion script for muxi.
 
-Use --install to automatically add completion to your shell config.
-
 Examples:
-  # Auto-install (recommended)
-  muxi completion zsh --install
-  muxi completion bash --install
-
-  # Manual: output script to stdout
-  muxi completion zsh
-  muxi completion bash
-
-  # Manual: source in current session
-  source <(muxi completion zsh)
+  muxi completion zsh              # Show setup instructions
+  muxi completion zsh --install    # Auto-install to ~/.zshrc
+  muxi completion zsh --show       # Output completion script
 `,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
@@ -39,27 +30,79 @@ Examples:
 func init() {
 	rootCmd.AddCommand(completionCmd)
 	completionCmd.Flags().Bool("install", false, "Install completion to shell config file")
+	completionCmd.Flags().Bool("show", false, "Output completion script to stdout")
 }
 
 func runCompletion(cmd *cobra.Command, args []string) error {
 	install, _ := cmd.Flags().GetBool("install")
+	show, _ := cmd.Flags().GetBool("show")
 	shell := args[0]
 
 	if install {
 		return installCompletion(shell)
 	}
 
-	// Output completion script to stdout
-	switch shell {
-	case "bash":
-		return cmd.Root().GenBashCompletion(os.Stdout)
-	case "zsh":
-		return cmd.Root().GenZshCompletion(os.Stdout)
-	case "fish":
-		return cmd.Root().GenFishCompletion(os.Stdout, true)
-	case "powershell":
-		return cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+	if show {
+		// Output completion script to stdout
+		switch shell {
+		case "bash":
+			return cmd.Root().GenBashCompletion(os.Stdout)
+		case "zsh":
+			return cmd.Root().GenZshCompletion(os.Stdout)
+		case "fish":
+			return cmd.Root().GenFishCompletion(os.Stdout, true)
+		case "powershell":
+			return cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+		}
+		return nil
 	}
+
+	// Default: show instructions
+	return showCompletionInstructions(shell)
+}
+
+func showCompletionInstructions(shell string) error {
+	fmt.Println()
+	ui.Bold(fmt.Sprintf("  Setup %s completion for muxi", shell))
+	fmt.Println()
+
+	switch shell {
+	case "zsh":
+		fmt.Println("  Option 1: Auto-install (recommended)")
+		fmt.Println()
+		fmt.Println("    muxi completion zsh --install")
+		fmt.Println()
+		fmt.Println("  Option 2: Manual setup")
+		fmt.Println()
+		fmt.Println("    # Add to ~/.zshrc:")
+		fmt.Println("    source <(muxi completion zsh --show)")
+		fmt.Println()
+	case "bash":
+		fmt.Println("  Option 1: Auto-install (recommended)")
+		fmt.Println()
+		fmt.Println("    muxi completion bash --install")
+		fmt.Println()
+		fmt.Println("  Option 2: Manual setup")
+		fmt.Println()
+		fmt.Println("    # Add to ~/.bashrc or ~/.bash_profile:")
+		fmt.Println("    source <(muxi completion bash --show)")
+		fmt.Println()
+	case "fish":
+		fmt.Println("  Option 1: Auto-install (recommended)")
+		fmt.Println()
+		fmt.Println("    muxi completion fish --install")
+		fmt.Println()
+		fmt.Println("  Option 2: Manual setup")
+		fmt.Println()
+		fmt.Println("    muxi completion fish --show > ~/.config/fish/completions/muxi.fish")
+		fmt.Println()
+	case "powershell":
+		fmt.Println("  Add to your PowerShell profile:")
+		fmt.Println()
+		fmt.Println("    muxi completion powershell --show | Out-String | Invoke-Expression")
+		fmt.Println()
+	}
+
 	return nil
 }
 
@@ -74,17 +117,17 @@ func installCompletion(shell string) error {
 	switch shell {
 	case "zsh":
 		configFile = filepath.Join(home, ".zshrc")
-		sourceLine = "source <(muxi completion zsh)"
+		sourceLine = "source <(muxi completion zsh --show)"
 	case "bash":
 		// Check for .bash_profile (macOS) or .bashrc (Linux)
 		configFile = filepath.Join(home, ".bashrc")
 		if _, err := os.Stat(filepath.Join(home, ".bash_profile")); err == nil {
 			configFile = filepath.Join(home, ".bash_profile")
 		}
-		sourceLine = "source <(muxi completion bash)"
+		sourceLine = "source <(muxi completion bash --show)"
 	case "fish":
 		configFile = filepath.Join(home, ".config", "fish", "config.fish")
-		sourceLine = "muxi completion fish | source"
+		sourceLine = "muxi completion fish --show | source"
 	case "powershell":
 		fmt.Println()
 		ui.Dimmed("  PowerShell auto-install not supported.")
@@ -121,7 +164,9 @@ func installCompletion(shell string) error {
 
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Installed completion to %s", configFile))
-	ui.Dimmed("  Restart your terminal or run: source " + configFile)
+	fmt.Println()
+	fmt.Println("  To activate now, run:")
+	fmt.Printf("    source %s\n", configFile)
 	fmt.Println()
 
 	return nil
