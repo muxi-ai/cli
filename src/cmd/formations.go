@@ -30,12 +30,12 @@ Each saved formation stores:
 }
 
 var formationsAddCmd = &cobra.Command{
-	Use:   "add <name>",
+	Use:   "add [name]",
 	Short: "Add a formation config",
 	Long: `Add a new formation configuration interactively.
 
 Prompts for server profile, user ID, and API keys.`,
-	Args: RequireArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: runFormationsAdd,
 }
 
@@ -77,17 +77,31 @@ func init() {
 	formationsCmd.AddCommand(formationsRemoveCmd)
 }
 
-// runFormationsAdd handles muxi formations add <name>
+// runFormationsAdd handles muxi formations add [name]
 func runFormationsAdd(cmd *cobra.Command, args []string) error {
-	name := args[0]
+	fmt.Println()
+
+	// Get name from arg or prompt
+	var name string
+	if len(args) > 0 {
+		name = args[0]
+	} else {
+		var err error
+		name, err = wizard.PromptString("Formation name", "", nil)
+		if err != nil {
+			return err
+		}
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return fmt.Errorf("formation name cannot be empty")
+		}
+	}
 
 	// Check if exists
 	if defaults.FormationExists(name) {
 		return fmt.Errorf("formation '%s' already exists\n\nUse %s to update or %s to remove first",
 			name, ui.Command("muxi formations show "+name), ui.Command("muxi formations remove "+name))
 	}
-
-	fmt.Println()
 
 	// Get available profiles
 	profilesConfig, err := server.LoadProfiles()
