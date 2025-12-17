@@ -182,29 +182,67 @@ func promptStringFallback(prompt, defaultValue string, validator func(string) er
 	}
 }
 
-// PromptPassword prompts for a password (hidden input)
+// PromptPassword prompts for a password with masked input (shows **** as you type)
 // Returns the input (without showing success - caller should use ui.PromptSuccess if needed)
 func PromptPassword(prompt string, allowEmpty bool) (string, error) {
-	fmt.Println(prompt)
-	fmt.Print("    ")
+	fmt.Printf("%s: ", prompt)
 
-	// Read password without echo
+	// Put terminal in raw mode to read character by character
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		// Fallback to hidden input if raw mode fails
+		return promptPasswordFallback(prompt, allowEmpty)
+	}
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
+
+	var password []byte
+	buf := make([]byte, 1)
+
+	for {
+		n, err := os.Stdin.Read(buf)
+		if err != nil || n == 0 {
+			term.Restore(int(os.Stdin.Fd()), oldState)
+			return "", err
+		}
+
+		switch buf[0] {
+		case 13, 10: // Enter
+			term.Restore(int(os.Stdin.Fd()), oldState)
+			fmt.Println() // New line after input
+			input := strings.TrimSpace(string(password))
+			if !allowEmpty && input == "" {
+				return "", fmt.Errorf("input cannot be empty")
+			}
+			return input, nil
+		case 127, 8: // Backspace
+			if len(password) > 0 {
+				password = password[:len(password)-1]
+				fmt.Print("\b \b") // Erase last *
+			}
+		case 3: // Ctrl+C
+			term.Restore(int(os.Stdin.Fd()), oldState)
+			fmt.Println()
+			return "", fmt.Errorf("cancelled")
+		default:
+			if buf[0] >= 32 && buf[0] <= 126 { // Printable ASCII
+				password = append(password, buf[0])
+				fmt.Print("*")
+			}
+		}
+	}
+}
+
+// promptPasswordFallback uses standard hidden input as fallback
+func promptPasswordFallback(prompt string, allowEmpty bool) (string, error) {
 	password, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println() // New line after password input
-
+	fmt.Println()
 	input := strings.TrimSpace(string(password))
-
 	if !allowEmpty && input == "" {
-		return "", fmt.Errorf("password cannot be empty")
+		return "", fmt.Errorf("input cannot be empty")
 	}
-
-	// Note: We don't clear the prompt line for passwords since the prompt is multi-line
-	// The caller will handle showing success/skip status on a new line
-	
 	return input, nil
 }
 

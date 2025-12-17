@@ -158,12 +158,15 @@ func runFormationsAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("client key is required")
 	}
 
-	// Admin key (optional)
-	adminKey, err := wizard.PromptPassword("Admin key (optional, press Enter to skip)", true)
+	// Admin key (required)
+	adminKey, err := wizard.PromptPassword("Admin key", false)
 	if err != nil {
 		return err
 	}
 	adminKey = strings.TrimSpace(adminKey)
+	if adminKey == "" {
+		return fmt.Errorf("admin key is required")
+	}
 
 	// User ID (optional) - asked last
 	defaultUserID := defaults.GetUserID()
