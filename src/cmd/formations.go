@@ -145,15 +145,6 @@ func runFormationsAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// User ID (optional)
-	defaultUserID := defaults.GetUserID()
-	userID, err := wizard.PromptString("Default user ID", defaultUserID, nil)
-	if err != nil {
-		return err
-	}
-	userID = strings.TrimSpace(userID)
-
-	fmt.Println()
 	ui.Dimmed("  Enter API keys for this formation")
 	fmt.Println()
 
@@ -168,11 +159,19 @@ func runFormationsAdd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Admin key (optional)
-	adminKey, err := wizard.PromptPassword("Admin key (optional, press Enter to skip)", false)
+	adminKey, err := wizard.PromptPassword("Admin key (optional, press Enter to skip)", true)
 	if err != nil {
 		return err
 	}
 	adminKey = strings.TrimSpace(adminKey)
+
+	// User ID (optional) - asked last
+	defaultUserID := defaults.GetUserID()
+	userID, err := wizard.PromptString("Default user ID", defaultUserID, nil)
+	if err != nil {
+		return err
+	}
+	userID = strings.TrimSpace(userID)
 
 	// Save
 	entry := defaults.FormationEntry{
