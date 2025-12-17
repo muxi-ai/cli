@@ -230,6 +230,8 @@ func runMemoryAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to add memory: %w", err)
 	}
 
+	formation.PrintBadgeFromFlags(cmd)
+
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Added memory '%s' for user '%s'", mem.ID, userID))
 	fmt.Println()
@@ -249,6 +251,8 @@ func runMemoryDelete(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete memory: %w", err)
 	}
+
+	formation.PrintBadgeFromFlags(cmd)
 
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Deleted memory '%s'", memoryID))
