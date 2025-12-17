@@ -97,6 +97,10 @@ func runFormationsAdd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Normalize: lowercase, spaces to hyphens
+	name = strings.ToLower(name)
+	name = strings.ReplaceAll(name, " ", "-")
+
 	// Check if exists
 	if defaults.FormationExists(name) {
 		return fmt.Errorf("formation '%s' already exists\n\nUse %s to update or %s to remove first",
