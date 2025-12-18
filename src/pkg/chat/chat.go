@@ -1321,7 +1321,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 			}
 
 			switch token.Type {
-			case "text", "response":
+			case "content", "text", "response":
 				// Actual response text
 				if token.Content != "" {
 					fullResponse.WriteString(token.Content)
