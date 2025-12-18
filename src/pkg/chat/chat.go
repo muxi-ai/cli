@@ -562,7 +562,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, printAssistantMessageAbove(response)
 		}
 		m.isThinking = false
-		return m, nil
+		// No response text received - request completed but server didn't stream text
+		return m, printServerError("Request completed but no response text was streamed. The server may not be configured for text streaming.")
 
 	case responseMsg:
 		// Ignore response if request was aborted
@@ -1265,6 +1266,21 @@ func (m Model) sendChatMessage(message string) tea.Cmd {
 	}
 }
 
+// MuxiToken represents the MUXI streaming token format
+type MuxiToken struct {
+	Token struct {
+		RequestID string `json:"request_id"`
+		UserID    string `json:"user_id"`
+		SessionID string `json:"session_id"`
+		Type      string `json:"type"`    // progress, thinking, planning, completed, text, response
+		Content   string `json:"content"` // The actual content/message
+		Stage     string `json:"stage"`
+		AgentName string `json:"agent_name"`
+		AgentUsed string `json:"agent_used"`
+		Status    string `json:"status"`
+	} `json:"token"`
+}
+
 // processStream reads SSE events and returns the first token or completion
 func processStream(body io.ReadCloser) tea.Msg {
 	defer body.Close()
@@ -1272,6 +1288,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 	scanner := bufio.NewScanner(body)
 	var fullResponse strings.Builder
 	var sessionID string
+	var lastContent string
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -1280,7 +1297,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 		if strings.HasPrefix(line, "event:") {
 			eventType := strings.TrimSpace(strings.TrimPrefix(line, "event:"))
 			if eventType == "done" {
-				return streamDoneMsg{sessionID: sessionID}
+				break
 			}
 			continue
 		}
@@ -1295,29 +1312,59 @@ func processStream(body io.ReadCloser) tea.Msg {
 			continue
 		}
 
-		// Try parsing as token chunk: {"token": "..."}
-		var tokenChunk struct {
-			Token string `json:"token"`
-		}
-		if err := json.Unmarshal([]byte(data), &tokenChunk); err == nil && tokenChunk.Token != "" {
-			fullResponse.WriteString(tokenChunk.Token)
+		// Try parsing as MUXI token format: {"token": {...}}
+		var muxiToken MuxiToken
+		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
+			token := muxiToken.Token
+			if token.SessionID != "" {
+				sessionID = token.SessionID
+			}
+
+			switch token.Type {
+			case "text", "response":
+				// Actual response text
+				if token.Content != "" {
+					fullResponse.WriteString(token.Content)
+				}
+			case "completed":
+				// Check if content has the actual response
+				if token.Content != "" && token.Content != "done" && token.Content != "" {
+					lastContent = token.Content
+				}
+			case "progress", "thinking", "planning":
+				// Status updates - we could emit these as thinking steps
+				// For now, just track them
+			}
 			continue
 		}
 
-		// Try parsing as initial envelope or completion
+		// Try parsing as simple token: {"token": "..."}
+		var simpleToken struct {
+			Token string `json:"token"`
+		}
+		if err := json.Unmarshal([]byte(data), &simpleToken); err == nil && simpleToken.Token != "" {
+			fullResponse.WriteString(simpleToken.Token)
+			continue
+		}
+
+		// Try parsing as finished marker
+		var finished struct {
+			Finished bool `json:"finished"`
+		}
+		if err := json.Unmarshal([]byte(data), &finished); err == nil && finished.Finished {
+			break
+		}
+
+		// Try parsing as initial envelope
 		var envelope struct {
 			Data struct {
 				StreamStarted bool   `json:"stream_started"`
 				SessionID     string `json:"session_id"`
-				Finished      bool   `json:"finished"`
 			} `json:"data"`
 		}
 		if err := json.Unmarshal([]byte(data), &envelope); err == nil {
 			if envelope.Data.SessionID != "" {
 				sessionID = envelope.Data.SessionID
-			}
-			if envelope.Data.Finished {
-				return streamDoneMsg{sessionID: sessionID}
 			}
 			continue
 		}
@@ -1342,11 +1389,17 @@ func processStream(body io.ReadCloser) tea.Msg {
 		return streamErrorMsg{err: err}
 	}
 
-	// Stream ended, return full response
+	// Return full response if we got text tokens
 	if fullResponse.Len() > 0 {
 		return responseMsg(fullResponse.String())
 	}
 
+	// Fall back to lastContent if no text tokens were received
+	if lastContent != "" {
+		return responseMsg(lastContent)
+	}
+
+	// No response text received - this might mean the API doesn't stream text
 	return streamDoneMsg{sessionID: sessionID}
 }
 
