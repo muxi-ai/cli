@@ -194,7 +194,7 @@ func ResolveFormationID(flagValue string) (string, error) {
 
 	ctx, err := context.DetectFormation()
 	if err != nil {
-		return "", fmt.Errorf("formation ID required - use -F flag or run from formation directory")
+		return "", fmt.Errorf("formation ID required - use -f flag or run from formation directory")
 	}
 
 	if ctx.ID == "" {

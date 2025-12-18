@@ -115,18 +115,18 @@ func init() {
 	getCmd.Flags().BoolP("verbose", "v", false, "Show internal details (port, pid)")
 
 	stopCmd.Flags().String("profile", "", "Server profile to use")
-	stopCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	stopCmd.Flags().Bool("force", false, "Skip confirmation prompt")
 
 	startCmd.Flags().String("profile", "", "Server profile to use")
 
 	restartCmd.Flags().String("profile", "", "Server profile to use")
-	restartCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	restartCmd.Flags().Bool("force", false, "Skip confirmation prompt")
 
 	deleteCmd.Flags().String("profile", "", "Server profile to use")
-	deleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	deleteCmd.Flags().Bool("force", false, "Skip confirmation prompt")
 
 	rollbackCmd.Flags().String("profile", "", "Server profile to use")
-	rollbackCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	rollbackCmd.Flags().Bool("force", false, "Skip confirmation prompt")
 
 	// logsCmd.Flags().String("profile", "", "Server profile to use")
 	// logsCmd.Flags().IntP("lines", "n", 100, "Number of lines to show")
