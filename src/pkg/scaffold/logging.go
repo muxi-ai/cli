@@ -30,12 +30,110 @@ func ConfigureLogging() error {
 	ui.Banner(`╭──────────────────────────────────────────────────────────────╮
 │ [⚙] Configure Logging                                   MUXI │
 │──────────────────────────────────────────────────────────────│
-│ Configure where logs and events are sent. Supports multiple  │
-│ destinations with different formats.                         │
+│ Configure where logs and events are sent. System events are  │
+│ for infrastructure/debugging. Conversation events are user-  │
+│ facing and streamable.                                       │
 ╰──────────────────────────────────────────────────────────────╯`)
 
-	// Step 1: Action selection
+	// Step 1: Choose what to configure
 	fmt.Println()
+	options := []wizard.SelectOption{
+		{Value: "system", Label: "System events", Description: "startup, errors, infrastructure"},
+		{Value: "conversation", Label: "Conversation events", Description: "user-facing, streamable"},
+	}
+
+	choice, err := wizard.PromptSelect("What would you like to configure?", options, 0)
+	if err != nil {
+		return err
+	}
+
+	switch choice {
+	case "system":
+		return configureSystemLogging(ctx.RootDir)
+	case "conversation":
+		return configureConversationLogging(ctx.RootDir)
+	}
+
+	return nil
+}
+
+// configureSystemLogging configures system logging (level + destination)
+func configureSystemLogging(rootDir string) error {
+	fmt.Println()
+	ui.Bold("System Logging")
+	fmt.Println()
+	ui.Dimmed("  System events include: startup, connections, errors, infrastructure")
+	fmt.Println()
+
+	// Get current config
+	currentLevel, currentDest := getSystemLoggingConfig(rootDir)
+
+	// Level
+	levelOptions := []wizard.SelectOption{
+		{Value: "debug", Label: "debug", Description: "all events"},
+		{Value: "info", Label: "info", Description: "informational and above"},
+		{Value: "warn", Label: "warn", Description: "warnings and errors only"},
+		{Value: "error", Label: "error", Description: "errors only"},
+	}
+	defaultLevelIdx := 0
+	for i, opt := range levelOptions {
+		if opt.Value == currentLevel {
+			defaultLevelIdx = i
+			break
+		}
+	}
+	level, err := wizard.PromptSelect("  Level", levelOptions, defaultLevelIdx)
+	if err != nil {
+		return err
+	}
+	ui.PromptSuccess("  Level", level)
+
+	// Destination
+	destOptions := []wizard.SelectOption{
+		{Value: "stdout", Label: "stdout", Description: "console output"},
+		{Value: "file", Label: "file", Description: "write to file"},
+	}
+	defaultDestIdx := 0
+	if currentDest != "" && currentDest != "stdout" {
+		defaultDestIdx = 1
+	}
+	destType, err := wizard.PromptSelect("  Destination type", destOptions, defaultDestIdx)
+	if err != nil {
+		return err
+	}
+
+	destination := "stdout"
+	if destType == "file" {
+		defaultPath := "/var/log/system.log"
+		if currentDest != "" && currentDest != "stdout" {
+			defaultPath = currentDest
+		}
+		destination, err = wizard.PromptString("  File path", defaultPath, nil)
+		if err != nil {
+			return err
+		}
+	}
+	ui.PromptSuccess("  Destination", destination)
+
+	// Update formation.yaml
+	if err := setSystemLoggingConfig(rootDir, level, destination); err != nil {
+		return err
+	}
+
+	fmt.Println()
+	ui.Success("System logging configured")
+	return nil
+}
+
+// configureConversationLogging configures conversation logging streams
+func configureConversationLogging(rootDir string) error {
+	fmt.Println()
+	ui.Bold("Conversation Logging")
+	fmt.Println()
+	ui.Dimmed("  Conversation events include: requests, agent activity, responses")
+	fmt.Println()
+
+	// Action selection
 	options := []wizard.SelectOption{
 		{Value: "add", Label: "Add a new log stream"},
 		{Value: "view", Label: "View/edit current streams"},
@@ -49,11 +147,11 @@ func ConfigureLogging() error {
 
 	switch action {
 	case "add":
-		return addLogStream(ctx.RootDir)
+		return addLogStream(rootDir)
 	case "view":
-		return viewEditStreams(ctx.RootDir)
+		return viewEditStreams(rootDir)
 	case "remove":
-		return removeStream(ctx.RootDir)
+		return removeStream(rootDir)
 	}
 
 	return nil
@@ -857,5 +955,148 @@ func validateBroker(broker string) error {
 	if !matched {
 		return fmt.Errorf("invalid port number")
 	}
+	return nil
+}
+
+// getSystemLoggingConfig reads the current system logging configuration
+func getSystemLoggingConfig(rootDir string) (level, destination string) {
+	formationPath, _ := context.FindFormationFile(rootDir)
+	data, err := os.ReadFile(formationPath)
+	if err != nil {
+		return "debug", "stdout" // defaults
+	}
+
+	var formation map[string]interface{}
+	if err := yaml.Unmarshal(data, &formation); err != nil {
+		return "debug", "stdout"
+	}
+
+	logging, ok := formation["logging"].(map[string]interface{})
+	if !ok {
+		return "debug", "stdout"
+	}
+
+	system, ok := logging["system"].(map[string]interface{})
+	if !ok {
+		return "debug", "stdout"
+	}
+
+	level, _ = system["level"].(string)
+	destination, _ = system["destination"].(string)
+
+	if level == "" {
+		level = "debug"
+	}
+	if destination == "" {
+		destination = "stdout"
+	}
+
+	return level, destination
+}
+
+// setSystemLoggingConfig sets the system logging configuration in formation.yaml
+func setSystemLoggingConfig(rootDir, level, destination string) error {
+	formationPath, _ := context.FindFormationFile(rootDir)
+	data, err := os.ReadFile(formationPath)
+	if err != nil {
+		return fmt.Errorf("failed to read formation.yaml: %w", err)
+	}
+
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
+		return fmt.Errorf("failed to parse formation.yaml: %w", err)
+	}
+
+	if root.Kind != yaml.DocumentNode || len(root.Content) == 0 {
+		return fmt.Errorf("invalid formation.yaml structure")
+	}
+
+	docNode := root.Content[0]
+	if docNode.Kind != yaml.MappingNode {
+		return fmt.Errorf("formation.yaml root must be a mapping")
+	}
+
+	// Find or create logging section
+	var loggingNode *yaml.Node
+	for i := 0; i < len(docNode.Content); i += 2 {
+		if docNode.Content[i].Value == "logging" {
+			loggingNode = docNode.Content[i+1]
+			break
+		}
+	}
+
+	if loggingNode == nil {
+		// Create logging section
+		loggingNode = &yaml.Node{Kind: yaml.MappingNode}
+		docNode.Content = append(docNode.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "logging"},
+			loggingNode,
+		)
+	}
+
+	// Find or create system section within logging
+	var systemNode *yaml.Node
+	for i := 0; i < len(loggingNode.Content); i += 2 {
+		if loggingNode.Content[i].Value == "system" {
+			systemNode = loggingNode.Content[i+1]
+			break
+		}
+	}
+
+	if systemNode == nil {
+		// Create system section
+		systemNode = &yaml.Node{Kind: yaml.MappingNode}
+		// Insert at beginning of logging section
+		loggingNode.Content = append([]*yaml.Node{
+			{Kind: yaml.ScalarNode, Value: "system"},
+			systemNode,
+		}, loggingNode.Content...)
+	}
+
+	// Update or create level and destination
+	foundLevel, foundDest := false, false
+	for i := 0; i < len(systemNode.Content); i += 2 {
+		switch systemNode.Content[i].Value {
+		case "level":
+			systemNode.Content[i+1].Value = level
+			foundLevel = true
+		case "destination":
+			systemNode.Content[i+1].Value = destination
+			foundDest = true
+		}
+	}
+
+	if !foundLevel {
+		systemNode.Content = append(systemNode.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "level"},
+			&yaml.Node{Kind: yaml.ScalarNode, Value: level},
+		)
+	}
+	if !foundDest {
+		systemNode.Content = append(systemNode.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "destination"},
+			&yaml.Node{Kind: yaml.ScalarNode, Value: destination},
+		)
+	}
+
+	// Write back with 2-space indentation
+	output, err := marshalYAML(&root)
+	if err != nil {
+		return fmt.Errorf("failed to marshal formation.yaml: %w", err)
+	}
+
+	if err := os.WriteFile(formationPath, output, 0644); err != nil {
+		return fmt.Errorf("failed to write formation.yaml: %w", err)
+	}
+
+	// Clean up: remove commented logging section, reorganize file, format
+	content, err := os.ReadFile(formationPath)
+	if err == nil {
+		cleaned := removeCommentedSection(string(content), "logging")
+		cleaned = cleanupAdditionalConfigSection(cleaned)
+		cleaned = ensureBlankLineBeforeTopLevel(cleaned)
+		os.WriteFile(formationPath, []byte(cleaned), 0644)
+	}
+
 	return nil
 }

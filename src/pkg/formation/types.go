@@ -545,7 +545,19 @@ type A2AConfigResponse struct {
 
 // LoggingConfigResponse from GET /logging
 type LoggingConfigResponse struct {
-	Enabled bool           `json:"enabled"`
+	System       LoggingSystemConfig       `json:"system"`
+	Conversation LoggingConversationConfig `json:"conversation"`
+}
+
+// LoggingSystemConfig represents system logging configuration
+type LoggingSystemConfig struct {
+	Level       string `json:"level"`
+	Destination string `json:"destination"`
+}
+
+// LoggingConversationConfig represents conversation logging configuration
+type LoggingConversationConfig struct {
+	Enabled bool            `json:"enabled"`
 	Streams []LoggingStream `json:"streams"`
 }
 
@@ -811,6 +823,12 @@ type SessionDetailResponse struct {
 
 // LoggingDestinationsResponse from GET /logging/destinations
 type LoggingDestinationsResponse struct {
+	System       LoggingSystemConfig              `json:"system"`
+	Conversation LoggingConversationDestinations  `json:"conversation"`
+}
+
+// LoggingConversationDestinations represents conversation logging destinations
+type LoggingConversationDestinations struct {
 	Destinations []LoggingDestination `json:"destinations"`
 	Count        int                  `json:"count"`
 }
