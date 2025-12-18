@@ -59,7 +59,6 @@ func ConfigureLogging() error {
 
 // configureSystemLogging configures system logging (level + destination)
 func configureSystemLogging(rootDir string) error {
-	fmt.Println()
 	ui.Bold("System Logging")
 	fmt.Println()
 	ui.Dimmed("  System events include: startup, connections, errors, infrastructure")
@@ -127,7 +126,6 @@ func configureSystemLogging(rootDir string) error {
 
 // configureConversationLogging configures conversation logging streams
 func configureConversationLogging(rootDir string) error {
-	fmt.Println()
 	ui.Bold("Conversation Logging")
 	fmt.Println()
 	ui.Dimmed("  Conversation events include: requests, agent activity, responses")
