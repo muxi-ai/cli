@@ -131,11 +131,19 @@ func runChat(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Start interactive chat
+	// Start interactive chat - create client
+	client, err := formation.NewClientFromContext(profile, formationID)
+	if err != nil {
+		return fmt.Errorf("failed to create client: %w", err)
+	}
+
 	cfg := chat.Config{
 		FormationID: formationID,
 		ServerID:    profile,
 		UserID:      userID,
+		SessionID:   sessionID,
+		GroupID:     groupID,
+		Client:      client,
 	}
 
 	return chat.Run(cfg)

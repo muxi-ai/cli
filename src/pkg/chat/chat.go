@@ -49,7 +49,10 @@
 package chat
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -58,6 +61,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muxi-ai/cli/pkg/formation"
 )
 
 // Config holds chat session configuration
@@ -65,6 +69,9 @@ type Config struct {
 	FormationID string
 	ServerID    string
 	UserID      string
+	SessionID   string
+	GroupID     string
+	Client      *formation.Client
 }
 
 // Message represents a chat message
@@ -107,7 +114,9 @@ type Model struct {
 	currentInput    string    // Saved current input when navigating history
 	showExitHint    bool      // Show "Ctrl+C again to exit" hint
 	exitHintStart   time.Time // When the exit hint was shown
-	requestAborted  bool      // Flag to ignore response after abort
+	requestAborted  bool            // Flag to ignore response after abort
+	sessionID       string          // Current session ID (from API response)
+	streamingText   strings.Builder // Accumulated streaming response
 }
 
 // Command represents a slash command
@@ -220,6 +229,7 @@ func New(cfg Config) Model {
 		asyncMode:    "auto",
 		inputHistory: []string{},
 		historyIndex: -1,
+		sessionID:    cfg.SessionID,
 	}
 }
 
@@ -492,10 +502,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textarea.Reset()
 				m.textarea.SetHeight(1)
 
-				// Start dummy thinking (TODO: replace with actual API call)
+				// Start API call
 				m.isThinking = true
 				m.thinkingStart = time.Now()
-				return m, tea.Batch(printUserMessageAbove(input), m.simulateThinking())
+				m.streamingText.Reset()
+				return m, tea.Batch(printUserMessageAbove(input), m.sendChatMessage(input))
 			}
 		}
 
@@ -516,7 +527,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Text:      string(msg),
 			Completed: false,
 		})
-		return m, m.simulateNextThinking(len(m.thinking))
+		return m, nil
 
 	case thinkingCompleteMsg:
 		// Ignore if request was aborted
@@ -525,8 +536,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if int(msg) < len(m.thinking) {
 			m.thinking[msg].Completed = true
-			// Don't print yet - wait until response to print all in order
 		}
+		return m, nil
+
+	case streamErrorMsg:
+		m.isThinking = false
+		m.thinking = []ThinkingStep{}
+		return m, printServerError(msg.err.Error())
+
+	case streamDoneMsg:
+		// Update session ID if provided
+		if msg.sessionID != "" {
+			m.sessionID = msg.sessionID
+		}
+		// If we have accumulated text, treat it as response
+		if m.streamingText.Len() > 0 {
+			response := m.streamingText.String()
+			m.streamingText.Reset()
+			m.isThinking = false
+			m.messages = append(m.messages, Message{
+				Role:      "assistant",
+				Content:   response,
+				Timestamp: time.Now(),
+			})
+			return m, printAssistantMessageAbove(response)
+		}
+		m.isThinking = false
 		return m, nil
 
 	case responseMsg:
@@ -1202,93 +1237,117 @@ type thinkingMsg string
 type thinkingCompleteMsg int
 type responseMsg string
 type tickMsg struct{}
+type streamTokenMsg string
+type streamDoneMsg struct{ sessionID string }
+type streamErrorMsg struct{ err error }
 
-// Simulate thinking steps (TODO: replace with actual API streaming)
-func (m Model) simulateThinking() tea.Cmd {
-	return tea.Batch(
-		tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
-			return tickMsg{}
-		}),
-		tea.Tick(500*time.Millisecond, func(t time.Time) tea.Msg {
-			return thinkingMsg("Analyzing request...")
-		}),
-	)
-}
+// sendChatMessage sends a message to the chat API and streams the response
+func (m Model) sendChatMessage(message string) tea.Cmd {
+	return func() tea.Msg {
+		if m.config.Client == nil {
+			return streamErrorMsg{err: fmt.Errorf("no API client configured")}
+		}
 
-func (m Model) simulateNextThinking(step int) tea.Cmd {
-	switch step {
-	case 1:
-		return tea.Sequence(
-			tea.Tick(800*time.Millisecond, func(t time.Time) tea.Msg {
-				return thinkingCompleteMsg(0)
-			}),
-			tea.Tick(900*time.Millisecond, func(t time.Time) tea.Msg {
-				return thinkingMsg("Routing to agent...")
-			}),
-		)
-	case 2:
-		return tea.Sequence(
-			tea.Tick(600*time.Millisecond, func(t time.Time) tea.Msg {
-				return thinkingCompleteMsg(1)
-			}),
-			tea.Tick(700*time.Millisecond, func(t time.Time) tea.Msg {
-				return thinkingMsg("Generating response...")
-			}),
-		)
-	case 3:
-		return tea.Sequence(
-			tea.Tick(1000*time.Millisecond, func(t time.Time) tea.Msg {
-				return thinkingCompleteMsg(2)
-			}),
-			tea.Tick(1100*time.Millisecond, func(t time.Time) tea.Msg {
-				return responseMsg(`This is a **dummy response** from the formation.
+		req := &formation.ChatRequest{
+			Message:   message,
+			SessionID: m.sessionID,
+			GroupID:   m.config.GroupID,
+			Stream:    true,
+		}
 
-## Features Supported
+		resp, err := m.config.Client.ChatStream(req, m.config.UserID)
+		if err != nil {
+			return streamErrorMsg{err: err}
+		}
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Markdown | ✓ | Full support |
-| Code blocks | ✓ | With syntax highlighting |
-| Tables | ✓ | GitHub-flavored |
-| Lists | ✓ | Ordered and unordered |
-
-### Code Example
-
-` + "```" + `go
-package main
-
-import "fmt"
-
-func main() {
-    message := "Hello, MUXI!"
-    fmt.Println(message)
-    
-    for i := 0; i < 3; i++ {
-        fmt.Printf("Count: %d\n", i)
-    }
-}
-` + "```" + `
-
-### Lists
-
-**Unordered:**
-- First item
-- Second item
-  - Nested item
-- Third item
-
-**Ordered:**
-1. Step one
-2. Step two
-3. Step three
-
-> **Note:** This is a blockquote for important information.
-
-*Replace this with actual API integration.*`)
-			}),
-		)
+		// Process stream in a goroutine and return tokens via channel
+		return processStream(resp.Body)
 	}
-	return nil
+}
+
+// processStream reads SSE events and returns the first token or completion
+func processStream(body io.ReadCloser) tea.Msg {
+	defer body.Close()
+
+	scanner := bufio.NewScanner(body)
+	var fullResponse strings.Builder
+	var sessionID string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Handle event type lines
+		if strings.HasPrefix(line, "event:") {
+			eventType := strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+			if eventType == "done" {
+				return streamDoneMsg{sessionID: sessionID}
+			}
+			continue
+		}
+
+		// Handle data lines
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "" || data == "[DONE]" {
+			continue
+		}
+
+		// Try parsing as token chunk: {"token": "..."}
+		var tokenChunk struct {
+			Token string `json:"token"`
+		}
+		if err := json.Unmarshal([]byte(data), &tokenChunk); err == nil && tokenChunk.Token != "" {
+			fullResponse.WriteString(tokenChunk.Token)
+			continue
+		}
+
+		// Try parsing as initial envelope or completion
+		var envelope struct {
+			Data struct {
+				StreamStarted bool   `json:"stream_started"`
+				SessionID     string `json:"session_id"`
+				Finished      bool   `json:"finished"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(data), &envelope); err == nil {
+			if envelope.Data.SessionID != "" {
+				sessionID = envelope.Data.SessionID
+			}
+			if envelope.Data.Finished {
+				return streamDoneMsg{sessionID: sessionID}
+			}
+			continue
+		}
+
+		// Try parsing as OpenAI-style delta
+		var oaiChunk struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal([]byte(data), &oaiChunk); err == nil && len(oaiChunk.Choices) > 0 {
+			if content := oaiChunk.Choices[0].Delta.Content; content != "" {
+				fullResponse.WriteString(content)
+			}
+			continue
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return streamErrorMsg{err: err}
+	}
+
+	// Stream ended, return full response
+	if fullResponse.Len() > 0 {
+		return responseMsg(fullResponse.String())
+	}
+
+	return streamDoneMsg{sessionID: sessionID}
 }
 
 // Run starts the chat UI
