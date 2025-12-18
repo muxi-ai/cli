@@ -890,6 +890,11 @@ func (c *Client) Chat(req *ChatRequest) (*ChatResponse, error) {
 	return parseResponse[ChatResponse](resp)
 }
 
+// streamClient is used for SSE streaming requests (no timeout)
+var streamClient = &http.Client{
+	Timeout: 0, // No timeout for streaming
+}
+
 // ChatStream sends a chat message and returns SSE stream (caller must close)
 func (c *Client) ChatStream(req *ChatRequest, userID string) (*http.Response, error) {
 	url := c.BaseURL + "/chat"
@@ -910,7 +915,7 @@ func (c *Client) ChatStream(req *ChatRequest, userID string) (*http.Response, er
 		httpReq.Header.Set("X-Muxi-User-ID", userID)
 	}
 
-	return c.HTTPClient.Do(httpReq)
+	return streamClient.Do(httpReq)
 }
 
 // AVChat sends audio/video for transcription/analysis (non-streaming)
@@ -944,7 +949,7 @@ func (c *Client) AVChatStream(req *AVChatRequest, userID string) (*http.Response
 		httpReq.Header.Set("X-Muxi-User-ID", userID)
 	}
 
-	return c.HTTPClient.Do(httpReq)
+	return streamClient.Do(httpReq)
 }
 
 // GetFormationInfo gets basic formation info
