@@ -92,6 +92,11 @@ func (c *Client) GetClient(path string) (*http.Response, error) {
 	return c.Do("GET", path, nil, false)
 }
 
+// GetClientWithUser performs a GET request with client key and user ID
+func (c *Client) GetClientWithUser(path, userID string) (*http.Response, error) {
+	return c.DoWithUserID("GET", path, nil, userID)
+}
+
 // GetWithUser performs a GET request with client key and user ID
 func (c *Client) GetWithUser(path, userID string) (*http.Response, error) {
 	return c.DoWithUserID("GET", path, nil, userID)
@@ -212,6 +217,11 @@ func (c *Client) Delete(path string) (*http.Response, error) {
 
 // DeleteWithUser performs a DELETE request with client key and user ID
 func (c *Client) DeleteWithUser(path, userID string) (*http.Response, error) {
+	return c.DoWithUserID("DELETE", path, nil, userID)
+}
+
+// DeleteClientWithUser is an alias for DeleteWithUser (both use client key)
+func (c *Client) DeleteClientWithUser(path, userID string) (*http.Response, error) {
 	return c.DoWithUserID("DELETE", path, nil, userID)
 }
 
@@ -1134,6 +1144,61 @@ func (c *Client) StreamLogsWithContext(ctx context.Context, filters LogFilters) 
 	// Use a client with no timeout for streaming
 	streamClient := &http.Client{}
 	return streamClient.Do(req)
+}
+
+// ListCredentialServices lists available credential services
+func (c *Client) ListCredentialServices() (*CredentialServicesResponse, error) {
+	resp, err := c.GetClient("/credentials/services")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[CredentialServicesResponse](resp)
+}
+
+// ListCredentials lists all credentials for a user
+func (c *Client) ListCredentials(userID string) (*CredentialsListResponse, error) {
+	resp, err := c.GetClientWithUser("/credentials", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[CredentialsListResponse](resp)
+}
+
+// GetCredential gets a specific credential by ID
+func (c *Client) GetCredential(credentialID, userID string) (*Credential, error) {
+	resp, err := c.GetClientWithUser("/credentials/"+credentialID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[Credential](resp)
+}
+
+// CreateCredential stores a new credential for a user
+func (c *Client) CreateCredential(userID string, req *CreateCredentialRequest) (*CreateCredentialResponse, error) {
+	resp, err := c.PostClientWithUser("/credentials", req, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[CreateCredentialResponse](resp)
+}
+
+// DeleteCredential deletes a credential
+func (c *Client) DeleteCredential(credentialID, userID string) (*DeleteCredentialResponse, error) {
+	resp, err := c.DeleteClientWithUser("/credentials/"+credentialID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[DeleteCredentialResponse](resp)
 }
 
 // parseResponse parses an API response into the target type

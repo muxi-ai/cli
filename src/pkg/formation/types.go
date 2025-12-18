@@ -828,3 +828,54 @@ type BulkIdentifiersResponse struct {
 	IdentifiersAssociated int      `json:"identifiers_associated"`
 	NewIdentifiers        []string `json:"new_identifiers"`
 }
+
+// Credential represents a stored user credential
+type Credential struct {
+	CredentialID      string    `json:"credential_id"`
+	Service           string    `json:"service"`
+	Name              string    `json:"name"`
+	CredentialPreview string    `json:"credential_preview"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at,omitempty"`
+}
+
+// CredentialsListResponse from GET /credentials
+type CredentialsListResponse struct {
+	Credentials []Credential `json:"credentials"`
+	Count       int          `json:"count"`
+}
+
+// CredentialService represents an available credential service
+type CredentialService struct {
+	Service     string `json:"service"`
+	ServerID    string `json:"server_id"`
+	Description string `json:"description"`
+}
+
+// CredentialServicesResponse from GET /credentials/services
+type CredentialServicesResponse struct {
+	Services []CredentialService `json:"services"`
+	Count    int                 `json:"count"`
+}
+
+// CreateCredentialRequest for POST /credentials
+type CreateCredentialRequest struct {
+	Service    string                 `json:"service"`
+	Name       string                 `json:"name,omitempty"`
+	Credential map[string]interface{} `json:"credential"`
+}
+
+// CreateCredentialResponse from POST /credentials
+type CreateCredentialResponse struct {
+	CredentialID      string    `json:"credential_id"`
+	Service           string    `json:"service"`
+	Name              string    `json:"name"`
+	CredentialPreview string    `json:"credential_preview"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+// DeleteCredentialResponse from DELETE /credentials/{id}
+type DeleteCredentialResponse struct {
+	CredentialID string `json:"credential_id"`
+	Deleted      bool   `json:"deleted"`
+}
