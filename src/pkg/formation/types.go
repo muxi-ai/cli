@@ -563,12 +563,13 @@ type LoggingConversationConfig struct {
 
 // LoggingStream represents a logging stream in the config
 type LoggingStream struct {
-	Transport   string   `json:"transport"` // stdout, file, stream
-	Destination string   `json:"destination,omitempty"`
-	Level       string   `json:"level"`
-	Format      string   `json:"format"` // text, jsonl
-	Protocol    string   `json:"protocol,omitempty"`
-	Events      []string `json:"events,omitempty"`
+	Transport   string                 `json:"transport"` // stdout, file, stream
+	Destination string                 `json:"destination,omitempty"`
+	Level       string                 `json:"level"`
+	Format      string                 `json:"format"` // text, jsonl
+	Protocol    string                 `json:"protocol,omitempty"`
+	Auth        map[string]interface{} `json:"auth,omitempty"`
+	Events      []string               `json:"events,omitempty"`
 }
 
 // LoggingDestination represents a logging destination
