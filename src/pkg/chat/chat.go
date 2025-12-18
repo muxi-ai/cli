@@ -1328,7 +1328,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 				}
 			case "completed":
 				// Check if content has the actual response
-				if token.Content != "" && token.Content != "done" && token.Content != "" {
+				if token.Content != "" && token.Content != "done" {
 					lastContent = token.Content
 				}
 			case "progress", "thinking", "planning":
