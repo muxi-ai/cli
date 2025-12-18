@@ -83,22 +83,19 @@ func runChat(cmd *cobra.Command, args []string) error {
 	groupID, _ := cmd.Flags().GetString("group")
 	noStream, _ := cmd.Flags().GetBool("no-stream")
 
-	// Resolve formation ID
+	// Resolve formation ID (required)
 	formationID, err := formation.ResolveFormationID(flags.FormationID)
 	if err != nil {
-		formationID = "my-formation"
+		return err
 	}
 
 	// Resolve server profile
 	profile := formation.ResolveProfile(flags.Profile)
-	if profile == "" {
-		profile = "local"
-	}
 
-	// Resolve user ID
+	// Resolve user ID (required for chat)
 	userID := formation.ResolveUserID(flags.UserID)
 	if userID == "" {
-		userID = "default-user"
+		return &formation.UserIDRequiredError{}
 	}
 
 	// Handle --file flag (one-shot avchat mode)
