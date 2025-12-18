@@ -189,13 +189,10 @@ func runCredentialsAdd(cmd *cobra.Command, args []string) error {
 			// Build select options from available services
 			var options []wizard.SelectOption
 			for _, svc := range servicesResp.Services {
-				label := svc.Service
-				if svc.Description != "" {
-					label = fmt.Sprintf("%s - %s", svc.Service, svc.Description)
-				}
 				options = append(options, wizard.SelectOption{
-					Value: svc.Service,
-					Label: label,
+					Value:       svc.Service,
+					Label:       svc.Service,
+					Description: svc.Description,
 				})
 			}
 			// Add "Other" option
