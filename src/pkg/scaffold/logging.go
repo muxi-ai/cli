@@ -733,7 +733,12 @@ func getLoggingStreams(rootDir string) ([]map[string]interface{}, error) {
 		return nil, nil
 	}
 
-	streamsRaw, ok := logging["streams"].([]interface{})
+	conversation, ok := logging["conversation"].(map[string]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	streamsRaw, ok := conversation["streams"].([]interface{})
 	if !ok {
 		return nil, nil
 	}
@@ -787,18 +792,40 @@ func addStreamToFormation(rootDir string, stream map[string]interface{}) error {
 		)
 	}
 
-	// Find or create streams array
-	var streamsNode *yaml.Node
+	// Find or create conversation section within logging
+	var conversationNode *yaml.Node
 	for i := 0; i < len(loggingNode.Content); i += 2 {
-		if loggingNode.Content[i].Value == "streams" {
-			streamsNode = loggingNode.Content[i+1]
+		if loggingNode.Content[i].Value == "conversation" {
+			conversationNode = loggingNode.Content[i+1]
+			break
+		}
+	}
+
+	if conversationNode == nil {
+		// Create conversation section with enabled: true
+		conversationNode = &yaml.Node{Kind: yaml.MappingNode}
+		conversationNode.Content = append(conversationNode.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "enabled"},
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "true", Tag: "!!bool"},
+		)
+		loggingNode.Content = append(loggingNode.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: "conversation"},
+			conversationNode,
+		)
+	}
+
+	// Find or create streams array within conversation
+	var streamsNode *yaml.Node
+	for i := 0; i < len(conversationNode.Content); i += 2 {
+		if conversationNode.Content[i].Value == "streams" {
+			streamsNode = conversationNode.Content[i+1]
 			break
 		}
 	}
 
 	if streamsNode == nil {
 		streamsNode = &yaml.Node{Kind: yaml.SequenceNode}
-		loggingNode.Content = append(loggingNode.Content,
+		conversationNode.Content = append(conversationNode.Content,
 			&yaml.Node{Kind: yaml.ScalarNode, Value: "streams"},
 			streamsNode,
 		)
@@ -853,17 +880,25 @@ func removeStreamFromFormation(rootDir string, idx int) error {
 		if docNode.Content[i].Value == "logging" {
 			loggingNode := docNode.Content[i+1]
 
-			// Find streams array
+			// Find conversation section
 			for j := 0; j < len(loggingNode.Content); j += 2 {
-				if loggingNode.Content[j].Value == "streams" {
-					streamsNode := loggingNode.Content[j+1]
+				if loggingNode.Content[j].Value == "conversation" {
+					conversationNode := loggingNode.Content[j+1]
 
-					// Remove the stream at idx
-					if idx >= 0 && idx < len(streamsNode.Content) {
-						streamsNode.Content = append(
-							streamsNode.Content[:idx],
-							streamsNode.Content[idx+1:]...,
-						)
+					// Find streams array within conversation
+					for k := 0; k < len(conversationNode.Content); k += 2 {
+						if conversationNode.Content[k].Value == "streams" {
+							streamsNode := conversationNode.Content[k+1]
+
+							// Remove the stream at idx
+							if idx >= 0 && idx < len(streamsNode.Content) {
+								streamsNode.Content = append(
+									streamsNode.Content[:idx],
+									streamsNode.Content[idx+1:]...,
+								)
+							}
+							break
+						}
 					}
 					break
 				}
