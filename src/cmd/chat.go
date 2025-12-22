@@ -74,6 +74,7 @@ func init() {
 	chatCmd.Flags().String("file", "", "Audio/video file to send (max 100MB)")
 	chatCmd.Flags().Bool("no-stream", false, "Disable streaming (wait for full response)")
 	chatCmd.Flags().Bool("no-splash", false, "Skip welcome banner")
+	chatCmd.Flags().BoolP("verbose", "v", false, "Show all streaming events (thinking, planning, progress)")
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
@@ -134,6 +135,8 @@ func runChat(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
+	verbose, _ := cmd.Flags().GetBool("verbose")
+
 	cfg := chat.Config{
 		FormationID: formationID,
 		ServerID:    profile,
@@ -141,6 +144,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 		SessionID:   sessionID,
 		GroupID:     groupID,
 		Client:      client,
+		Verbose:     verbose,
 	}
 
 	return chat.Run(cfg)

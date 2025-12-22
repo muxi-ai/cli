@@ -72,6 +72,15 @@ type Config struct {
 	SessionID   string
 	GroupID     string
 	Client      *formation.Client
+	Verbose     bool // Show all streaming events (don't replace)
+}
+
+// StreamEvent represents a streaming event from the server
+type StreamEvent struct {
+	Type     string // progress, thinking, planning, content, completed, error
+	Stage    string // init, tool_call, response_preparation, etc.
+	Content  string
+	ToolName string
 }
 
 // Message represents a chat message
@@ -117,6 +126,9 @@ type Model struct {
 	requestAborted  bool            // Flag to ignore response after abort
 	sessionID       string          // Current session ID (from API response)
 	streamingText   strings.Builder // Accumulated streaming response
+	eventChan       chan StreamEvent // Channel for streaming events
+	currentEvent    *StreamEvent     // Current event being displayed
+	eventHistory    []StreamEvent    // History of events (for verbose mode)
 }
 
 // Command represents a slash command
@@ -230,6 +242,7 @@ func New(cfg Config) Model {
 		inputHistory: []string{},
 		historyIndex: -1,
 		sessionID:    cfg.SessionID,
+		eventChan:    make(chan StreamEvent, 10),
 	}
 }
 
@@ -562,8 +575,57 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, printAssistantMessageAbove(response)
 		}
 		m.isThinking = false
+		m.currentEvent = nil
 		// No response text received - request completed but server didn't stream text
 		return m, printServerError("Request completed but no response text was streamed. The server may not be configured for text streaming.")
+
+	case streamEventMsg:
+		// Ignore if request was aborted
+		if m.requestAborted {
+			return m, nil
+		}
+
+		event := msg.event
+		m.currentEvent = &event
+		m.eventHistory = append(m.eventHistory, event)
+
+		// In verbose mode, print each event; otherwise just update currentEvent
+		var cmd tea.Cmd
+		if m.config.Verbose {
+			cmd = printStreamEventAbove(event)
+		}
+
+		// Continue listening for more events
+		return m, tea.Batch(cmd, m.listenForEvents())
+
+	case streamCompleteMsg:
+		// Ignore if request was aborted
+		if m.requestAborted {
+			m.requestAborted = false
+			return m, nil
+		}
+
+		m.isThinking = false
+		m.currentEvent = nil
+
+		// Build commands for printing
+		var cmds []tea.Cmd
+
+		// In verbose mode, events were already printed
+		// In normal mode, print nothing (events replaced each other)
+
+		// Add assistant message and print above TUI
+		m.messages = append(m.messages, Message{
+			Role:      "assistant",
+			Content:   msg.response,
+			Timestamp: time.Now(),
+		})
+		cmds = append(cmds, printAssistantMessageAbove(msg.response))
+
+		// Clear event history for next request
+		m.eventHistory = nil
+
+		return m, tea.Sequence(cmds...)
 
 	case streamResponseMsg:
 		// Ignore response if request was aborted
@@ -750,45 +812,73 @@ func (m Model) View() string {
 	return b.String()
 }
 
-// renderThinkingLive renders the current thinking state (completed steps + spinner)
+// renderThinkingLive renders the current thinking state (current event + spinner)
 func (m Model) renderThinkingLive() string {
 	var b strings.Builder
-	margin := " "
-
-	// Show completed thinking steps first (in order)
-	for _, step := range m.thinking {
-		if step.Completed {
-			b.WriteString(margin)
-			b.WriteString(completedStyle.Render("⏺  " + step.Text))
-			b.WriteString("\n")
-		}
-	}
-
-	// Add line space before spinner if there are completed steps above
-	hasCompleted := false
-	for _, step := range m.thinking {
-		if step.Completed {
-			hasCompleted = true
-			break
-		}
-	}
-	if hasCompleted {
-		b.WriteString("\n")
-	}
 
 	// Show spinner with elapsed time
 	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	elapsed := time.Since(m.thinkingStart)
 	frame := frames[int(elapsed.Milliseconds()/100)%len(frames)]
 
-	// Show current thinking with spinner and ESC hint (very dim)
+	// Very dim ESC hint
 	veryDimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555555"))
 	escHint := veryDimStyle.Render("(ESC to cancel)")
-	b.WriteString(margin)
-	b.WriteString(thinkingStyle.Render(fmt.Sprintf("%s  Thinking... %.1fs", frame, elapsed.Seconds())))
-	b.WriteString("  ")
-	b.WriteString(escHint)
-	b.WriteString("\n")
+
+	// If we have a current event from streaming, show it
+	if m.currentEvent != nil {
+		event := *m.currentEvent
+		italicStyle := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#808080"))
+		contentStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#808080"))
+
+		switch event.Type {
+		case "thinking":
+			b.WriteString(" " + frame + " ")
+			b.WriteString(italicStyle.Render("Thinking:"))
+			b.WriteString("  ")
+			b.WriteString(escHint)
+			b.WriteString("\n")
+			b.WriteString(contentStyle.Render("    ↳ " + event.Content))
+			b.WriteString("\n")
+
+		case "planning":
+			b.WriteString(" " + frame + " ")
+			b.WriteString(italicStyle.Render("Planning:"))
+			b.WriteString("  ")
+			b.WriteString(escHint)
+			b.WriteString("\n")
+			b.WriteString(contentStyle.Render("    ↳ " + event.Content))
+			b.WriteString("\n")
+
+		case "progress":
+			b.WriteString(" " + frame + " ")
+			if event.Stage == "tool_call" && event.ToolName != "" {
+				toolStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45"))
+				b.WriteString(contentStyle.Render("Using "))
+				b.WriteString(toolStyle.Render(event.ToolName))
+				b.WriteString(contentStyle.Render(" tool..."))
+			} else {
+				b.WriteString(contentStyle.Render(event.Content))
+			}
+			b.WriteString("  ")
+			b.WriteString(escHint)
+			b.WriteString("\n")
+
+		default:
+			b.WriteString(" " + frame + " ")
+			b.WriteString(contentStyle.Render(event.Content))
+			b.WriteString("  ")
+			b.WriteString(escHint)
+			b.WriteString("\n")
+		}
+	} else {
+		// No event yet, show generic thinking
+		b.WriteString(" ")
+		b.WriteString(thinkingStyle.Render(fmt.Sprintf("%s  Thinking... %.1fs", frame, elapsed.Seconds())))
+		b.WriteString("  ")
+		b.WriteString(escHint)
+		b.WriteString("\n")
+	}
 
 	return b.String()
 }
@@ -844,6 +934,53 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 // printThinkingStepAbove prints a completed thinking step to history (no trailing space)
 func printThinkingStepAbove(text string) tea.Cmd {
 	return tea.Println(" " + completedStyle.Render("⏺  "+text))
+}
+
+// printStreamEventAbove prints a stream event to history (for verbose mode)
+func printStreamEventAbove(event StreamEvent) tea.Cmd {
+	return tea.Println(formatStreamEvent(event, false))
+}
+
+// formatStreamEvent formats a stream event for display
+func formatStreamEvent(event StreamEvent, withSpinner bool) string {
+	italicStyle := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#808080"))
+	contentStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#808080"))
+
+	prefix := " ⏺ "
+	if withSpinner {
+		// Use spinner frame based on time
+		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		frame := frames[int(time.Now().UnixMilli()/80)%len(frames)]
+		prefix = " " + frame + " "
+	}
+
+	switch event.Type {
+	case "thinking":
+		// Thinking: (italic)
+		//   ↳ content
+		header := italicStyle.Render("Thinking:")
+		content := contentStyle.Render("  ↳ " + event.Content)
+		return prefix + header + "\n" + content
+
+	case "planning":
+		// Planning: (italic)
+		//   ↳ content
+		header := italicStyle.Render("Planning:")
+		content := contentStyle.Render("  ↳ " + event.Content)
+		return prefix + header + "\n" + content
+
+	case "progress":
+		// For tool_call, highlight the tool name
+		if event.Stage == "tool_call" && event.ToolName != "" {
+			toolStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45"))
+			return prefix + contentStyle.Render("Using ") + toolStyle.Render(event.ToolName) + contentStyle.Render(" tool...")
+		}
+		// Regular progress
+		return prefix + contentStyle.Render(event.Content)
+
+	default:
+		return prefix + contentStyle.Render(event.Content)
+	}
 }
 
 // printAbortMessage prints the abort message in red
@@ -1286,6 +1423,14 @@ type streamResponseMsg struct {
 	response  string
 	sessionID string
 }
+type streamEventMsg struct {
+	event     StreamEvent
+	sessionID string
+}
+type streamCompleteMsg struct {
+	response  string
+	sessionID string
+}
 
 // sendChatMessage sends a message to the chat API and streams the response
 func (m Model) sendChatMessage(message string) tea.Cmd {
@@ -1306,8 +1451,36 @@ func (m Model) sendChatMessage(message string) tea.Cmd {
 			return streamErrorMsg{err: err}
 		}
 
-		// Process stream in a goroutine and return tokens via channel
-		return processStream(resp.Body)
+		// Start processing stream and sending events through channel
+		go processStreamWithEvents(resp.Body, m.eventChan)
+
+		// Return command to listen for first event
+		return m.waitForEvent()
+	}
+}
+
+// waitForEvent returns a command that waits for the next stream event
+func (m Model) waitForEvent() tea.Msg {
+	event, ok := <-m.eventChan
+	if !ok {
+		// Channel closed, stream complete
+		return streamDoneMsg{}
+	}
+
+	if event.Type == "completed" {
+		return streamCompleteMsg{
+			response:  event.Content,
+			sessionID: "", // Will be set from previous events
+		}
+	}
+
+	return streamEventMsg{event: event}
+}
+
+// listenForEvents returns a command to continue listening for events
+func (m Model) listenForEvents() tea.Cmd {
+	return func() tea.Msg {
+		return m.waitForEvent()
 	}
 }
 
@@ -1322,8 +1495,107 @@ type MuxiToken struct {
 		Stage     string `json:"stage"`
 		AgentName string `json:"agent_name"`
 		AgentUsed string `json:"agent_used"`
+		ToolName  string `json:"tool_name"`
 		Status    string `json:"status"`
 	} `json:"token"`
+}
+
+// processStreamWithEvents reads SSE events and sends them through a channel
+func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent) {
+	defer body.Close()
+	defer close(eventChan)
+
+	scanner := bufio.NewScanner(body)
+	var fullResponse strings.Builder
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Handle event type lines
+		if strings.HasPrefix(line, "event:") {
+			eventType := strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+			if eventType == "done" {
+				break
+			}
+			continue
+		}
+
+		// Handle data lines
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "" || data == "[DONE]" {
+			continue
+		}
+
+		// Try parsing as MUXI token format: {"token": {...}}
+		var muxiToken MuxiToken
+		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
+			token := muxiToken.Token
+
+			switch token.Type {
+			case "content", "text", "response":
+				// Actual response text - accumulate
+				if token.Content != "" {
+					fullResponse.WriteString(token.Content)
+				}
+			case "completed":
+				// Final response
+				response := token.Content
+				if response == "" || response == "done" {
+					response = fullResponse.String()
+				}
+				eventChan <- StreamEvent{
+					Type:    "completed",
+					Content: response,
+				}
+				return
+			case "progress", "thinking", "planning":
+				// Send as event
+				if token.Content != "" {
+					eventChan <- StreamEvent{
+						Type:     token.Type,
+						Stage:    token.Stage,
+						Content:  token.Content,
+						ToolName: token.ToolName,
+					}
+				}
+			case "error":
+				eventChan <- StreamEvent{
+					Type:    "error",
+					Stage:   token.Stage,
+					Content: token.Content,
+				}
+				return
+			}
+			continue
+		}
+
+		// Try parsing as finished marker
+		var finished struct {
+			Finished bool `json:"finished"`
+		}
+		if err := json.Unmarshal([]byte(data), &finished); err == nil && finished.Finished {
+			// Send accumulated response if any
+			if fullResponse.Len() > 0 {
+				eventChan <- StreamEvent{
+					Type:    "completed",
+					Content: fullResponse.String(),
+				}
+			}
+			return
+		}
+	}
+
+	// Stream ended, send any accumulated response
+	if fullResponse.Len() > 0 {
+		eventChan <- StreamEvent{
+			Type:    "completed",
+			Content: fullResponse.String(),
+		}
+	}
 }
 
 // processStream reads SSE events and returns the first token or completion
