@@ -833,6 +833,12 @@ func (m Model) renderThinkingLive() string {
 		italicStyle := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#808080"))
 		contentStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#808080"))
 
+		// Calculate wrap width (terminal width - indent)
+		wrapWidth := m.width - 8
+		if wrapWidth < 40 {
+			wrapWidth = 40
+		}
+
 		switch event.Type {
 		case "thinking":
 			b.WriteString(" " + frame + " ")
@@ -840,8 +846,16 @@ func (m Model) renderThinkingLive() string {
 			b.WriteString("  ")
 			b.WriteString(escHint)
 			b.WriteString("\n")
-			b.WriteString(contentStyle.Render("    ↳ " + event.Content))
-			b.WriteString("\n")
+			// Wrap the content
+			wrapped := wrapText(event.Content, wrapWidth)
+			for i, line := range wrapped {
+				if i == 0 {
+					b.WriteString(contentStyle.Render("    ↳ " + line))
+				} else {
+					b.WriteString(contentStyle.Render("      " + line))
+				}
+				b.WriteString("\n")
+			}
 
 		case "planning":
 			b.WriteString(" " + frame + " ")
@@ -849,8 +863,16 @@ func (m Model) renderThinkingLive() string {
 			b.WriteString("  ")
 			b.WriteString(escHint)
 			b.WriteString("\n")
-			b.WriteString(contentStyle.Render("    ↳ " + event.Content))
-			b.WriteString("\n")
+			// Wrap the content
+			wrapped := wrapText(event.Content, wrapWidth)
+			for i, line := range wrapped {
+				if i == 0 {
+					b.WriteString(contentStyle.Render("    ↳ " + line))
+				} else {
+					b.WriteString(contentStyle.Render("      " + line))
+				}
+				b.WriteString("\n")
+			}
 
 		case "progress":
 			b.WriteString(" " + frame + " ")
@@ -983,6 +1005,34 @@ func formatStreamEvent(event StreamEvent, withSpinner bool) string {
 	default:
 		return prefix + contentStyle.Render(event.Content)
 	}
+}
+
+// wrapText wraps text to fit within a given width
+func wrapText(text string, width int) []string {
+	if width <= 0 {
+		return []string{text}
+	}
+
+	var lines []string
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{}
+	}
+
+	currentLine := words[0]
+	for _, word := range words[1:] {
+		if len(currentLine)+1+len(word) <= width {
+			currentLine += " " + word
+		} else {
+			lines = append(lines, currentLine)
+			currentLine = word
+		}
+	}
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
 }
 
 // printAbortMessage prints the abort message in red
