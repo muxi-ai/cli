@@ -519,6 +519,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.isThinking = true
 				m.thinkingStart = time.Now()
 				m.streamingText.Reset()
+				m.currentEvent = nil
+				m.eventChan = make(chan StreamEvent, 10) // New channel for this request
 				return m, tea.Batch(printUserMessageAbove(input), m.sendChatMessage(input))
 			}
 		}
@@ -1434,6 +1436,8 @@ type streamCompleteMsg struct {
 
 // sendChatMessage sends a message to the chat API and streams the response
 func (m Model) sendChatMessage(message string) tea.Cmd {
+	eventChan := m.eventChan // Capture the channel
+
 	return func() tea.Msg {
 		if m.config.Client == nil {
 			return streamErrorMsg{err: fmt.Errorf("no API client configured")}
@@ -1452,16 +1456,16 @@ func (m Model) sendChatMessage(message string) tea.Cmd {
 		}
 
 		// Start processing stream and sending events through channel
-		go processStreamWithEvents(resp.Body, m.eventChan)
+		go processStreamWithEvents(resp.Body, eventChan)
 
 		// Return command to listen for first event
-		return m.waitForEvent()
+		return waitForEventFromChan(eventChan)
 	}
 }
 
-// waitForEvent returns a command that waits for the next stream event
-func (m Model) waitForEvent() tea.Msg {
-	event, ok := <-m.eventChan
+// waitForEventFromChan waits for the next stream event from a channel
+func waitForEventFromChan(eventChan chan StreamEvent) tea.Msg {
+	event, ok := <-eventChan
 	if !ok {
 		// Channel closed, stream complete
 		return streamDoneMsg{}
@@ -1470,7 +1474,7 @@ func (m Model) waitForEvent() tea.Msg {
 	if event.Type == "completed" {
 		return streamCompleteMsg{
 			response:  event.Content,
-			sessionID: "", // Will be set from previous events
+			sessionID: "",
 		}
 	}
 
@@ -1479,8 +1483,9 @@ func (m Model) waitForEvent() tea.Msg {
 
 // listenForEvents returns a command to continue listening for events
 func (m Model) listenForEvents() tea.Cmd {
+	eventChan := m.eventChan // Capture the channel
 	return func() tea.Msg {
-		return m.waitForEvent()
+		return waitForEventFromChan(eventChan)
 	}
 }
 
