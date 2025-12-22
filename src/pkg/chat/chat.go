@@ -196,6 +196,74 @@ var (
 			Foreground(lipgloss.Color("#808080")) // Explicit gray for all terminals
 )
 
+// chatMarkdownStyle is a custom glamour style based on "dark" but with no H1 background
+var chatMarkdownStyle = []byte(`{
+	"document": {
+		"block_prefix": "",
+		"block_suffix": "",
+		"margin": 0
+	},
+	"heading": {
+		"block_suffix": "\n",
+		"color": "39",
+		"bold": true
+	},
+	"h1": {
+		"prefix": "# ",
+		"color": "39",
+		"bold": true
+	},
+	"h2": {
+		"prefix": "## ",
+		"color": "39",
+		"bold": true
+	},
+	"h3": {
+		"prefix": "### ",
+		"color": "39",
+		"bold": true
+	},
+	"paragraph": {
+		"block_suffix": "\n"
+	},
+	"list": {
+		"level_indent": 2
+	},
+	"text": {},
+	"strong": {
+		"bold": true
+	},
+	"emph": {
+		"italic": true
+	},
+	"code": {
+		"color": "203"
+	},
+	"code_block": {
+		"color": "244",
+		"margin": 2,
+		"chroma": {
+			"text": { "color": "#C4C4C4" },
+			"keyword": { "color": "#F92672" },
+			"name": { "color": "#A6E22E" },
+			"literal_string": { "color": "#E6DB74" },
+			"literal_number": { "color": "#AE81FF" },
+			"comment": { "color": "#75715E" }
+		}
+	},
+	"link": {
+		"color": "30",
+		"underline": true
+	},
+	"link_text": {
+		"color": "35",
+		"bold": true
+	},
+	"item": {
+		"block_prefix": "• "
+	}
+}`)
+
 // New creates a new chat model
 func New(cfg Config) Model {
 	ta := textarea.New()
@@ -923,9 +991,9 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 
 	var rendered string
 	if hasMarkdown {
-		// Render markdown with dark style
+		// Render markdown with custom style (dark base, no H1 background)
 		renderer, err := glamour.NewTermRenderer(
-			glamour.WithStylePath("dark"),
+			glamour.WithStylesFromJSONBytes(chatMarkdownStyle),
 			glamour.WithWordWrap(76),
 		)
 		if err == nil {
