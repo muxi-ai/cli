@@ -79,10 +79,11 @@ type Config struct {
 
 // StreamEvent represents a streaming event from the server
 type StreamEvent struct {
-	Type     string // progress, thinking, planning, content, completed, error
-	Stage    string // init, tool_call, response_preparation, etc.
-	Content  string
-	ToolName string
+	Type      string // progress, thinking, planning, content, completed, error
+	Stage     string // init, tool_call, response_preparation, etc.
+	Content   string
+	ToolName  string
+	SessionID string // Session ID from server
 }
 
 // Message represents a chat message
@@ -596,6 +597,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentEvent = &event
 		m.eventHistory = append(m.eventHistory, event)
 
+		// Update session ID if provided (capture early)
+		if event.SessionID != "" && m.sessionID == "" {
+			m.sessionID = event.SessionID
+		}
+
 		// In verbose mode, print each event; otherwise just update currentEvent
 		var cmd tea.Cmd
 		if m.config.Verbose {
@@ -613,7 +619,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.config.Debug {
-			fmt.Fprintf(os.Stderr, "[DEBUG] Received streamCompleteMsg with response: %q\n", truncateForDebug(msg.response, 100))
+			fmt.Fprintf(os.Stderr, "[DEBUG] Received streamCompleteMsg with response: %q sessionID: %q\n", truncateForDebug(msg.response, 100), msg.sessionID)
+		}
+
+		// Update session ID if provided
+		if msg.sessionID != "" {
+			m.sessionID = msg.sessionID
 		}
 
 		m.isThinking = false
@@ -1546,7 +1557,7 @@ func waitForEventFromChan(eventChan chan StreamEvent) tea.Msg {
 	if event.Type == "completed" {
 		return streamCompleteMsg{
 			response:  event.Content,
-			sessionID: "",
+			sessionID: event.SessionID,
 		}
 	}
 
@@ -1584,6 +1595,7 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 
 	scanner := bufio.NewScanner(body)
 	var fullResponse strings.Builder
+	var sessionID string
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -1612,6 +1624,11 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
 			token := muxiToken.Token
 
+			// Capture session ID if provided
+			if token.SessionID != "" {
+				sessionID = token.SessionID
+			}
+
 			if debug {
 				fmt.Fprintf(os.Stderr, "[DEBUG] type=%s stage=%s content=%q\n", token.Type, token.Stage, token.Content)
 			}
@@ -1629,21 +1646,23 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 					response = fullResponse.String()
 				}
 				if debug {
-					fmt.Fprintf(os.Stderr, "[DEBUG] Sending completed event with response: %q\n", truncateForDebug(response, 100))
+					fmt.Fprintf(os.Stderr, "[DEBUG] Sending completed event with response: %q sessionID: %q\n", truncateForDebug(response, 100), sessionID)
 				}
 				eventChan <- StreamEvent{
-					Type:    "completed",
-					Content: response,
+					Type:      "completed",
+					Content:   response,
+					SessionID: sessionID,
 				}
 				return
 			case "progress", "thinking", "planning":
 				// Send as event
 				if token.Content != "" {
 					eventChan <- StreamEvent{
-						Type:     token.Type,
-						Stage:    token.Stage,
-						Content:  token.Content,
-						ToolName: token.ToolName,
+						Type:      token.Type,
+						Stage:     token.Stage,
+						Content:   token.Content,
+						ToolName:  token.ToolName,
+						SessionID: sessionID,
 					}
 				}
 			case "error":
