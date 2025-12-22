@@ -565,6 +565,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// No response text received - request completed but server didn't stream text
 		return m, printServerError("Request completed but no response text was streamed. The server may not be configured for text streaming.")
 
+	case streamResponseMsg:
+		// Ignore response if request was aborted
+		if m.requestAborted {
+			m.requestAborted = false
+			return m, nil
+		}
+		// Update session ID if provided
+		if msg.sessionID != "" {
+			m.sessionID = msg.sessionID
+		}
+		m.isThinking = false
+		// Print thinking steps first, then the response
+		var cmds []tea.Cmd
+		for _, step := range msg.thinking {
+			cmds = append(cmds, printThinkingStepAbove(step))
+		}
+		// Add assistant message and print above TUI
+		m.messages = append(m.messages, Message{
+			Role:      "assistant",
+			Content:   msg.response,
+			Timestamp: time.Now(),
+		})
+		cmds = append(cmds, printAssistantMessageAbove(msg.response))
+		return m, tea.Sequence(cmds...)
+
 	case responseMsg:
 		// Ignore response if request was aborted
 		if m.requestAborted {
@@ -1241,6 +1266,11 @@ type tickMsg struct{}
 type streamTokenMsg string
 type streamDoneMsg struct{ sessionID string }
 type streamErrorMsg struct{ err error }
+type streamResponseMsg struct {
+	thinking  []string
+	response  string
+	sessionID string
+}
 
 // sendChatMessage sends a message to the chat API and streams the response
 func (m Model) sendChatMessage(message string) tea.Cmd {
@@ -1289,6 +1319,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 	var fullResponse strings.Builder
 	var sessionID string
 	var lastContent string
+	var thinkingSteps []string
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -1332,8 +1363,10 @@ func processStream(body io.ReadCloser) tea.Msg {
 					lastContent = token.Content
 				}
 			case "progress", "thinking", "planning":
-				// Status updates - we could emit these as thinking steps
-				// For now, just track them
+				// Collect thinking/progress steps to display
+				if token.Content != "" {
+					thinkingSteps = append(thinkingSteps, token.Content)
+				}
 			}
 			continue
 		}
@@ -1391,12 +1424,20 @@ func processStream(body io.ReadCloser) tea.Msg {
 
 	// Return full response if we got text tokens
 	if fullResponse.Len() > 0 {
-		return responseMsg(fullResponse.String())
+		return streamResponseMsg{
+			thinking:  thinkingSteps,
+			response:  fullResponse.String(),
+			sessionID: sessionID,
+		}
 	}
 
 	// Fall back to lastContent if no text tokens were received
 	if lastContent != "" {
-		return responseMsg(lastContent)
+		return streamResponseMsg{
+			thinking:  thinkingSteps,
+			response:  lastContent,
+			sessionID: sessionID,
+		}
 	}
 
 	// No response text received - this might mean the API doesn't stream text
