@@ -800,27 +800,42 @@ func printUserMessageAbove(content string) tea.Cmd {
 }
 
 func printAssistantMessageAbove(content string) tea.Cmd {
-	// Render markdown with dark style (avoid terminal color query that causes escape sequence leak)
-	renderer, err := glamour.NewTermRenderer(
-		glamour.WithStylePath("dark"),
-		glamour.WithWordWrap(76), // Reduced to account for indentation
-	)
-	rendered := content
-	if err == nil {
-		if r, err := renderer.Render(content); err == nil {
-			rendered = strings.TrimSpace(r)
-			// Indent each line to align with other content
-			lines := strings.Split(rendered, "\n")
-			for i, line := range lines {
-				if i == 0 {
-					// First line: no extra indent (follows 𝐌 directly)
-					lines[i] = line
-				} else {
-					lines[i] = "  " + line // 2 spaces for subsequent lines
+	// Check if content has markdown formatting
+	hasMarkdown := strings.Contains(content, "```") ||
+		strings.Contains(content, "**") ||
+		strings.Contains(content, "##") ||
+		strings.Contains(content, "- ") ||
+		strings.Contains(content, "1. ")
+
+	var rendered string
+	if hasMarkdown {
+		// Render markdown with dark style
+		renderer, err := glamour.NewTermRenderer(
+			glamour.WithStylePath("dark"),
+			glamour.WithWordWrap(76),
+		)
+		if err == nil {
+			if r, err := renderer.Render(content); err == nil {
+				rendered = strings.TrimSpace(r)
+				// Indent each line to align with other content
+				lines := strings.Split(rendered, "\n")
+				for i, line := range lines {
+					if i == 0 {
+						lines[i] = line
+					} else {
+						lines[i] = "  " + line
+					}
 				}
+				rendered = strings.Join(lines, "\n")
+			} else {
+				rendered = "  " + content
 			}
-			rendered = strings.Join(lines, "\n")
+		} else {
+			rendered = "  " + content
 		}
+	} else {
+		// Plain text - no glamour rendering (avoids dimming)
+		rendered = "  " + content
 	}
 	// Empty line before, message, TWO empty lines after (space before input)
 	return tea.Println("\n " + goldStyle.Render("𝐌") + rendered + "\n\n")
