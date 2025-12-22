@@ -53,6 +53,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -73,6 +74,7 @@ type Config struct {
 	GroupID     string
 	Client      *formation.Client
 	Verbose     bool // Show all streaming events (don't replace)
+	Debug       bool // Enable debug output to stderr
 }
 
 // StreamEvent represents a streaming event from the server
@@ -1555,10 +1557,15 @@ type streamCompleteMsg struct {
 // sendChatMessage sends a message to the chat API and streams the response
 func (m Model) sendChatMessage(message string) tea.Cmd {
 	eventChan := m.eventChan // Capture the channel
+	debug := m.config.Debug
 
 	return func() tea.Msg {
 		if m.config.Client == nil {
 			return streamErrorMsg{err: fmt.Errorf("no API client configured")}
+		}
+
+		if debug {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Sending message: %q\n", message)
 		}
 
 		req := &formation.ChatRequest{
@@ -1574,7 +1581,7 @@ func (m Model) sendChatMessage(message string) tea.Cmd {
 		}
 
 		// Start processing stream and sending events through channel
-		go processStreamWithEvents(resp.Body, eventChan)
+		go processStreamWithEvents(resp.Body, eventChan, debug)
 
 		// Return command to listen for first event
 		return waitForEventFromChan(eventChan)
@@ -1624,7 +1631,7 @@ type MuxiToken struct {
 }
 
 // processStreamWithEvents reads SSE events and sends them through a channel
-func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent) {
+func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, debug bool) {
 	defer body.Close()
 	defer close(eventChan)
 
@@ -1657,6 +1664,10 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent) {
 		var muxiToken MuxiToken
 		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
 			token := muxiToken.Token
+
+			if debug {
+				fmt.Fprintf(os.Stderr, "[DEBUG] type=%s stage=%s content=%q\n", token.Type, token.Stage, token.Content)
+			}
 
 			switch token.Type {
 			case "content", "text", "response":

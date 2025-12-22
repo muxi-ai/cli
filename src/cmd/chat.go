@@ -75,6 +75,7 @@ func init() {
 	chatCmd.Flags().Bool("no-stream", false, "Disable streaming (wait for full response)")
 	chatCmd.Flags().Bool("no-splash", false, "Skip welcome banner")
 	chatCmd.Flags().BoolP("verbose", "v", false, "Show all streaming events (thinking, planning, progress)")
+	chatCmd.Flags().Bool("debug", false, "Enable debug output to stderr")
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
@@ -136,6 +137,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 	}
 
 	verbose, _ := cmd.Flags().GetBool("verbose")
+	debug, _ := cmd.Flags().GetBool("debug")
 
 	cfg := chat.Config{
 		FormationID: formationID,
@@ -145,6 +147,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 		GroupID:     groupID,
 		Client:      client,
 		Verbose:     verbose,
+		Debug:       debug,
 	}
 
 	return chat.Run(cfg)
