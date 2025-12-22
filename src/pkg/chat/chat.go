@@ -198,74 +198,6 @@ var (
 			Foreground(lipgloss.Color("#808080")) // Explicit gray for all terminals
 )
 
-// chatMarkdownStyle is a custom glamour style based on "dark" but with no H1 background
-var chatMarkdownStyle = []byte(`{
-	"document": {
-		"block_prefix": "",
-		"block_suffix": "",
-		"margin": 0
-	},
-	"heading": {
-		"block_suffix": "\n",
-		"color": "39",
-		"bold": true
-	},
-	"h1": {
-		"prefix": "# ",
-		"color": "39",
-		"bold": true
-	},
-	"h2": {
-		"prefix": "## ",
-		"color": "39",
-		"bold": true
-	},
-	"h3": {
-		"prefix": "### ",
-		"color": "39",
-		"bold": true
-	},
-	"paragraph": {
-		"block_suffix": "\n"
-	},
-	"list": {
-		"level_indent": 2
-	},
-	"text": {},
-	"strong": {
-		"bold": true
-	},
-	"emph": {
-		"italic": true
-	},
-	"code": {
-		"color": "203"
-	},
-	"code_block": {
-		"color": "244",
-		"margin": 2,
-		"chroma": {
-			"text": { "color": "#C4C4C4" },
-			"keyword": { "color": "#F92672" },
-			"name": { "color": "#A6E22E" },
-			"literal_string": { "color": "#E6DB74" },
-			"literal_number": { "color": "#AE81FF" },
-			"comment": { "color": "#75715E" }
-		}
-	},
-	"link": {
-		"color": "30",
-		"underline": true
-	},
-	"link_text": {
-		"color": "35",
-		"bold": true
-	},
-	"item": {
-		"block_prefix": "• "
-	}
-}`)
-
 // New creates a new chat model
 func New(cfg Config) Model {
 	ta := textarea.New()
@@ -591,6 +523,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.streamingText.Reset()
 				m.currentEvent = nil
 				m.eventChan = make(chan StreamEvent, 10) // New channel for this request
+				if m.config.Debug {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Created new channel, sending message: %q\n", input)
+				}
 				return m, tea.Batch(printUserMessageAbove(input), m.sendChatMessage(input))
 			}
 		}
@@ -675,6 +610,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.requestAborted {
 			m.requestAborted = false
 			return m, nil
+		}
+
+		if m.config.Debug {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Received streamCompleteMsg with response: %q\n", truncateForDebug(msg.response, 100))
 		}
 
 		m.isThinking = false
@@ -993,9 +932,9 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 
 	var rendered string
 	if hasMarkdown {
-		// Render markdown with custom style (dark base, no H1 background)
+		// Render markdown with dark style
 		renderer, err := glamour.NewTermRenderer(
-			glamour.WithStylesFromJSONBytes(chatMarkdownStyle),
+			glamour.WithStylePath("dark"),
 			glamour.WithWordWrap(76),
 		)
 		if err == nil {
@@ -1075,6 +1014,14 @@ func formatStreamEvent(event StreamEvent, withSpinner bool) string {
 	default:
 		return prefix + contentStyle.Render(event.Content)
 	}
+}
+
+// truncateForDebug truncates a string for debug output
+func truncateForDebug(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // wrapText wraps text to fit within a given width
@@ -1680,6 +1627,9 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 				response := token.Content
 				if response == "" || response == "done" {
 					response = fullResponse.String()
+				}
+				if debug {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Sending completed event with response: %q\n", truncateForDebug(response, 100))
 				}
 				eventChan <- StreamEvent{
 					Type:    "completed",
