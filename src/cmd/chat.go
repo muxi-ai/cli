@@ -136,6 +136,10 @@ func runChat(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
+	if _, err := client.Health(); err != nil {
+		return fmt.Errorf("cannot connect to formation `%s` on `%s` - is it running?", formationID, profile)
+	}
+
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	debug, _ := cmd.Flags().GetBool("debug")
 

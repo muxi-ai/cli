@@ -84,6 +84,7 @@ type StreamEvent struct {
 	Content   string
 	ToolName  string
 	SessionID string // Session ID from server
+	RequestID string // Request ID from server (for cancellation)
 }
 
 // Message represents a chat message
@@ -126,8 +127,11 @@ type Model struct {
 	currentInput    string    // Saved current input when navigating history
 	showExitHint    bool      // Show "Ctrl+C again to exit" hint
 	exitHintStart   time.Time // When the exit hint was shown
-	requestAborted  bool            // Flag to ignore response after abort
-	sessionID       string          // Current session ID (from API response)
+	requestAborted   bool   // Flag to ignore response after abort
+	sessionID        string // Current session ID (from API response)
+	currentRequestID string // Current request ID (for cancellation)
+	lastError        string        // Last error message from server
+	streamBody       io.ReadCloser // Current stream body (for cancellation)
 	streamingText   strings.Builder // Accumulated streaming response
 	eventChan       chan StreamEvent // Channel for streaming events
 	currentEvent    *StreamEvent     // Current event being displayed
@@ -199,6 +203,23 @@ var (
 			Foreground(lipgloss.Color("#808080")) // Explicit gray for all terminals
 )
 
+// chatStyle is a minimal glamour style without horizontal rules or header decorations
+var chatStyle = []byte(`{
+	"document": { "margin": 0 },
+	"heading": { "bold": true },
+	"h1": { "bold": true },
+	"h2": { "bold": true },
+	"h3": { "bold": true },
+	"strong": { "bold": true },
+	"emph": { "italic": true },
+	"list": { "level_indent": 2 },
+	"item": { "block_prefix": "• " },
+	"code": {},
+	"code_block": { "margin": 2 },
+	"horizontal_rule": { "format": "" },
+	"paragraph": {}
+}`)
+
 // New creates a new chat model
 func New(cfg Config) Model {
 	ta := textarea.New()
@@ -231,7 +252,7 @@ func New(cfg Config) Model {
 	ta.Prompt = ""
 
 	renderer, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStylePath("notty"),
 		glamour.WithWordWrap(80),
 	)
 
@@ -244,7 +265,7 @@ func New(cfg Config) Model {
 		asyncMode:    "auto",
 		inputHistory: []string{},
 		historyIndex: -1,
-		sessionID:    cfg.SessionID,
+		sessionID:    cfg.SessionID, // Empty on first request, server returns ID
 		eventChan:    make(chan StreamEvent, 10),
 	}
 }
@@ -333,6 +354,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.isThinking = false
 				m.thinking = []ThinkingStep{} // Clear thinking steps
 				m.requestAborted = true       // Flag to ignore incoming response
+				// Cancel request on server if we have a request ID
+				if m.currentRequestID != "" && m.config.Client != nil {
+					go m.config.Client.CancelRequest(m.currentRequestID, m.config.UserID)
+					m.currentRequestID = ""
+				}
 				// Print abort message in red
 				return m, printAbortMessage()
 			}
@@ -507,7 +533,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.historyIndex = -1
 				m.currentInput = ""
-				m.requestAborted = false // Reset abort flag for new request
+				m.requestAborted = false  // Reset abort flag for new request
+				m.currentRequestID = "" // Clear previous request ID
+				m.lastError = ""        // Clear previous error
 
 				// Add user message and print above TUI (persists in scrollback)
 				m.messages = append(m.messages, Message{
@@ -524,9 +552,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.streamingText.Reset()
 				m.currentEvent = nil
 				m.eventChan = make(chan StreamEvent, 10) // New channel for this request
-				if m.config.Debug {
-					fmt.Fprintf(os.Stderr, "[DEBUG] Created new channel, sending message: %q\n", input)
-				}
 				return m, tea.Batch(printUserMessageAbove(input), m.sendChatMessage(input))
 			}
 		}
@@ -584,22 +609,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.isThinking = false
 		m.currentEvent = nil
-		// No response text received - request completed but server didn't stream text
-		return m, printServerError("Request completed but no response text was streamed. The server may not be configured for text streaming.")
+		// Check if we have an error message
+		if m.lastError != "" {
+			errMsg := m.lastError
+			m.lastError = ""
+			return m, printServerError(errMsg)
+		}
+		// No response text received
+		return m, printServerError("No response received from server")
 
 	case streamEventMsg:
-		// Ignore if request was aborted
-		if m.requestAborted {
-			return m, nil
+		event := msg.event
+
+		// Always capture request ID (even if aborted, for cancellation)
+		if event.RequestID != "" && m.currentRequestID == "" {
+			m.currentRequestID = event.RequestID
+			// If request was aborted but we just got the ID, send cancel now
+			if m.requestAborted && m.config.Client != nil {
+				go m.config.Client.CancelRequest(m.currentRequestID, m.config.UserID)
+			}
 		}
 
-		event := msg.event
+		// Ignore display if request was aborted
+		if m.requestAborted {
+			return m, m.listenForEvents() // Keep listening to drain channel
+		}
+
 		m.currentEvent = &event
 		m.eventHistory = append(m.eventHistory, event)
 
-		// Update session ID if provided (capture early)
+		// Update session ID if provided
 		if event.SessionID != "" && m.sessionID == "" {
 			m.sessionID = event.SessionID
+		}
+		// Track error events
+		if event.Type == "error" && event.Content != "" {
+			m.lastError = event.Content
 		}
 
 		// In verbose mode, print each event; otherwise just update currentEvent
@@ -616,10 +661,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.requestAborted {
 			m.requestAborted = false
 			return m, nil
-		}
-
-		if m.config.Debug {
-			fmt.Fprintf(os.Stderr, "[DEBUG] Received streamCompleteMsg with response: %q sessionID: %q\n", truncateForDebug(msg.response, 100), msg.sessionID)
 		}
 
 		// Update session ID if provided
@@ -934,6 +975,9 @@ func printUserMessageAbove(content string) tea.Cmd {
 }
 
 func printAssistantMessageAbove(content string) tea.Cmd {
+	// Remove horizontal rules from content (server sometimes sends these)
+	content = removeHorizontalRules(content)
+
 	// Check if content has markdown formatting
 	hasMarkdown := strings.Contains(content, "```") ||
 		strings.Contains(content, "**") ||
@@ -943,36 +987,36 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 
 	var rendered string
 	if hasMarkdown {
-		// Render markdown with dark style
+		// Use custom style without horizontal rules
 		renderer, err := glamour.NewTermRenderer(
-			glamour.WithStylePath("dark"),
+			glamour.WithStylesFromJSONBytes(chatStyle),
 			glamour.WithWordWrap(76),
 		)
 		if err == nil {
 			if r, err := renderer.Render(content); err == nil {
 				rendered = strings.TrimSpace(r)
-				// Indent each line to align with other content
+				// Strip trailing spaces from each line (glamour pads to terminal width)
 				lines := strings.Split(rendered, "\n")
 				for i, line := range lines {
+					line = strings.TrimRight(line, " ")
 					if i == 0 {
-						lines[i] = line
+						lines[i] = "  " + line // 2 spaces after 𝐌
 					} else {
-						lines[i] = "  " + line
+						lines[i] = "    " + line // 4 spaces to align with content after "𝐌  "
 					}
 				}
 				rendered = strings.Join(lines, "\n")
 			} else {
-				rendered = "  " + content
+				rendered = indentContent(content)
 			}
 		} else {
-			rendered = "  " + content
+			rendered = indentContent(content)
 		}
 	} else {
-		// Plain text - no glamour rendering (avoids dimming)
-		rendered = "  " + content
+		rendered = indentContent(content)
 	}
-	// Empty line before, message, TWO empty lines after (space before input)
-	return tea.Println("\n " + goldStyle.Render("𝐌") + rendered + "\n\n")
+	// No leading newline (follows thinking events), one trailing newline
+	return tea.Println(" " + goldStyle.Render("𝐌") + rendered + "\n")
 }
 
 // printThinkingStepAbove prints a completed thinking step to history (no trailing space)
@@ -1027,6 +1071,48 @@ func formatStreamEvent(event StreamEvent, withSpinner bool) string {
 	}
 }
 
+// indentContent adds proper indentation to multi-line content
+func indentContent(content string) string {
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		if i == 0 {
+			lines[i] = "  " + line // 2 spaces after 𝐌
+		} else {
+			lines[i] = "    " + line // 4 spaces to align with content after "𝐌  "
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// removeHorizontalRules strips markdown horizontal rules from content
+func removeHorizontalRules(content string) string {
+	lines := strings.Split(content, "\n")
+	var filtered []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		// Skip lines that are just dashes, asterisks, or underscores (3+ chars)
+		if len(trimmed) >= 3 {
+			allDashes := strings.Trim(trimmed, "-") == ""
+			allAsterisks := strings.Trim(trimmed, "*") == ""
+			allUnderscores := strings.Trim(trimmed, "_") == ""
+			if allDashes || allAsterisks || allUnderscores {
+				continue
+			}
+		}
+		filtered = append(filtered, line)
+	}
+	return strings.Join(filtered, "\n")
+}
+
+// generateSessionID creates a unique session ID if none provided
+func generateSessionID(provided string) string {
+	if provided != "" {
+		return provided
+	}
+	// Generate: session_<unix_timestamp_ms>_<random>
+	return fmt.Sprintf("session_%d_%d", time.Now().UnixMilli(), time.Now().UnixNano()%10000)
+}
+
 // truncateForDebug truncates a string for debug output
 func truncateForDebug(s string, maxLen int) string {
 	if len(s) <= maxLen {
@@ -1066,13 +1152,13 @@ func wrapText(text string, width int) []string {
 // printAbortMessage prints the abort message in red
 func printAbortMessage() tea.Cmd {
 	redStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ff5555"))
-	return tea.Println("\n " + redStyle.Render("✕  Request aborted by user") + "\n")
+	return tea.Println(" " + redStyle.Render("✕  Request aborted by user") + "\n")
 }
 
 // printServerError prints a server error message in yellow/warning style
 func printServerError(err string) tea.Cmd {
 	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ffaa00"))
-	return tea.Println("\n " + warnStyle.Render("⚠  Server returned an error:") + "\n    " + err + "\n")
+	return tea.Println(" " + warnStyle.Render("⚠  Server returned an error:") + "\n    " + err + "\n")
 }
 
 func (m Model) renderHeader() string {
@@ -1511,6 +1597,9 @@ type streamCompleteMsg struct {
 	response  string
 	sessionID string
 }
+type streamBodyMsg struct {
+	body io.ReadCloser
+}
 
 // sendChatMessage sends a message to the chat API and streams the response
 func (m Model) sendChatMessage(message string) tea.Cmd {
@@ -1520,10 +1609,6 @@ func (m Model) sendChatMessage(message string) tea.Cmd {
 	return func() tea.Msg {
 		if m.config.Client == nil {
 			return streamErrorMsg{err: fmt.Errorf("no API client configured")}
-		}
-
-		if debug {
-			fmt.Fprintf(os.Stderr, "[DEBUG] Sending message: %q\n", message)
 		}
 
 		req := &formation.ChatRequest{
@@ -1561,6 +1646,7 @@ func waitForEventFromChan(eventChan chan StreamEvent) tea.Msg {
 		}
 	}
 
+	// Return event message for model to process
 	return streamEventMsg{event: event}
 }
 
@@ -1596,9 +1682,24 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 	scanner := bufio.NewScanner(body)
 	var fullResponse strings.Builder
 	var sessionID string
+	var requestID string
+
+	// Debug file for reliable logging (bypasses TUI buffering)
+	var debugFile *os.File
+	if debug {
+		debugFile, _ = os.OpenFile("/tmp/muxi-chat-debug.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if debugFile != nil {
+			defer debugFile.Close()
+			fmt.Fprintf(debugFile, "=== Stream started at %s ===\n", time.Now().Format(time.RFC3339))
+		}
+	}
 
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		if debug && debugFile != nil {
+			fmt.Fprintf(debugFile, "RAW: %s\n", line)
+		}
 
 		// Handle event type lines
 		if strings.HasPrefix(line, "event:") {
@@ -1624,13 +1725,16 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
 			token := muxiToken.Token
 
-			// Capture session ID if provided
+			// Capture session ID and request ID if provided
 			if token.SessionID != "" {
 				sessionID = token.SessionID
 			}
+			if token.RequestID != "" {
+				requestID = token.RequestID
+			}
 
-			if debug {
-				fmt.Fprintf(os.Stderr, "[DEBUG] type=%s stage=%s content=%q\n", token.Type, token.Stage, token.Content)
+			if debug && debugFile != nil {
+				fmt.Fprintf(debugFile, "PARSED: type=%s stage=%s content=%q requestID=%s\n", token.Type, token.Stage, token.Content, token.RequestID)
 			}
 
 			switch token.Type {
@@ -1645,13 +1749,14 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 				if response == "" || response == "done" {
 					response = fullResponse.String()
 				}
-				if debug {
-					fmt.Fprintf(os.Stderr, "[DEBUG] Sending completed event with response: %q sessionID: %q\n", truncateForDebug(response, 100), sessionID)
+				if debug && debugFile != nil {
+					fmt.Fprintf(debugFile, "COMPLETED: response=%q sessionID=%q\n", truncateForDebug(response, 100), sessionID)
 				}
 				eventChan <- StreamEvent{
 					Type:      "completed",
 					Content:   response,
 					SessionID: sessionID,
+					RequestID: requestID,
 				}
 				return
 			case "progress", "thinking", "planning":
@@ -1663,13 +1768,15 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 						Content:   token.Content,
 						ToolName:  token.ToolName,
 						SessionID: sessionID,
+						RequestID: requestID,
 					}
 				}
 			case "error":
 				eventChan <- StreamEvent{
-					Type:    "error",
-					Stage:   token.Stage,
-					Content: token.Content,
+					Type:      "error",
+					Stage:     token.Stage,
+					Content:   token.Content,
+					RequestID: requestID,
 				}
 				return
 			}

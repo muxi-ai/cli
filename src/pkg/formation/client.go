@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -890,9 +891,15 @@ func (c *Client) Chat(req *ChatRequest) (*ChatResponse, error) {
 	return parseResponse[ChatResponse](resp)
 }
 
-// streamClient is used for SSE streaming requests (no timeout)
+// streamClient is used for SSE streaming requests
+// Has dial timeout but no response timeout (streaming can run indefinitely)
 var streamClient = &http.Client{
-	Timeout: 0, // No timeout for streaming
+	Timeout: 0, // No timeout for streaming responses
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout: 10 * time.Second, // Connection timeout
+		}).DialContext,
+	},
 }
 
 // ChatStream sends a chat message and returns SSE stream (caller must close)
@@ -903,6 +910,7 @@ func (c *Client) ChatStream(req *ChatRequest, userID string) (*http.Response, er
 		return nil, err
 	}
 
+	// Create request without context timeout - we handle connection timeout via Transport
 	httpReq, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
 		return nil, err
@@ -915,7 +923,15 @@ func (c *Client) ChatStream(req *ChatRequest, userID string) (*http.Response, er
 		httpReq.Header.Set("X-Muxi-User-ID", userID)
 	}
 
-	return streamClient.Do(httpReq)
+	resp, err := streamClient.Do(httpReq)
+	if err != nil {
+		// Simplify connection refused errors
+		if strings.Contains(err.Error(), "connection refused") {
+			return nil, fmt.Errorf("formation not reachable - is it running?")
+		}
+		return nil, fmt.Errorf("connection failed: %v", err)
+	}
+	return resp, nil
 }
 
 // AVChat sends audio/video for transcription/analysis (non-streaming)
