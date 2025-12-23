@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/muxi-ai/cli/pkg/chat"
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/ui"
@@ -70,10 +71,8 @@ func init() {
 
 	formation.AddCommonFlags(chatCmd)
 	chatCmd.Flags().StringP("session", "s", "", "Resume session ID")
-	chatCmd.Flags().StringP("group", "g", "", "Agent group for routing")
 	chatCmd.Flags().String("file", "", "Audio/video file to send (max 100MB)")
 	chatCmd.Flags().Bool("no-stream", false, "Disable streaming (wait for full response)")
-	chatCmd.Flags().Bool("no-splash", false, "Skip welcome banner")
 	chatCmd.Flags().BoolP("verbose", "v", false, "Show all streaming events (thinking, planning, progress)")
 	chatCmd.Flags().Bool("debug", false, "Enable debug output to stderr")
 }
@@ -82,7 +81,6 @@ func runChat(cmd *cobra.Command, args []string) error {
 	flags := formation.GetCommonFlags(cmd)
 	fileFlag, _ := cmd.Flags().GetString("file")
 	sessionID, _ := cmd.Flags().GetString("session")
-	groupID, _ := cmd.Flags().GetString("group")
 	noStream, _ := cmd.Flags().GetBool("no-stream")
 
 	// Resolve formation ID (required)
@@ -112,7 +110,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 	// Handle one-shot text mode (message provided as argument)
 	if len(args) > 0 {
 		message := strings.Join(args, " ")
-		return runTextChatOneShot(cmd, message, formationID, profile, userID, sessionID, groupID, noStream)
+		return runTextChatOneShot(cmd, message, formationID, profile, userID, sessionID, noStream)
 	}
 
 	// Check for piped input
@@ -126,7 +124,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 		}
 		if len(lines) > 0 {
 			message := strings.Join(lines, "\n")
-			return runTextChatOneShot(cmd, message, formationID, profile, userID, sessionID, groupID, noStream)
+			return runTextChatOneShot(cmd, message, formationID, profile, userID, sessionID, noStream)
 		}
 	}
 
@@ -148,7 +146,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 		ServerID:    profile,
 		UserID:      userID,
 		SessionID:   sessionID,
-		GroupID:     groupID,
+
 		Client:      client,
 		Verbose:     verbose,
 		Debug:       debug,
@@ -157,7 +155,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 	return chat.Run(cfg)
 }
 
-func runTextChatOneShot(cmd *cobra.Command, message, formationID, profile, userID, sessionID, groupID string, noStream bool) error {
+func runTextChatOneShot(cmd *cobra.Command, message, formationID, profile, userID, sessionID string, noStream bool) error {
 	client, err := formation.NewClientFromContext(profile, formationID)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
@@ -169,7 +167,6 @@ func runTextChatOneShot(cmd *cobra.Command, message, formationID, profile, userI
 	req := &formation.ChatRequest{
 		Message:   message,
 		SessionID: sessionID,
-		GroupID:   groupID,
 		Stream:    !noStream,
 	}
 
@@ -193,7 +190,6 @@ func runTextChatOneShot(cmd *cobra.Command, message, formationID, profile, userI
 		return fmt.Errorf("chat failed: %s", resp.Status)
 	}
 
-	fmt.Printf("  %s ", ui.GoldText("𝐌"))
 	return streamSSEResponse(resp)
 }
 
@@ -280,7 +276,6 @@ func runAVChatOneShot(cmd *cobra.Command, filePath, prompt, formationID, profile
 		return fmt.Errorf("avchat failed: %s", resp.Status)
 	}
 
-	fmt.Printf("  %s ", ui.GoldText("𝐌"))
 	return streamSSEResponse(resp)
 }
 
@@ -306,32 +301,83 @@ func isAVFile(path string) bool {
 
 func streamSSEResponse(resp *http.Response) error {
 	scanner := bufio.NewScanner(resp.Body)
+	var fullResponse strings.Builder
+
+	// Spinner frames
+	spinnerFrames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	spinnerIdx := 0
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+
+	// Start/update spinner (replaces previous line)
+	startSpinner := func(msg string) {
+		// Truncate message to prevent line wrapping (leave room for spinner + padding)
+		maxLen := 70
+		if len(msg) > maxLen {
+			msg = msg[:maxLen] + "..."
+		}
+		fmt.Print("\r\033[K") // Clear line
+		fmt.Print(dimStyle.Render(fmt.Sprintf("  %s %s", spinnerFrames[spinnerIdx], msg)))
+		spinnerIdx = (spinnerIdx + 1) % len(spinnerFrames)
+	}
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "data:") {
-			data := strings.TrimPrefix(line, "data:")
-			data = strings.TrimSpace(data)
-			if data != "" && data != "[DONE]" {
-				// Parse JSON chunk and extract content delta
-				var chunk struct {
-					Choices []struct {
-						Delta struct {
-							Content string `json:"content"`
-						} `json:"delta"`
-					} `json:"choices"`
+
+		// Skip event type lines
+		if strings.HasPrefix(line, "event:") {
+			eventType := strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+			if eventType == "done" {
+				break
+			}
+			continue
+		}
+
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "" || data == "[DONE]" {
+			continue
+		}
+
+		// Parse MUXI token format: {"token": {...}}
+		var muxiToken struct {
+			Token struct {
+				Type    string `json:"type"`
+				Stage   string `json:"stage"`
+				Content string `json:"content"`
+			} `json:"token"`
+		}
+
+		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
+			token := muxiToken.Token
+
+			switch token.Type {
+			case "thinking", "progress", "planning":
+				startSpinner(token.Content)
+
+			case "content", "text", "response":
+				fullResponse.WriteString(token.Content)
+
+			case "completed":
+				// Use completed content if we didn't accumulate any
+				if fullResponse.Len() == 0 && token.Content != "" && token.Content != "done" {
+					fullResponse.WriteString(token.Content)
 				}
-				if err := json.Unmarshal([]byte(data), &chunk); err == nil {
-					if len(chunk.Choices) > 0 {
-						fmt.Print(chunk.Choices[0].Delta.Content)
-					}
-				} else {
-					// Fallback: print raw data if not OpenAI-style chunk
-					fmt.Print(data)
-				}
+
+			case "error":
+				fmt.Print("\r\033[K")
+				return fmt.Errorf("%s", token.Content)
 			}
 		}
 	}
-	fmt.Println()
-	fmt.Println()
+
+	// Clear spinner line and print response
+	fmt.Print("\r\033[K")
+	if fullResponse.Len() > 0 {
+		fmt.Printf("%s\n", fullResponse.String())
+	}
+
 	return scanner.Err()
 }

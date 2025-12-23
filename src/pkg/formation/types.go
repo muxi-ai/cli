@@ -647,6 +647,7 @@ type ChatRequest struct {
 	SessionID        string     `json:"session_id,omitempty"`
 	GroupID          string     `json:"group_id,omitempty"`
 	Stream           bool       `json:"stream,omitempty"`
+	UseAsync         *bool      `json:"use_async,omitempty"` // nil=auto, true=force async, false=force sync
 	WebhookURL       string     `json:"webhook_url,omitempty"`
 	ThresholdSeconds int        `json:"threshold_seconds,omitempty"`
 	Files            []ChatFile `json:"files,omitempty"`

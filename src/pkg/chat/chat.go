@@ -71,7 +71,7 @@ type Config struct {
 	ServerID    string
 	UserID      string
 	SessionID   string
-	GroupID     string
+
 	Client      *formation.Client
 	Verbose     bool // Show all streaming events (don't replace)
 	Debug       bool // Enable debug output to stderr
@@ -1614,8 +1614,15 @@ func (m Model) sendChatMessage(message string) tea.Cmd {
 		req := &formation.ChatRequest{
 			Message:   message,
 			SessionID: m.sessionID,
-			GroupID:   m.config.GroupID,
 			Stream:    true,
+		}
+		// Set UseAsync based on mode (nil for auto lets server decide)
+		if m.asyncMode == "on" {
+			t := true
+			req.UseAsync = &t
+		} else if m.asyncMode == "off" {
+			f := false
+			req.UseAsync = &f
 		}
 
 		resp, err := m.config.Client.ChatStream(req, m.config.UserID)
