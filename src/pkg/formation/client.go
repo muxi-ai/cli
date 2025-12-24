@@ -899,6 +899,7 @@ var streamClient = &http.Client{
 		DialContext: (&net.Dialer{
 			Timeout: 10 * time.Second, // Connection timeout
 		}).DialContext,
+		DisableCompression: true, // Important for SSE - don't buffer/decompress
 	},
 }
 
@@ -918,6 +919,8 @@ func (c *Client) ChatStream(req *ChatRequest, userID string) (*http.Response, er
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("Cache-Control", "no-cache")
+	httpReq.Header.Set("Connection", "keep-alive")
 	httpReq.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
 	if userID != "" {
 		httpReq.Header.Set("X-Muxi-User-ID", userID)
@@ -934,9 +937,9 @@ func (c *Client) ChatStream(req *ChatRequest, userID string) (*http.Response, er
 	return resp, nil
 }
 
-// AVChat sends audio/video for transcription/analysis (non-streaming)
-func (c *Client) AVChat(req *AVChatRequest) (*ChatResponse, error) {
-	resp, err := c.PostClient("/avchat", req)
+// AudioChat sends audio for transcription and chat response (non-streaming)
+func (c *Client) AudioChat(req *AudioChatRequest) (*ChatResponse, error) {
+	resp, err := c.PostClient("/audiochat", req)
 	if err != nil {
 		return nil, err
 	}
@@ -945,9 +948,9 @@ func (c *Client) AVChat(req *AVChatRequest) (*ChatResponse, error) {
 	return parseResponse[ChatResponse](resp)
 }
 
-// AVChatStream sends audio/video and returns SSE stream (caller must close)
-func (c *Client) AVChatStream(req *AVChatRequest, userID string) (*http.Response, error) {
-	url := c.BaseURL + "/avchat"
+// AudioChatStream sends audio and returns SSE stream (caller must close)
+func (c *Client) AudioChatStream(req *AudioChatRequest, userID string) (*http.Response, error) {
+	url := c.BaseURL + "/audiochat"
 	data, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -960,6 +963,8 @@ func (c *Client) AVChatStream(req *AVChatRequest, userID string) (*http.Response
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("Cache-Control", "no-cache")
+	httpReq.Header.Set("Connection", "keep-alive")
 	httpReq.Header.Set("X-MUXI-CLIENT-KEY", c.ClientKey)
 	if userID != "" {
 		httpReq.Header.Set("X-Muxi-User-ID", userID)

@@ -653,15 +653,13 @@ type ChatRequest struct {
 	Files            []ChatFile `json:"files,omitempty"`
 }
 
-// AVChatRequest for POST /avchat
-type AVChatRequest struct {
-	Files          []ChatFile `json:"files"`
-	UserID         string     `json:"user_id,omitempty"`
-	SessionID      string     `json:"session_id,omitempty"`
-	AgentName      string     `json:"agent_name,omitempty"`
-	UseAsync       bool       `json:"use_async,omitempty"`
-	WebhookURL     string     `json:"webhook_url,omitempty"`
-	PromptTemplate string     `json:"prompt_template,omitempty"`
+// AudioChatRequest for POST /audiochat (voice notes)
+type AudioChatRequest struct {
+	Files     []ChatFile `json:"files"`
+	UserID    string     `json:"user_id,omitempty"`
+	SessionID string     `json:"session_id,omitempty"`
+	AgentName string     `json:"agent_name,omitempty"`
+	Stream    bool       `json:"stream,omitempty"`
 }
 
 // ChatResponse from POST /chat (non-streaming)

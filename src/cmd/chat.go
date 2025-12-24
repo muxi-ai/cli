@@ -49,9 +49,12 @@ var chatCmd = &cobra.Command{
 	Long: `Start an interactive chat session with a formation.
 
 In interactive mode, you can send messages and receive streaming responses.
-Use slash commands like /help, /agents, /exit for navigation.
+Press / to see available commands, ? for keyboard shortcuts.
 
-One-shot mode: Pass a message as argument or use --file for audio/video.`,
+One-shot modes:
+  - Text: Pass a message as argument
+  - Voice note: Use --file with audio (transcribed as your message)  
+  - File analysis: Use --file with a prompt to analyze audio/video`,
 	Example: `  # Interactive chat
   muxi chat
   muxi chat -s sess_abc123           # Resume session
@@ -60,9 +63,12 @@ One-shot mode: Pass a message as argument or use --file for audio/video.`,
   muxi chat "What's the weather?"
   echo "Analyze this" | muxi chat
 
-  # One-shot audio/video mode
-  muxi chat --file recording.m4a
-  muxi chat --file video.mp4 "Summarize this video"`,
+  # Voice note (audio transcribed as message)
+  muxi chat --file voice.m4a
+
+  # File analysis (with prompt)
+  muxi chat --file video.mp4 "Summarize this"
+  muxi chat --file meeting.mp3 "Extract action items"`,
 	RunE: runChat,
 }
 
@@ -98,13 +104,15 @@ func runChat(cmd *cobra.Command, args []string) error {
 		return &formation.UserIDRequiredError{}
 	}
 
-	// Handle --file flag (one-shot avchat mode)
+	// Handle --file flag
 	if fileFlag != "" {
-		prompt := ""
 		if len(args) > 0 {
-			prompt = strings.Join(args, " ")
+			// File with prompt → /chat with file attachment
+			prompt := strings.Join(args, " ")
+			return runChatWithFile(cmd, fileFlag, prompt, formationID, profile, userID, sessionID, noStream)
 		}
-		return runAVChatOneShot(cmd, fileFlag, prompt, formationID, profile, userID, sessionID, noStream)
+		// Audio file only (voice note) → /audiochat
+		return runAudioChat(cmd, fileFlag, formationID, profile, userID, sessionID, noStream)
 	}
 
 	// Handle one-shot text mode (message provided as argument)
@@ -134,9 +142,10 @@ func runChat(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
-	if _, err := client.Health(); err != nil {
-		return fmt.Errorf("cannot connect to formation `%s` on `%s` - is it running?", formationID, profile)
-	}
+	// TODO: Uncomment health check - disabled for direct runtime testing
+	// if _, err := client.Health(); err != nil {
+	// 	return fmt.Errorf("cannot connect to formation `%s` on `%s` - is it running?", formationID, profile)
+	// }
 
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	debug, _ := cmd.Flags().GetBool("debug")
@@ -193,7 +202,8 @@ func runTextChatOneShot(cmd *cobra.Command, message, formationID, profile, userI
 	return streamSSEResponse(resp)
 }
 
-func runAVChatOneShot(cmd *cobra.Command, filePath, prompt, formationID, profile, userID, sessionID string, noStream bool) error {
+// runAudioChat handles audio-only voice notes → /audiochat
+func runAudioChat(cmd *cobra.Command, filePath, formationID, profile, userID, sessionID string, noStream bool) error {
 	// Validate file exists
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
@@ -214,7 +224,95 @@ func runAVChatOneShot(cmd *cobra.Command, filePath, prompt, formationID, profile
 		return nil
 	}
 
-	// Validate file type
+	// Validate file type - audio only for /audiochat (voice note mode)
+	ext := strings.ToLower(filepath.Ext(filePath))
+	contentType, ok := validAudioExtensions[ext]
+	if !ok {
+		ui.ErrorBlock(
+			"Prompt required",
+			fmt.Sprintf("%s is not an audio file", filepath.Base(filePath)),
+			"Add a prompt to analyze the file:\n  muxi chat --file "+filepath.Base(filePath)+" \"describe this\"\n\nVoice notes (no prompt needed): mp3, m4a, wav, ogg, flac",
+		)
+		return nil
+	}
+
+	// Read and encode file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+	encoded := base64.StdEncoding.EncodeToString(data)
+
+	client, err := formation.NewClientFromContext(profile, formationID)
+	if err != nil {
+		return fmt.Errorf("failed to create client: %w", err)
+	}
+
+	formation.PrintBadgeFromFlags(cmd)
+	fmt.Println()
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	fmt.Print(dimStyle.Render(fmt.Sprintf("  ⠋ Sending %s (%.1f KB)...", filepath.Base(filePath), float64(info.Size())/1024)))
+
+	req := &formation.AudioChatRequest{
+		Files: []formation.ChatFile{
+			{
+				Filename:    filepath.Base(filePath),
+				Content:     encoded,
+				ContentType: contentType,
+				Size:        info.Size(),
+			},
+		},
+		UserID:    userID,
+		SessionID: sessionID,
+		Stream:    !noStream,
+	}
+
+	if noStream {
+		resp, err := client.AudioChat(req)
+		if err != nil {
+			return fmt.Errorf("audiochat failed: %w", err)
+		}
+		fmt.Printf("%s\n", resp.Response)
+		return nil
+	}
+
+	// Streaming mode
+	resp, err := client.AudioChatStream(req, userID)
+	if err != nil {
+		return fmt.Errorf("audiochat failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("audiochat failed: %s", resp.Status)
+	}
+
+	return streamSSEResponse(resp)
+}
+
+// runChatWithFile handles file + prompt → /chat with file attachment
+func runChatWithFile(cmd *cobra.Command, filePath, prompt, formationID, profile, userID, sessionID string, noStream bool) error {
+	// Validate file exists
+	info, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		ui.ErrorBlock("File not found", filePath, "")
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	// Validate file size
+	if info.Size() > maxAVFileSize {
+		ui.ErrorBlock(
+			"File too large",
+			fmt.Sprintf("%s is %.1f MB (max 100 MB)", filepath.Base(filePath), float64(info.Size())/(1024*1024)),
+			"",
+		)
+		return nil
+	}
+
+	// Get content type (audio or video)
 	ext := strings.ToLower(filepath.Ext(filePath))
 	contentType := getAVContentType(ext)
 	if contentType == "" {
@@ -240,9 +338,13 @@ func runAVChatOneShot(cmd *cobra.Command, filePath, prompt, formationID, profile
 
 	formation.PrintBadgeFromFlags(cmd)
 	fmt.Println()
-	fmt.Printf("  Sending %s (%.1f MB)...\n\n", filepath.Base(filePath), float64(info.Size())/(1024*1024))
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	fmt.Print(dimStyle.Render(fmt.Sprintf("  ⠋ Sending %s (%.1f KB)...", filepath.Base(filePath), float64(info.Size())/1024)))
 
-	req := &formation.AVChatRequest{
+	req := &formation.ChatRequest{
+		Message:   prompt,
+		SessionID: sessionID,
+		Stream:    !noStream,
 		Files: []formation.ChatFile{
 			{
 				Filename:    filepath.Base(filePath),
@@ -251,29 +353,26 @@ func runAVChatOneShot(cmd *cobra.Command, filePath, prompt, formationID, profile
 				Size:        info.Size(),
 			},
 		},
-		UserID:         userID,
-		SessionID:      sessionID,
-		PromptTemplate: prompt,
 	}
 
 	if noStream {
-		resp, err := client.AVChat(req)
+		resp, err := client.Chat(req)
 		if err != nil {
-			return fmt.Errorf("avchat failed: %w", err)
+			return fmt.Errorf("chat failed: %w", err)
 		}
-		fmt.Printf("  %s %s\n\n", ui.GoldText("𝐌"), resp.Response)
+		fmt.Printf("%s\n", resp.Response)
 		return nil
 	}
 
 	// Streaming mode
-	resp, err := client.AVChatStream(req, userID)
+	resp, err := client.ChatStream(req, userID)
 	if err != nil {
-		return fmt.Errorf("avchat failed: %w", err)
+		return fmt.Errorf("chat failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("avchat failed: %s", resp.Status)
+		return fmt.Errorf("chat failed: %s", resp.Status)
 	}
 
 	return streamSSEResponse(resp)

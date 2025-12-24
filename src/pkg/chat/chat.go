@@ -158,14 +158,7 @@ var commands = []Command{
 		{"on", "Enable async mode"},
 		{"off", "Disable async mode"},
 	}},
-	{"/clear", "Start a new session (clears context)", nil},
-	{"/config", "Show current configuration", nil},
-	{"/cost", "Show token usage for the session", nil},
-	{"/exit", "Exit the chat", nil},
-	{"/help", "Show help information", nil},
-	{"/history", "Show conversation history", nil},
-	{"/model", "Show or change the current model", nil},
-	{"/session", "Show session information", nil},
+	{"/clear", "Clear history and start new session", nil},
 }
 
 // Styles
@@ -457,6 +450,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.submenuParent = selected.Name
 						m.submenuSelected = 0
 						m.showCommands = false
+					} else if selected.Name == "/clear" {
+						// Execute /clear immediately
+						m.showCommands = false
+						m.commandSelected = 0
+						m.textarea.Reset()
+						m.messages = []Message{}
+						m.eventHistory = []StreamEvent{}
+						m.viewport.SetContent("")
+						m.sessionID = ""
+						return m, printSystemMessage("Session cleared. New session will start with next message.")
 					} else {
 						// Select the command
 						m.textarea.SetValue(selected.Name + " ")
@@ -500,6 +503,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.submenuParent = selected.Name
 						m.submenuSelected = 0
 						m.showCommands = false
+					} else if selected.Name == "/clear" {
+						// Execute /clear immediately
+						m.showCommands = false
+						m.commandSelected = 0
+						m.textarea.Reset()
+						m.messages = []Message{}
+						m.eventHistory = []StreamEvent{}
+						m.viewport.SetContent("")
+						m.sessionID = ""
+						return m, printSystemMessage("Session cleared. New session will start with next message.")
 					} else {
 						m.textarea.SetValue(selected.Name + " ")
 						m.showCommands = false
@@ -605,7 +618,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Content:   response,
 				Timestamp: time.Now(),
 			})
-			return m, printAssistantMessageAbove(response)
+			return m, tea.Sequence(clearThinkingLine(), printAssistantMessageAbove(response))
 		}
 		m.isThinking = false
 		m.currentEvent = nil
@@ -674,8 +687,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Build commands for printing
 		var cmds []tea.Cmd
 
-		// In verbose mode, events were already printed
-		// In normal mode, print nothing (events replaced each other)
+		// Clear the thinking line before printing response
+		cmds = append(cmds, clearThinkingLine())
 
 		// Add assistant message and print above TUI
 		m.messages = append(m.messages, Message{
@@ -701,8 +714,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.sessionID = msg.sessionID
 		}
 		m.isThinking = false
-		// Print thinking steps first, then the response
+		// Clear thinking line and print response
 		var cmds []tea.Cmd
+		cmds = append(cmds, clearThinkingLine())
 		for _, step := range msg.thinking {
 			cmds = append(cmds, printThinkingStepAbove(step))
 		}
@@ -722,8 +736,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.isThinking = false
-		// Print all thinking steps in order, then the response
+		// Clear thinking line and print response
 		var cmds []tea.Cmd
+		cmds = append(cmds, clearThinkingLine())
 		for _, step := range m.thinking {
 			cmds = append(cmds, printThinkingStepAbove(step.Text))
 		}
@@ -988,9 +1003,10 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 	var rendered string
 	if hasMarkdown {
 		// Use custom style without horizontal rules
+		// Wrap at 72 to account for 4-char indentation (keeps total under 80)
 		renderer, err := glamour.NewTermRenderer(
 			glamour.WithStylesFromJSONBytes(chatStyle),
-			glamour.WithWordWrap(76),
+			glamour.WithWordWrap(72),
 		)
 		if err == nil {
 			if r, err := renderer.Render(content); err == nil {
@@ -1015,7 +1031,13 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 	} else {
 		rendered = indentContent(content)
 	}
-	// No leading newline (follows thinking events), one trailing newline
+	// Print with clear line sequences to prevent TUI bleed-through
+	// Each line ends with clear-to-end-of-line to prevent divider bleeding
+	lines := strings.Split(rendered, "\n")
+	for i, line := range lines {
+		lines[i] = line + "\033[K" // Clear to end of line after each line
+	}
+	rendered = strings.Join(lines, "\n")
 	return tea.Println(" " + goldStyle.Render("𝐌") + rendered + "\n")
 }
 
@@ -1071,17 +1093,29 @@ func formatStreamEvent(event StreamEvent, withSpinner bool) string {
 	}
 }
 
-// indentContent adds proper indentation to multi-line content
+// indentContent adds proper indentation and wrapping to multi-line content
 func indentContent(content string) string {
-	lines := strings.Split(content, "\n")
-	for i, line := range lines {
-		if i == 0 {
-			lines[i] = "  " + line // 2 spaces after 𝐌
+	// First wrap long lines at 72 chars (accounts for 4-char indent + 4-char prefix)
+	var wrappedLines []string
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimRight(line, " ")
+		if len(line) <= 72 {
+			wrappedLines = append(wrappedLines, line)
 		} else {
-			lines[i] = "    " + line // 4 spaces to align with content after "𝐌  "
+			// Wrap long lines
+			wrappedLines = append(wrappedLines, wrapText(line, 72)...)
 		}
 	}
-	return strings.Join(lines, "\n")
+	
+	// Add indentation
+	for i, line := range wrappedLines {
+		if i == 0 {
+			wrappedLines[i] = "  " + line // 2 spaces after 𝐌
+		} else {
+			wrappedLines[i] = "    " + line // 4 spaces to align with content after "𝐌  "
+		}
+	}
+	return strings.Join(wrappedLines, "\n")
 }
 
 // removeHorizontalRules strips markdown horizontal rules from content
@@ -1159,6 +1193,18 @@ func printAbortMessage() tea.Cmd {
 func printServerError(err string) tea.Cmd {
 	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#ffaa00"))
 	return tea.Println(" " + warnStyle.Render("⚠  Server returned an error:") + "\n    " + err + "\n")
+}
+
+// printSystemMessage prints a system message in dim style
+func printSystemMessage(msg string) tea.Cmd {
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
+	return tea.Println("\n\n " + dimStyle.Render("ℹ  "+msg) + "\n\n\n")
+}
+
+// clearThinkingLine clears the thinking area before printing response
+func clearThinkingLine() tea.Cmd {
+	// Clear current line fully
+	return tea.Printf("\033[2K\r")
 }
 
 func (m Model) renderHeader() string {
@@ -1522,31 +1568,12 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 
 	case "clear":
 		m.messages = []Message{}
+		m.eventHistory = []StreamEvent{}
 		m.viewport.SetContent("")
 		m.textarea.Reset()
 		m.textarea.SetHeight(1)
-
-	case "help", "?":
-		helpText := `**Available Commands:**
-- /exit, /quit, /q - Exit chat
-- /clear - Clear screen
-- /help, /? - Show this help
-- /agents - List available agents
-- /session - Show session ID
-- /new - Start new session
-
-**Keyboard Shortcuts:**
-- Enter - Send message
-- ESC - Cancel current response
-- Ctrl+C - Exit
-- Ctrl+L - Clear screen`
-		m.messages = append(m.messages, Message{
-			Role:      "assistant",
-			Content:   helpText,
-			Timestamp: time.Now(),
-		})
-		m.textarea.Reset()
-		m.textarea.SetHeight(1)
+		m.sessionID = "" // Clear session ID - server will generate new one on next message
+		return m, printSystemMessage("Session cleared. New session will start with next message.")
 
 	case "agents":
 		// TODO: Fetch from API
@@ -1563,7 +1590,7 @@ func (m Model) handleCommand(input string) (tea.Model, tea.Cmd) {
 		m.textarea.SetHeight(1)
 
 	default:
-		errMsg := fmt.Sprintf("Unknown command: `/%s`. Type `/help` for available commands.", parts[0])
+		errMsg := fmt.Sprintf("Unknown command: `/%s`. Press `/` to see available commands.", parts[0])
 		m.messages = append(m.messages, Message{
 			Role:      "assistant",
 			Content:   errMsg,
