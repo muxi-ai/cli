@@ -697,3 +697,64 @@ func TestWriteYAMLValueForArrayItem(t *testing.T) {
 		t.Error("writeYAMLValueForArrayItem should produce output for map")
 	}
 }
+
+func TestPrintColoredCommand(t *testing.T) {
+	printColoredCommand("muxi deploy")
+	printColoredCommand("muxi formation list")
+}
+
+func TestWriteYAMLFieldComplex(t *testing.T) {
+	buf := new(bytes.Buffer)
+
+	// Test array value
+	writeYAMLField(buf, "items", []interface{}{"a", "b", "c"}, 0)
+	if buf.Len() == 0 {
+		t.Error("writeYAMLField should produce output for array")
+	}
+
+	buf.Reset()
+	// Test nested map
+	writeYAMLField(buf, "nested", map[string]interface{}{
+		"inner": "value",
+	}, 0)
+	if buf.Len() == 0 {
+		t.Error("writeYAMLField should produce output for nested map")
+	}
+
+	buf.Reset()
+	// Test nil value
+	writeYAMLField(buf, "nil", nil, 0)
+}
+
+func TestFormatDurationShortMore(t *testing.T) {
+	tests := []struct {
+		input int64
+	}{
+		{0},
+		{59},
+		{60},
+		{3600},
+		{86400},
+	}
+
+	for _, tt := range tests {
+		got := formatDurationShort(tt.input)
+		if got == "" {
+			t.Errorf("formatDurationShort(%d) returned empty string", tt.input)
+		}
+	}
+}
+
+func TestFormatTimestampMore(t *testing.T) {
+	tests := []struct {
+		input string
+	}{
+		{"2025-12-31T14:00:00Z"},
+		{"invalid"},
+		{""},
+	}
+
+	for _, tt := range tests {
+		formatTimestamp(tt.input)
+	}
+}
