@@ -45,15 +45,14 @@ jobs:
           
           echo "Total coverage: ${COVERAGE}%"
           
-          # TODO: Enable coverage threshold once tests are added
-          # Target: 70%+ coverage
-          # THRESHOLD=70
-          # if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
-          #   echo "❌ Coverage ${COVERAGE}% is below ${THRESHOLD}% threshold"
-          #   exit 1
-          # fi
+          # Minimum coverage threshold
+          THRESHOLD=15
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below ${THRESHOLD}% threshold"
+            exit 1
+          fi
           
-          echo "⚠️ Coverage check disabled - add tests to reach 70%+ coverage"
+          echo "✅ Coverage ${COVERAGE}% meets ${THRESHOLD}% threshold"
       
       - name: Upload coverage
         uses: codecov/codecov-action@v4
