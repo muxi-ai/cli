@@ -631,3 +631,69 @@ func TestFormatInfoUptime(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatTriggerStatus(t *testing.T) {
+	tests := []struct {
+		input string
+	}{
+		{"active"},
+		{"inactive"},
+		{"error"},
+		{"unknown"},
+	}
+
+	for _, tt := range tests {
+		got := formatStatus(tt.input)
+		if got == "" {
+			t.Errorf("formatStatus(%q) returned empty string", tt.input)
+		}
+	}
+}
+
+func TestPrintBox(t *testing.T) {
+	printBox("Test Title", "Test Subtitle")
+	printBoxWithSubtitle("Test Title", "Test Subtitle")
+	printBoxSimple("Test Title", "Test Subtitle")
+	printBoxLine("Test Content")
+	printBoxLineDimmed("Test Content")
+	printBoxDivider()
+	printBoxBottom()
+	printDivider()
+}
+
+func TestRemoveEmptyObjectsMore(t *testing.T) {
+	data := map[string]interface{}{
+		"id":     "test",
+		"nested": map[string]interface{}{},
+		"deep": map[string]interface{}{
+			"empty": map[string]interface{}{},
+		},
+	}
+	removeEmptyObjects(data)
+}
+
+func TestWriteYAMLValueForArrayItem(t *testing.T) {
+	buf := new(bytes.Buffer)
+	writeYAMLValueForArrayItem(buf, "string", 0)
+	if buf.Len() == 0 {
+		t.Error("writeYAMLValueForArrayItem should produce output")
+	}
+
+	buf.Reset()
+	writeYAMLValueForArrayItem(buf, 123, 0)
+	if buf.Len() == 0 {
+		t.Error("writeYAMLValueForArrayItem should produce output for int")
+	}
+
+	buf.Reset()
+	writeYAMLValueForArrayItem(buf, true, 0)
+	if buf.Len() == 0 {
+		t.Error("writeYAMLValueForArrayItem should produce output for bool")
+	}
+
+	buf.Reset()
+	writeYAMLValueForArrayItem(buf, map[string]interface{}{"key": "value"}, 0)
+	if buf.Len() == 0 {
+		t.Error("writeYAMLValueForArrayItem should produce output for map")
+	}
+}
