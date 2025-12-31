@@ -271,3 +271,59 @@ func TestPublish(t *testing.T) {
 		t.Errorf("Formation.Name = %q, want 'test-formation'", result.Formation.Name)
 	}
 }
+
+func TestParseFormationRef(t *testing.T) {
+	tests := []struct {
+		input     string
+		wantOwner string
+		wantName  string
+		wantVer   string
+		wantErr   bool
+	}{
+		{"org/formation", "org", "formation", "", false},
+		{"org/formation:1.0.0", "org", "formation", "1.0.0", false},
+		{"org/formation:latest", "org", "formation", "latest", false},
+		{"@org/formation", "org", "formation", "", false},
+		{"invalid", "", "", "", true},
+	}
+
+	for _, tt := range tests {
+		ref, err := ParseFormationRef(tt.input)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("ParseFormationRef(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			continue
+		}
+		if err == nil {
+			if ref.Owner != tt.wantOwner {
+				t.Errorf("Owner = %q, want %q", ref.Owner, tt.wantOwner)
+			}
+			if ref.Name != tt.wantName {
+				t.Errorf("Name = %q, want %q", ref.Name, tt.wantName)
+			}
+			if ref.Version != tt.wantVer {
+				t.Errorf("Version = %q, want %q", ref.Version, tt.wantVer)
+			}
+		}
+	}
+}
+
+func TestFormatSize(t *testing.T) {
+	tests := []struct {
+		input int64
+		want  string
+	}{
+		{0, "0 B"},
+		{500, "500 B"},
+		{1024, "1.0 KB"},
+		{1536, "1.5 KB"},
+		{1048576, "1.0 MB"},
+		{1073741824, "1.0 GB"},
+	}
+
+	for _, tt := range tests {
+		got := FormatSize(tt.input)
+		if got != tt.want {
+			t.Errorf("FormatSize(%d) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
