@@ -244,3 +244,4 @@ All distributions point to **GitHub Releases** — you do **not** need to push p
 | Alpine        | Direct download of statically compiled binary |
 | NixOS         | `.nix` file using `fetchurl` from GitHub      |
 
+
