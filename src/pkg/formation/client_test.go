@@ -1185,3 +1185,60 @@ func TestGetMCPServer(t *testing.T) {
 		t.Errorf("id = %v, want 'mcp-123'", result["id"])
 	}
 }
+
+func TestGetAsyncConfig(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"enabled": true,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetAsyncConfig()
+	if err != nil {
+		t.Fatalf("GetAsyncConfig() error: %v", err)
+	}
+	_ = result
+}
+
+func TestDeleteSchedulerJob(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+		})
+	})
+	defer server.Close()
+
+	err := client.DeleteSchedulerJob("job-123")
+	if err != nil {
+		t.Fatalf("DeleteSchedulerJob() error: %v", err)
+	}
+}
+
+func TestDeleteCredential(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+		})
+	})
+	defer server.Close()
+
+	_, err := client.DeleteCredential("user-123", "cred-123")
+	if err != nil {
+		t.Fatalf("DeleteCredential() error: %v", err)
+	}
+}
