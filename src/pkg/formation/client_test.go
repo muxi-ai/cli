@@ -1100,3 +1100,88 @@ func TestRestoreSession(t *testing.T) {
 		t.Fatalf("RestoreSession() error: %v", err)
 	}
 }
+
+func TestGetAsyncJobs(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"jobs":  []interface{}{},
+				"count": 0,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetAsyncJobs()
+	if err != nil {
+		t.Fatalf("GetAsyncJobs() error: %v", err)
+	}
+	if result.Count != 0 {
+		t.Errorf("Count = %d, want 0", result.Count)
+	}
+}
+
+func TestGetAsyncJob(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":     "job-123",
+				"status": "completed",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetAsyncJob("job-123")
+	if err != nil {
+		t.Fatalf("GetAsyncJob() error: %v", err)
+	}
+	if result.ID != "job-123" {
+		t.Errorf("ID = %q, want 'job-123'", result.ID)
+	}
+}
+
+func TestDeleteMemory(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+		})
+	})
+	defer server.Close()
+
+	err := client.DeleteMemory("user-123", "mem-123")
+	if err != nil {
+		t.Fatalf("DeleteMemory() error: %v", err)
+	}
+}
+
+func TestGetMCPServer(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":   "mcp-123",
+				"name": "Test MCP",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetMCPServer("mcp-123")
+	if err != nil {
+		t.Fatalf("GetMCPServer() error: %v", err)
+	}
+	if result["id"] != "mcp-123" {
+		t.Errorf("id = %v, want 'mcp-123'", result["id"])
+	}
+}
