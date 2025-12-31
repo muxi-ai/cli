@@ -233,3 +233,115 @@ func containsHelper(s, substr string) bool {
 	}
 	return false
 }
+
+func TestAgentTemplateWithSpecialties(t *testing.T) {
+	specialties := []string{"coding", "writing", "research"}
+	result := agentTemplate("test-agent", "Test Agent", "You are a test agent", "assistant", specialties, false)
+
+	if result == "" {
+		t.Error("agentTemplate returned empty string")
+	}
+
+	// Check that specialties are included
+	if !containsStr(result, "coding") {
+		t.Error("template should contain specialty 'coding'")
+	}
+	if !containsStr(result, "writing") {
+		t.Error("template should contain specialty 'writing'")
+	}
+}
+
+func TestAgentTemplateWithExternalA2A(t *testing.T) {
+	result := agentTemplate("test-agent", "Test Agent", "You are a test agent", "assistant", nil, true)
+
+	if result == "" {
+		t.Error("agentTemplate returned empty string")
+	}
+
+	// Basic validation that template was generated
+	if !containsStr(result, "test-agent") {
+		t.Error("template should contain agent id")
+	}
+}
+
+func TestA2AServiceTemplateBasic(t *testing.T) {
+	result := a2aServiceTemplate(
+		"test-service",
+		"Test Service",
+		"A test A2A service",
+		"https://example.com/api",
+		"api_key",
+		"Authorization",
+		"Bearer token123",
+		"",
+		"",
+		false,
+		0,
+		30,
+	)
+
+	if result == "" {
+		t.Error("a2aServiceTemplate returned empty string")
+	}
+
+	if !containsStr(result, "test-service") {
+		t.Error("template should contain service id")
+	}
+	if !containsStr(result, "https://example.com/api") {
+		t.Error("template should contain service URL")
+	}
+}
+
+func TestA2AServiceTemplateWithBasicAuth(t *testing.T) {
+	result := a2aServiceTemplate(
+		"test-service",
+		"Test Service",
+		"A test A2A service",
+		"https://example.com/api",
+		"basic",
+		"",
+		"",
+		"admin",
+		"password123",
+		false,
+		0,
+		30,
+	)
+
+	if result == "" {
+		t.Error("a2aServiceTemplate returned empty string")
+	}
+
+	// Basic auth uses secrets.XXX_USERNAME pattern
+	if !containsStr(result, "type: \"basic\"") {
+		t.Error("template should contain basic auth type")
+	}
+}
+
+func TestA2AServiceTemplateWithCustomRetry(t *testing.T) {
+	result := a2aServiceTemplate(
+		"test-service",
+		"Test Service",
+		"A test A2A service",
+		"https://example.com/api",
+		"none",
+		"",
+		"",
+		"",
+		"",
+		true,
+		5,
+		60,
+	)
+
+	if result == "" {
+		t.Error("a2aServiceTemplate returned empty string")
+	}
+
+	if !containsStr(result, "5") {
+		t.Error("template should contain retry attempts")
+	}
+	if !containsStr(result, "60") {
+		t.Error("template should contain timeout")
+	}
+}
