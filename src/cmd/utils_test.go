@@ -573,3 +573,61 @@ func TestFormatRelativeTime(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatTimeAgo(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		input time.Time
+		want  string
+	}{
+		{time.Time{}, "unknown"},
+		{now.Add(-time.Second * 30), "just now"},
+		{now.Add(-time.Minute), "1 minute ago"},
+		{now.Add(-time.Minute * 5), "5 minutes ago"},
+		{now.Add(-time.Hour), "1 hour ago"},
+		{now.Add(-time.Hour * 5), "5 hours ago"},
+	}
+
+	for _, tt := range tests {
+		got := formatTimeAgo(tt.input)
+		if got != tt.want {
+			t.Errorf("formatTimeAgo() = %q, want %q", got, tt.want)
+		}
+	}
+}
+
+func TestFormatDurationProfiles(t *testing.T) {
+	tests := []struct {
+		input int64
+	}{
+		{30},
+		{90},
+		{3600},
+		{3661},
+	}
+
+	for _, tt := range tests {
+		got := formatDuration(tt.input)
+		if got == "" {
+			t.Errorf("formatDuration(%d) returned empty string", tt.input)
+		}
+	}
+}
+
+func TestFormatInfoUptime(t *testing.T) {
+	tests := []struct {
+		input int64
+	}{
+		{30},
+		{90},
+		{3661},
+		{86400},
+	}
+
+	for _, tt := range tests {
+		got := formatUptime(tt.input)
+		if got == "" {
+			t.Errorf("formatUptime(%d) returned empty string", tt.input)
+		}
+	}
+}
