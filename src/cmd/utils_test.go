@@ -821,3 +821,91 @@ func TestPlayNotificationSound(t *testing.T) {
 	playNotificationSound(true)
 	playNotificationSound(false)
 }
+
+func TestFormatStartStageMessage(t *testing.T) {
+	tests := []server.DeployProgressEvent{
+		{Stage: "starting"},
+		{Stage: "waiting"},
+		{Stage: "connecting"},
+		{Stage: "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := formatStartStageMessage(tt)
+		if got == "" {
+			t.Errorf("formatStartStageMessage(%q) returned empty string", tt.Stage)
+		}
+	}
+}
+
+func TestFormatStartStageComplete(t *testing.T) {
+	event := &server.DeployProgressEvent{
+		Stage:   "starting",
+		Message: "Done",
+	}
+
+	stages := []string{"starting", "waiting", "connecting", "unknown"}
+	for _, stage := range stages {
+		got := formatStartStageComplete(stage, event)
+		if got == "" {
+			t.Errorf("formatStartStageComplete(%q) returned empty string", stage)
+		}
+	}
+}
+
+func TestPlayStartNotificationSound(t *testing.T) {
+	playStartNotificationSound(true)
+	playStartNotificationSound(false)
+}
+
+func TestFormatRestartStageMessage(t *testing.T) {
+	tests := []server.DeployProgressEvent{
+		{Stage: "stopping"},
+		{Stage: "waiting"},
+		{Stage: "starting"},
+		{Stage: "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := formatRestartStageMessage(tt)
+		if got == "" {
+			t.Errorf("formatRestartStageMessage(%q) returned empty string", tt.Stage)
+		}
+	}
+}
+
+func TestFormatRestartStageComplete(t *testing.T) {
+	event := &server.DeployProgressEvent{
+		Stage:   "stopping",
+		Message: "Done",
+	}
+
+	stages := []string{"stopping", "waiting", "starting", "unknown"}
+	for _, stage := range stages {
+		got := formatRestartStageComplete(stage, event)
+		if got == "" {
+			t.Errorf("formatRestartStageComplete(%q) returned empty string", stage)
+		}
+	}
+}
+
+func TestPlayRestartNotificationSound(t *testing.T) {
+	playRestartNotificationSound(true)
+	playRestartNotificationSound(false)
+}
+
+func TestFormatRollbackStageMessage(t *testing.T) {
+	tests := []server.DeployProgressEvent{
+		{Stage: "preparing"},
+		{Stage: "restoring"},
+		{Stage: "restarting"},
+		{Stage: "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := formatRollbackStageMessage(tt)
+		if got == "" {
+			t.Errorf("formatRollbackStageMessage(%q) returned empty string", tt.Stage)
+		}
+	}
+}
