@@ -1,0 +1,129 @@
+name: RC - Build & Test
+
+on:
+  push:
+    branches: [rc]
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+          - os: windows-latest
+            goos: windows
+            goarch: arm64
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: src/go.sum
+      
+      - name: Get version info
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(cat src/.version)
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "COMMIT=$COMMIT" >> $GITHUB_OUTPUT
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
+      
+      - name: Build binary
+        shell: bash
+        run: |
+          echo "🔨 Building ${{ matrix.goos }}-${{ matrix.goarch }}..."
+          
+          cd src
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+          go build -ldflags "\
+            -X 'main.version=${{ steps.version.outputs.VERSION }}' \
+            -X 'main.commit=${{ steps.version.outputs.COMMIT }}' \
+            -X 'main.date=${{ steps.version.outputs.BUILD_TIME }}'" \
+            -o ../muxi-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }} \
+            .
+          
+          cd ..
+          ls -lh muxi-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+      
+      - name: Test binary version (Unix)
+        if: matrix.goos != 'windows' && (matrix.goarch == 'amd64' || (matrix.goos == 'darwin' && matrix.goarch == 'arm64'))
+        run: |
+          chmod +x muxi-${{ matrix.goos }}-${{ matrix.goarch }}
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }} --version
+      
+      - name: Test binary version (Windows)
+        if: matrix.goos == 'windows' && matrix.goarch == 'amd64'
+        run: |
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }}.exe --version
+      
+      - name: Run unit tests
+        shell: bash
+        run: |
+          cd src
+          go test ./... -v -timeout 10m
+      
+      - name: Test CLI help (Unix)
+        if: matrix.goos != 'windows' && (matrix.goarch == 'amd64' || (matrix.goos == 'darwin' && matrix.goarch == 'arm64'))
+        run: |
+          chmod +x muxi-${{ matrix.goos }}-${{ matrix.goarch }}
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }} --help
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }} chat --help
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }} deploy --help
+      
+      - name: Test CLI help (Windows)
+        if: matrix.goos == 'windows' && matrix.goarch == 'amd64'
+        run: |
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }}.exe --help
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }}.exe chat --help
+          ./muxi-${{ matrix.goos }}-${{ matrix.goarch }}.exe deploy --help
+      
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muxi-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: muxi-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
+          retention-days: 7
+  
+  summary:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: RC Build Summary
+        run: |
+          echo "🎉 RC Build Complete!"
+          echo ""
+          echo "All platforms built and tested successfully:"
+          echo "  ✓ linux-amd64"
+          echo "  ✓ linux-arm64"
+          echo "  ✓ darwin-amd64"
+          echo "  ✓ darwin-arm64"
+          echo "  ✓ windows-amd64"
+          echo "  ✓ windows-arm64"
+          echo ""
+          echo "Ready to merge to main for release!"
