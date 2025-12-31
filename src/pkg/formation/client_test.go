@@ -636,4 +636,193 @@ func TestGetSessionMessages(t *testing.T) {
 	}
 }
 
+func TestLinkUserIdentifier(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+		})
+	})
+	defer server.Close()
 
+	err := client.LinkUserIdentifier("email@test.com", "user-123", "email")
+	if err != nil {
+		t.Fatalf("LinkUserIdentifier() error: %v", err)
+	}
+}
+
+func TestUnlinkUserIdentifier(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+		})
+	})
+	defer server.Close()
+
+	err := client.UnlinkUserIdentifier("email@test.com")
+	if err != nil {
+		t.Fatalf("UnlinkUserIdentifier() error: %v", err)
+	}
+}
+
+func TestResolveUserIdentifier(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"identifier": "email@test.com",
+				"user_id":    "user-123",
+				"type":       "email",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.ResolveUserIdentifier("email@test.com")
+	if err != nil {
+		t.Fatalf("ResolveUserIdentifier() error: %v", err)
+	}
+	if result.Identifier != "email@test.com" {
+		t.Errorf("Identifier = %q, want 'email@test.com'", result.Identifier)
+	}
+}
+
+func TestResolveUser(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"identifier":       "user-123",
+				"muxi_user_id":     "muxi-123",
+				"internal_user_id": 1,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.ResolveUser("user-123", false)
+	if err != nil {
+		t.Fatalf("ResolveUser() error: %v", err)
+	}
+	if result.Identifier != "user-123" {
+		t.Errorf("Identifier = %q, want 'user-123'", result.Identifier)
+	}
+}
+
+func TestCancelAsyncJob(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+		})
+	})
+	defer server.Close()
+
+	err := client.CancelAsyncJob("job-123")
+	if err != nil {
+		t.Fatalf("CancelAsyncJob() error: %v", err)
+	}
+}
+
+func TestGetLLMSettings(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/llm/settings" {
+			t.Errorf("expected path /llm/settings, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"model": "gpt-4",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetLLMSettings()
+	if err != nil {
+		t.Fatalf("GetLLMSettings() error: %v", err)
+	}
+	_ = result
+}
+
+func TestGetMemoryConfig(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/memory" {
+			t.Errorf("expected path /memory, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"enabled": true,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetMemoryConfig()
+	if err != nil {
+		t.Fatalf("GetMemoryConfig() error: %v", err)
+	}
+	_ = result
+}
+
+func TestGetSchedulerConfig(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/scheduler" {
+			t.Errorf("expected path /scheduler, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"enabled": true,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetSchedulerConfig()
+	if err != nil {
+		t.Fatalf("GetSchedulerConfig() error: %v", err)
+	}
+	_ = result
+}
+
+func TestGetSchedulerJobs(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"jobs":  []interface{}{},
+				"count": 0,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetSchedulerJobs("")
+	if err != nil {
+		t.Fatalf("GetSchedulerJobs() error: %v", err)
+	}
+	if result.Count != 0 {
+		t.Errorf("Count = %d, want 0", result.Count)
+	}
+}
