@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestTruncateStr(t *testing.T) {
@@ -316,5 +317,115 @@ func TestTruncateString(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("truncateString(%q, %d) = %q, want %q", tt.input, tt.maxLen, got, tt.want)
 		}
+	}
+}
+
+func TestIsVersionHigher(t *testing.T) {
+	tests := []struct {
+		newV string
+		oldV string
+		want bool
+	}{
+		{"2.0.0", "1.0.0", true},
+		{"1.1.0", "1.0.0", true},
+		{"1.0.1", "1.0.0", true},
+		{"1.0.0", "1.0.0", false},
+		{"1.0.0", "2.0.0", false},
+		{"1.0.0", "1.1.0", false},
+	}
+
+	for _, tt := range tests {
+		got := isVersionHigher(tt.newV, tt.oldV)
+		if got != tt.want {
+			t.Errorf("isVersionHigher(%q, %q) = %v, want %v", tt.newV, tt.oldV, got, tt.want)
+		}
+	}
+}
+
+func TestParseVersion(t *testing.T) {
+	tests := []struct {
+		input string
+		want  [3]int
+	}{
+		{"1.0.0", [3]int{1, 0, 0}},
+		{"2.3.4", [3]int{2, 3, 4}},
+		{"10.20.30", [3]int{10, 20, 30}},
+	}
+
+	for _, tt := range tests {
+		got := parseVersion(tt.input)
+		if got != tt.want {
+			t.Errorf("parseVersion(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestFormatTimeout(t *testing.T) {
+	tests := []struct {
+		seconds int
+		want    string
+	}{
+		{30, "0:30"},
+		{60, "1:00"},
+		{90, "1:30"},
+		{3600, "60:00"},
+	}
+
+	for _, tt := range tests {
+		got := formatTimeout(tt.seconds)
+		if got != tt.want {
+			t.Errorf("formatTimeout(%d) = %q, want %q", tt.seconds, got, tt.want)
+		}
+	}
+}
+
+func TestFormatUptime(t *testing.T) {
+	tests := []struct {
+		seconds int64
+		wantLen int
+	}{
+		{0, 1},
+		{60, 1},
+		{3600, 1},
+		{86400, 1},
+	}
+
+	for _, tt := range tests {
+		got := formatUptime(tt.seconds)
+		if len(got) < tt.wantLen {
+			t.Errorf("formatUptime(%d) returned too short: %q", tt.seconds, got)
+		}
+	}
+}
+
+func TestFormatLatency(t *testing.T) {
+	tests := []struct {
+		d    time.Duration
+		want string
+	}{
+		{time.Millisecond, "1ms"},
+		{time.Second, "1.00s"},
+		{500 * time.Microsecond, "500µs"},
+	}
+
+	for _, tt := range tests {
+		got := formatLatency(tt.d)
+		if got != tt.want {
+			t.Errorf("formatLatency(%v) = %q, want %q", tt.d, got, tt.want)
+		}
+	}
+}
+
+func TestFormatTimestamp(t *testing.T) {
+	// Test with valid timestamp
+	got := formatTimestamp("2024-01-01T00:00:00Z")
+	if got == "" {
+		t.Error("formatTimestamp should not return empty for valid timestamp")
+	}
+
+	// Test with invalid timestamp
+	got = formatTimestamp("invalid")
+	if got != "invalid" {
+		t.Errorf("formatTimestamp(invalid) = %q, want 'invalid'", got)
 	}
 }
