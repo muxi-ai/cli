@@ -978,3 +978,57 @@ func TestDisplayValidationResultsWithErrors(t *testing.T) {
 	}
 	displayValidationResults("test-formation", result)
 }
+
+func TestSaveDotMuxi(t *testing.T) {
+	tmpDir := t.TempDir()
+	oldDir, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(oldDir)
+
+	config := &DotMuxi{
+		Profile: "test-profile",
+	}
+
+	err := saveDotMuxi(config)
+	if err != nil {
+		t.Fatalf("saveDotMuxi() error: %v", err)
+	}
+
+	// Verify file was created
+	_, err = os.Stat(".muxi")
+	if os.IsNotExist(err) {
+		t.Error(".muxi file was not created")
+	}
+}
+
+func TestPrintCommandGroup(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "test"}
+	subCmd := &cobra.Command{
+		Use:     "sub",
+		Short:   "A subcommand",
+		GroupID: "test-group",
+	}
+	rootCmd.AddCommand(subCmd)
+	rootCmd.AddGroup(&cobra.Group{ID: "test-group", Title: "Test Group"})
+
+	// Just verify it doesn't panic
+	printCommandGroup(rootCmd, "test-group")
+}
+
+func TestPrintUngroupedCommands(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "test"}
+	subCmd := &cobra.Command{
+		Use:   "sub",
+		Short: "A subcommand",
+	}
+	rootCmd.AddCommand(subCmd)
+
+	// Just verify it doesn't panic
+	printUngroupedCommands(rootCmd)
+}
+
+func TestCustomHelp(t *testing.T) {
+	rootCmd := &cobra.Command{Use: "test"}
+	// Just verify it doesn't panic
+	customHelp(rootCmd, []string{})
+}
