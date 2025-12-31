@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -400,5 +401,82 @@ func TestGetFormationLogs(t *testing.T) {
 	}
 	if len(result.Logs.Stdout) != 1 {
 		t.Errorf("Stdout logs count = %d, want 1", len(result.Logs.Stdout))
+	}
+}
+
+func TestDeployFormation(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"formation_id": "test-formation",
+				"version":      "1.0.0",
+				"status":       "deployed",
+			},
+		})
+	})
+	defer server.Close()
+
+	// Create a temporary tar.gz file
+	tmpFile, err := os.CreateTemp("", "test-bundle-*.tar.gz")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Write([]byte("test content"))
+	tmpFile.Close()
+
+	err = client.DeployFormation("test-formation", tmpFile.Name(), "1.0.0")
+	if err != nil {
+		t.Fatalf("DeployFormation() error: %v", err)
+	}
+}
+
+func TestUpdateFormation(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"formation_id": "test-formation",
+				"version":      "1.0.1",
+				"status":       "updated",
+			},
+		})
+	})
+	defer server.Close()
+
+	// Create a temporary tar.gz file
+	tmpFile, err := os.CreateTemp("", "test-bundle-*.tar.gz")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Write([]byte("test content"))
+	tmpFile.Close()
+
+	err = client.UpdateFormation("test-formation", tmpFile.Name(), "1.0.1")
+	if err != nil {
+		t.Fatalf("UpdateFormation() error: %v", err)
+	}
+}
+
+func TestClientDo(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true}`))
+	})
+	defer server.Close()
+
+	resp, err := client.Do("GET", "/test", nil, "")
+	if err != nil {
+		t.Fatalf("Do() error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("StatusCode = %d, want %d", resp.StatusCode, http.StatusOK)
 	}
 }

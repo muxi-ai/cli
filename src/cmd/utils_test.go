@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/muxi-ai/cli/pkg/server"
+	"github.com/muxi-ai/cli/pkg/validate"
+	"github.com/spf13/cobra"
 )
 
 func TestTruncateStr(t *testing.T) {
@@ -908,4 +910,71 @@ func TestFormatRollbackStageMessage(t *testing.T) {
 			t.Errorf("formatRollbackStageMessage(%q) returned empty string", tt.Stage)
 		}
 	}
+}
+
+func TestFormatRollbackStageComplete(t *testing.T) {
+	event := &server.DeployProgressEvent{
+		Stage:   "preparing",
+		Message: "Done",
+	}
+
+	stages := []string{"preparing", "restoring", "restarting", "unknown"}
+	for _, stage := range stages {
+		got := formatRollbackStageComplete(stage, event)
+		if got == "" {
+			t.Errorf("formatRollbackStageComplete(%q) returned empty string", stage)
+		}
+	}
+}
+
+func TestPlayRollbackNotificationSound(t *testing.T) {
+	playRollbackNotificationSound(true)
+	playRollbackNotificationSound(false)
+}
+
+func TestIsInFormationDir(t *testing.T) {
+	// Test when not in a formation dir
+	result := isInFormationDir()
+	// Just verify it doesn't panic
+	_ = result
+}
+
+func TestLoadDotMuxi(t *testing.T) {
+	// Test loading when file doesn't exist
+	_, err := loadDotMuxi()
+	// Just verify it returns without panic (may or may not find file)
+	_ = err
+}
+
+func TestDetermineScope(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("global", false, "")
+	cmd.Flags().Bool("local", false, "")
+
+	scope, err := determineScope(cmd)
+	// Just verify it runs without panic
+	_ = scope
+	_ = err
+}
+
+func TestDisplayValidationResults(t *testing.T) {
+	result := &validate.Result{
+		Errors:   []validate.Issue{},
+		Warnings: []validate.Issue{},
+	}
+	// Just verify it doesn't panic
+	displayValidationResults("test-formation", result)
+}
+
+func TestDisplayValidationResultsWithErrors(t *testing.T) {
+	result := &validate.Result{
+		Errors: []validate.Issue{
+			{Field: "id", Message: "Error 1"},
+			{Field: "version", Message: "Error 2"},
+		},
+		Warnings: []validate.Issue{
+			{Field: "description", Message: "Warning 1"},
+		},
+	}
+	displayValidationResults("test-formation", result)
 }
