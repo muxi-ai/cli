@@ -509,3 +509,67 @@ func TestWriteYAMLArrayItem(t *testing.T) {
 		t.Error("writeYAMLArrayItem should produce output")
 	}
 }
+
+func TestParseFlexibleDate(t *testing.T) {
+	tests := []struct {
+		input   string
+		wantErr bool
+	}{
+		{"2025-12-31T14:00:00Z", false},
+		{"2025-12-31T14:00:00", false},
+		{"2025-12-31 14:00:00", false},
+		{"2025-12-31 14:00", false},
+		{"2025-12-31", false},
+		{"12/31/2025 14:00", false},
+		{"12/31/2025", false},
+		{"Dec 31, 2025 2:00pm", false},
+		{"Dec 31, 2025", false},
+		{"invalid-date", true},
+		{"", true},
+	}
+
+	for _, tt := range tests {
+		_, err := parseFlexibleDate(tt.input)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("parseFlexibleDate(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+		}
+	}
+}
+
+func TestTruncateScheduler(t *testing.T) {
+	tests := []struct {
+		input  string
+		maxLen int
+		want   string
+	}{
+		{"hello", 10, "hello"},
+		{"hello world", 5, "hell…"},
+		{"", 5, ""},
+	}
+
+	for _, tt := range tests {
+		got := truncate(tt.input, tt.maxLen)
+		if got != tt.want {
+			t.Errorf("truncate(%q, %d) = %q, want %q", tt.input, tt.maxLen, got, tt.want)
+		}
+	}
+}
+
+func TestFormatRelativeTime(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		input time.Time
+	}{
+		{now.Add(-time.Second * 30)},
+		{now.Add(-time.Minute * 5)},
+		{now.Add(-time.Hour * 2)},
+		{now.Add(-time.Hour * 48)},
+	}
+
+	for _, tt := range tests {
+		result := formatRelativeTime(tt.input)
+		if result == "" {
+			t.Errorf("formatRelativeTime() returned empty string")
+		}
+	}
+}
