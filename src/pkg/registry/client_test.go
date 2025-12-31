@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -192,5 +193,81 @@ func TestSearch(t *testing.T) {
 	}
 	if len(result.Results) != 1 {
 		t.Errorf("len(results) = %d, want 1", len(result.Results))
+	}
+}
+
+func TestGetPullInfo(t *testing.T) {
+	server, client := mockRegistryClient(func(w http.ResponseWriter, r *http.Request) {
+		// Path uses @ prefix for user
+		if r.URL.Path != "/api/formations/@testuser/test-formation" {
+			t.Errorf("expected path /api/formations/@testuser/test-formation, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"download_url": "https://example.com/download",
+			"version":      "1.0.0",
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetPullInfo("testuser/test-formation")
+	if err != nil {
+		t.Fatalf("GetPullInfo() error: %v", err)
+	}
+	if result.DownloadURL != "https://example.com/download" {
+		t.Errorf("DownloadURL = %q, want 'https://example.com/download'", result.DownloadURL)
+	}
+}
+
+func TestDownloadFormation(t *testing.T) {
+	// Create a test server that returns a zip file
+	server, client := mockRegistryClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		// Write minimal zip header for testing
+		w.Write([]byte("PK\x03\x04"))
+	})
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	destPath := tmpDir + "/test.zip"
+
+	err := client.DownloadFormation(server.URL+"/download", destPath)
+	if err != nil {
+		t.Fatalf("DownloadFormation() error: %v", err)
+	}
+}
+
+func TestPublish(t *testing.T) {
+	server, client := mockRegistryClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "success",
+			"message": "Formation published",
+			"formation": map[string]interface{}{
+				"name":    "test-formation",
+				"version": "1.0.0",
+				"user":    "testuser",
+			},
+		})
+	})
+	defer server.Close()
+
+	// Create a temp zip file
+	tmpDir := t.TempDir()
+	zipPath := tmpDir + "/test.zip"
+	os.WriteFile(zipPath, []byte("PK\x03\x04"), 0644)
+
+	result, err := client.Publish(zipPath, "testorg")
+	if err != nil {
+		t.Fatalf("Publish() error: %v", err)
+	}
+	if result.Formation.Name != "test-formation" {
+		t.Errorf("Formation.Name = %q, want 'test-formation'", result.Formation.Name)
 	}
 }
