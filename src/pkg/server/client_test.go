@@ -301,3 +301,104 @@ func TestDeleteFormation(t *testing.T) {
 		t.Fatalf("DeleteFormation() error: %v", err)
 	}
 }
+
+func TestGetServerStatus(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"server": map[string]interface{}{
+					"server_id": "srv-1",
+					"version":   "1.0.0",
+					"uptime":    3600,
+					"port":      7890,
+				},
+				"formations": map[string]interface{}{
+					"total":   5,
+					"running": 3,
+					"stopped": 2,
+				},
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetServerStatus()
+	if err != nil {
+		t.Fatalf("GetServerStatus() error: %v", err)
+	}
+	if result.Server.Version != "1.0.0" {
+		t.Errorf("Version = %q, want '1.0.0'", result.Server.Version)
+	}
+}
+
+func TestRollbackFormation(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":               "test-formation",
+				"previous_version": "0.9.0",
+				"current_version":  "1.0.0",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.RollbackFormation("test-formation")
+	if err != nil {
+		t.Fatalf("RollbackFormation() error: %v", err)
+	}
+	if result.CurrentVersion != "1.0.0" {
+		t.Errorf("CurrentVersion = %q, want '1.0.0'", result.CurrentVersion)
+	}
+}
+
+func TestCancelUpdate(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/rpc/formations/test-formation/cancel-update" {
+			t.Errorf("expected path /rpc/formations/test-formation/cancel-update, got %s", r.URL.Path)
+		}
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	defer server.Close()
+
+	err := client.CancelUpdate("test-formation")
+	if err != nil {
+		t.Fatalf("CancelUpdate() error: %v", err)
+	}
+}
+
+func TestGetFormationLogs(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		// Path includes /rpc prefix
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"formation_id": "test-formation",
+				"logs": map[string]interface{}{
+					"stdout": []string{"test stdout log"},
+					"stderr": []string{},
+				},
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetFormationLogs("test-formation", 100, "all")
+	if err != nil {
+		t.Fatalf("GetFormationLogs() error: %v", err)
+	}
+	if len(result.Logs.Stdout) != 1 {
+		t.Errorf("Stdout logs count = %d, want 1", len(result.Logs.Stdout))
+	}
+}
