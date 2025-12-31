@@ -1242,3 +1242,53 @@ func TestDeleteCredential(t *testing.T) {
 		t.Fatalf("DeleteCredential() error: %v", err)
 	}
 }
+
+func TestGetSchedulerJob(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":       "job-123",
+				"type":     "recurring",
+				"schedule": "0 9 * * *",
+				"status":   "active",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetSchedulerJob("job-123")
+	if err != nil {
+		t.Fatalf("GetSchedulerJob() error: %v", err)
+	}
+	if result.ID != "job-123" {
+		t.Errorf("ID = %q, want 'job-123'", result.ID)
+	}
+}
+
+func TestGetCredential(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"credential_id":      "cred-123",
+				"service":            "github",
+				"name":               "my-github",
+				"credential_preview": "ghp_***",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetCredential("user-123", "cred-123")
+	if err != nil {
+		t.Fatalf("GetCredential() error: %v", err)
+	}
+	if result.CredentialID != "cred-123" {
+		t.Errorf("CredentialID = %q, want 'cred-123'", result.CredentialID)
+	}
+}
+
+
