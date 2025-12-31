@@ -226,3 +226,99 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Errorf("Decrypted = %q, want %q", decrypted, plaintext)
 	}
 }
+
+func TestManagerExists(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := NewManager(tmpDir)
+
+	if err := m.Initialize(); err != nil {
+		t.Fatalf("Initialize() error: %v", err)
+	}
+
+	// Set a secret
+	if err := m.Set("TEST_KEY", "test_value", false); err != nil {
+		t.Fatalf("Set() error: %v", err)
+	}
+
+	// Check exists
+	if !m.Exists("TEST_KEY") {
+		t.Error("Exists() = false, want true")
+	}
+
+	// Check non-existent
+	if m.Exists("NONEXISTENT") {
+		t.Error("Exists(NONEXISTENT) = true, want false")
+	}
+}
+
+func TestManagerImportExport(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := NewManager(tmpDir)
+
+	if err := m.Initialize(); err != nil {
+		t.Fatalf("Initialize() error: %v", err)
+	}
+
+	// Import secrets
+	secrets := map[string]string{
+		"KEY1": "value1",
+		"KEY2": "value2",
+	}
+	if err := m.Import(secrets, false); err != nil {
+		t.Fatalf("Import() error: %v", err)
+	}
+
+	// Export secrets
+	exported, err := m.Export()
+	if err != nil {
+		t.Fatalf("Export() error: %v", err)
+	}
+
+	if exported["KEY1"] != "value1" {
+		t.Errorf("Export KEY1 = %q, want 'value1'", exported["KEY1"])
+	}
+	if exported["KEY2"] != "value2" {
+		t.Errorf("Export KEY2 = %q, want 'value2'", exported["KEY2"])
+	}
+}
+
+func TestManagerClear(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := NewManager(tmpDir)
+
+	if err := m.Initialize(); err != nil {
+		t.Fatalf("Initialize() error: %v", err)
+	}
+
+	// Set some secrets
+	m.Set("KEY1", "value1", false)
+	m.Set("KEY2", "value2", false)
+
+	// Clear all
+	if err := m.Clear(); err != nil {
+		t.Fatalf("Clear() error: %v", err)
+	}
+
+	// Verify empty
+	list, _ := m.List()
+	if len(list) != 0 {
+		t.Errorf("List() after Clear = %d items, want 0", len(list))
+	}
+}
+
+func TestDecryptWithWrongKey(t *testing.T) {
+	key1, _ := GenerateKey()
+	key2, _ := GenerateKey()
+	plaintext := []byte("Secret data")
+
+	encrypted, err := Encrypt(plaintext, key1)
+	if err != nil {
+		t.Fatalf("Encrypt failed: %v", err)
+	}
+
+	// Try to decrypt with wrong key - should fail
+	_, err = Decrypt(encrypted, key2)
+	if err == nil {
+		t.Error("Decrypt with wrong key should fail")
+	}
+}
