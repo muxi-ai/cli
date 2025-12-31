@@ -964,3 +964,139 @@ func TestTriggerTrigger(t *testing.T) {
 		t.Errorf("Status = %q, want 'processing'", result.Status)
 	}
 }
+
+func TestCreateSchedulerJob(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":       "job-123",
+				"type":     "recurring",
+				"schedule": "0 9 * * *",
+				"status":   "active",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.CreateSchedulerJob("recurring", "0 9 * * *", "Daily check", "user-123")
+	if err != nil {
+		t.Fatalf("CreateSchedulerJob() error: %v", err)
+	}
+	if result.ID != "job-123" {
+		t.Errorf("ID = %q, want 'job-123'", result.ID)
+	}
+}
+
+func TestAddMemory(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":     "mem-123",
+				"type":   "fact",
+				"detail": "User likes coffee",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.AddMemory("user-123", "fact", "User likes coffee")
+	if err != nil {
+		t.Fatalf("AddMemory() error: %v", err)
+	}
+	if result.ID != "mem-123" {
+		t.Errorf("ID = %q, want 'mem-123'", result.ID)
+	}
+}
+
+func TestBulkLinkIdentifiers(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"muxi_user_id":           "muxi-123",
+				"internal_user_id":       1,
+				"identifiers_associated": 2,
+				"new_identifiers":        []string{"email@test.com"},
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.BulkLinkIdentifiers("user-123", []string{"email@test.com", "phone:123"})
+	if err != nil {
+		t.Fatalf("BulkLinkIdentifiers() error: %v", err)
+	}
+	if result.IdentifiersAssociated != 2 {
+		t.Errorf("IdentifiersAssociated = %d, want 2", result.IdentifiersAssociated)
+	}
+}
+
+func TestCreateCredential(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"credential_id":      "cred-123",
+				"service":            "github",
+				"name":               "my-github",
+				"credential_preview": "ghp_***",
+				"created_at":         "2024-01-01T00:00:00Z",
+			},
+		})
+	})
+	defer server.Close()
+
+	req := &CreateCredentialRequest{
+		Service:    "github",
+		Name:       "my-github",
+		Credential: map[string]interface{}{"token": "token123"},
+	}
+	result, err := client.CreateCredential("user-123", req)
+	if err != nil {
+		t.Fatalf("CreateCredential() error: %v", err)
+	}
+	if result.CredentialID != "cred-123" {
+		t.Errorf("CredentialID = %q, want 'cred-123'", result.CredentialID)
+	}
+}
+
+func TestRestoreSession(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data":    map[string]interface{}{},
+		})
+	})
+	defer server.Close()
+
+	messages := []Message{
+		{Text: "Hello"},
+		{Text: "Hi there!"},
+	}
+	err := client.RestoreSession("session-123", "user-123", messages)
+	if err != nil {
+		t.Fatalf("RestoreSession() error: %v", err)
+	}
+}
