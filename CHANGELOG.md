@@ -5,7 +5,7 @@ All notable changes to the MUXI CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [ScalVer](https://scalver.org/) versioning: `MAJOR.YYYYMMDD.PATCH`.
 
-## [Unreleased]
+## [0.20251231.0] - 2025-12-31
 
 ### Added
 - Interactive chat with TUI (streaming, markdown rendering, slash commands)
