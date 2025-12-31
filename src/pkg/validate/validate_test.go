@@ -378,3 +378,86 @@ id: "my-formation"
 		}
 	})
 }
+
+func TestValidateRequiredFields(t *testing.T) {
+	t.Run("missing all required fields", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		formationPath := filepath.Join(tmpDir, "formation.yaml")
+		os.WriteFile(formationPath, []byte("random_field: value\n"), 0644)
+
+		result, err := Formation(tmpDir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Should have errors for missing id
+		hasIDError := false
+		for _, e := range result.Errors {
+			if e.Field == "id" {
+				hasIDError = true
+			}
+		}
+		if !hasIDError {
+			t.Error("expected error for missing id")
+		}
+
+		// Result should not be valid
+		if result.IsValid() {
+			t.Error("expected result to be invalid")
+		}
+	})
+}
+
+func TestValidateLLM(t *testing.T) {
+	t.Run("valid llm config", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		formationPath := filepath.Join(tmpDir, "formation.yaml")
+		content := `id: test
+name: Test
+llm:
+  provider: openai
+  model: gpt-4
+`
+		os.WriteFile(formationPath, []byte(content), 0644)
+
+		result, err := Formation(tmpDir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Should not have LLM errors when provider is set
+		hasLLMError := false
+		for _, e := range result.Errors {
+			if e.Field == "llm" || e.Field == "llm.provider" || e.Field == "llm.model" {
+				hasLLMError = true
+			}
+		}
+		if hasLLMError {
+			t.Error("unexpected LLM validation error")
+		}
+	})
+}
+
+func TestValidateServer(t *testing.T) {
+	t.Run("server config validation", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		formationPath := filepath.Join(tmpDir, "formation.yaml")
+		content := `id: test
+name: Test
+llm:
+  provider: openai
+  model: gpt-4
+server:
+  invalid_field: true
+`
+		os.WriteFile(formationPath, []byte(content), 0644)
+
+		result, err := Formation(tmpDir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Basic check - result should parse without error
+		_ = result
+	})
+}
