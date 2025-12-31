@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/muxi-ai/cli/pkg/server"
 )
 
 func TestTruncateStr(t *testing.T) {
@@ -757,4 +759,65 @@ func TestFormatTimestampMore(t *testing.T) {
 	for _, tt := range tests {
 		formatTimestamp(tt.input)
 	}
+}
+
+func TestFormatServerStageMessage(t *testing.T) {
+	tests := []server.DeployProgressEvent{
+		{Stage: "validating"},
+		{Stage: "building"},
+		{Stage: "deploying"},
+		{Stage: "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := formatServerStageMessage(tt)
+		if got == "" {
+			t.Errorf("formatServerStageMessage(%q) returned empty string", tt.Stage)
+		}
+	}
+}
+
+func TestFormatStageComplete(t *testing.T) {
+	event := &server.DeployProgressEvent{
+		Stage:   "validating",
+		Message: "Done",
+	}
+
+	stages := []string{"validating", "building", "deploying", "unknown"}
+	for _, stage := range stages {
+		got := formatStageComplete(stage, event)
+		if got == "" {
+			t.Errorf("formatStageComplete(%q) returned empty string", stage)
+		}
+	}
+}
+
+func TestCreateTarGzBundle(t *testing.T) {
+	// Create a temp directory with a simple formation
+	tmpDir := t.TempDir()
+
+	// Create formation.yaml
+	formationYAML := `schema_version: "1"
+id: test-formation
+version: "0.0.1"
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "formation.yaml"), []byte(formationYAML), 0644); err != nil {
+		t.Fatalf("Failed to create formation.yaml: %v", err)
+	}
+
+	// Create bundle
+	bundlePath, fileCount, err := createTarGzBundle(tmpDir, "test-formation")
+	if err != nil {
+		t.Fatalf("createTarGzBundle() error: %v", err)
+	}
+	defer os.Remove(bundlePath)
+
+	if fileCount < 1 {
+		t.Errorf("fileCount = %d, want >= 1", fileCount)
+	}
+}
+
+func TestPlayNotificationSound(t *testing.T) {
+	playNotificationSound(true)
+	playNotificationSound(false)
 }
