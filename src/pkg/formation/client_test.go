@@ -826,3 +826,141 @@ func TestGetSchedulerJobs(t *testing.T) {
 		t.Errorf("Count = %d, want 0", result.Count)
 	}
 }
+
+func TestClearUserBuffer(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"cleared": true,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.ClearUserBuffer("user-123")
+	if err != nil {
+		t.Fatalf("ClearUserBuffer() error: %v", err)
+	}
+	_ = result
+}
+
+func TestClearAllBuffers(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"cleared": true,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.ClearAllBuffers()
+	if err != nil {
+		t.Fatalf("ClearAllBuffers() error: %v", err)
+	}
+	_ = result
+}
+
+func TestClearSessionBuffer(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"cleared": true,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.ClearSessionBuffer("session-123", "user-123")
+	if err != nil {
+		t.Fatalf("ClearSessionBuffer() error: %v", err)
+	}
+	_ = result
+}
+
+func TestListCredentialServices(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"services": []interface{}{},
+				"count":    0,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.ListCredentialServices()
+	if err != nil {
+		t.Fatalf("ListCredentialServices() error: %v", err)
+	}
+	if result.Count != 0 {
+		t.Errorf("Count = %d, want 0", result.Count)
+	}
+}
+
+func TestListCredentials(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"credentials": []interface{}{},
+				"count":       0,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.ListCredentials("user-123")
+	if err != nil {
+		t.Fatalf("ListCredentials() error: %v", err)
+	}
+	if result.Count != 0 {
+		t.Errorf("Count = %d, want 0", result.Count)
+	}
+}
+
+func TestTriggerTrigger(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"status":  "processing",
+				"content": "",
+			},
+			"request": map[string]interface{}{
+				"id": "req-123",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.TriggerTrigger("on-message", nil, false, "user-123")
+	if err != nil {
+		t.Fatalf("TriggerTrigger() error: %v", err)
+	}
+	if result.Status != "processing" {
+		t.Errorf("Status = %q, want 'processing'", result.Status)
+	}
+}
