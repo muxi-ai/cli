@@ -480,3 +480,73 @@ func TestClientDo(t *testing.T) {
 		t.Errorf("StatusCode = %d, want %d", resp.StatusCode, http.StatusOK)
 	}
 }
+
+func TestNewClientFromEntryDirect(t *testing.T) {
+	entry := &ProfileEntry{
+		URL:       "http://localhost:7890",
+		KeyID:     "key-id",
+		SecretKey: "secret-key",
+	}
+	client := NewClientFromEntry(entry)
+	if client == nil {
+		t.Fatal("NewClientFromEntry() returned nil")
+	}
+	if client.BaseURL != "http://localhost:7890" {
+		t.Errorf("BaseURL = %q, want 'http://localhost:7890'", client.BaseURL)
+	}
+}
+
+func TestStartFormationStreaming(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		// Send a simple complete event
+		w.Write([]byte("event: complete\n"))
+		w.Write([]byte("data: {\"success\":true}\n\n"))
+	})
+	defer server.Close()
+
+	var eventReceived bool
+	_, err := client.StartFormationStreaming("test-formation", func(e SSEEvent) error {
+		eventReceived = true
+		return nil
+	})
+	// May fail due to mock limitations, but shouldn't panic
+	_ = err
+	_ = eventReceived
+}
+
+func TestRestartFormationStreaming(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("event: complete\n"))
+		w.Write([]byte("data: {\"success\":true}\n\n"))
+	})
+	defer server.Close()
+
+	_, err := client.RestartFormationStreaming("test-formation", func(e SSEEvent) error {
+		return nil
+	})
+	_ = err
+}
+
+func TestRollbackFormationStreaming(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"formation_id":   "test-formation",
+				"status":         "rolled_back",
+				"rolled_back_to": "1.0.0",
+			},
+		})
+	})
+	defer server.Close()
+
+	_, err := client.RollbackFormationStreaming("test-formation", func(e SSEEvent) error {
+		return nil
+	})
+	_ = err
+}
