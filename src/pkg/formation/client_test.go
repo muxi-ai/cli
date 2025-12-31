@@ -505,3 +505,135 @@ func TestAPIKeyHeaders(t *testing.T) {
 		client.GetTriggers()
 	})
 }
+
+func TestGetAgent(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/agents/test-agent" {
+			t.Errorf("expected path /agents/test-agent, got %s", r.URL.Path)
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":   "test-agent",
+				"name": "Test Agent",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetAgent("test-agent")
+	if err != nil {
+		t.Fatalf("GetAgent() error: %v", err)
+	}
+	if result["id"] != "test-agent" {
+		t.Errorf("id = %v, want 'test-agent'", result["id"])
+	}
+}
+
+func TestGetMCPServers(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/mcp/servers" {
+			t.Errorf("expected path /mcp/servers, got %s", r.URL.Path)
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"servers": []map[string]interface{}{
+					{"id": "mcp-1", "name": "MCP Server"},
+				},
+				"count": 1,
+			},
+		})
+	})
+	defer server.Close()
+
+	resp, err := client.GetMCPServers()
+	if err != nil {
+		t.Fatalf("GetMCPServers() error: %v", err)
+	}
+	if resp.Count != 1 {
+		t.Errorf("Count = %d, want 1", resp.Count)
+	}
+}
+
+func TestGetTrigger(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/triggers/on-message" {
+			t.Errorf("expected path /triggers/on-message, got %s", r.URL.Path)
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"name":    "on-message",
+				"enabled": true,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetTrigger("on-message")
+	if err != nil {
+		t.Fatalf("GetTrigger() error: %v", err)
+	}
+	if result.Name != "on-message" {
+		t.Errorf("Name = %q, want 'on-message'", result.Name)
+	}
+}
+
+func TestGetSOP(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/sops/test-sop" {
+			t.Errorf("expected path /sops/test-sop, got %s", r.URL.Path)
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"name":        "test-sop",
+				"description": "Test SOP",
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetSOP("test-sop")
+	if err != nil {
+		t.Fatalf("GetSOP() error: %v", err)
+	}
+	if result.Name != "test-sop" {
+		t.Errorf("Name = %q, want 'test-sop'", result.Name)
+	}
+}
+
+func TestGetSessionMessages(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"messages": []map[string]interface{}{
+					{"role": "user", "content": "Hello"},
+				},
+				"count": 1,
+			},
+		})
+	})
+	defer server.Close()
+
+	resp, err := client.GetSessionMessages("session-123", "user-1")
+	if err != nil {
+		t.Fatalf("GetSessionMessages() error: %v", err)
+	}
+	if resp.Count != 1 {
+		t.Errorf("Count = %d, want 1", resp.Count)
+	}
+}
+
+
