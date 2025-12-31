@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -427,5 +428,84 @@ func TestFormatTimestamp(t *testing.T) {
 	got = formatTimestamp("invalid")
 	if got != "invalid" {
 		t.Errorf("formatTimestamp(invalid) = %q, want 'invalid'", got)
+	}
+}
+
+func TestNormalizeService(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"  spaces  ", "--spaces--"},
+		{"UPPER", "upper"},
+		{"Mixed Case", "mixed-case"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		got := normalizeService(tt.input)
+		if got != tt.want {
+			t.Errorf("normalizeService(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestShouldExclude(t *testing.T) {
+	tests := []struct {
+		path  string
+		isDir bool
+		want  bool
+	}{
+		{".git", true, true},
+		{"node_modules", true, true},
+		{"__pycache__", true, true},
+		{".DS_Store", false, true},
+		{"main.go", false, false},
+		{"src", true, false},
+		{"formation.yaml", false, false},
+	}
+
+	for _, tt := range tests {
+		got := shouldExclude(tt.path, tt.isDir)
+		if got != tt.want {
+			t.Errorf("shouldExclude(%q, %v) = %v, want %v", tt.path, tt.isDir, got, tt.want)
+		}
+	}
+}
+
+func TestReplaceResourceWithCLI(t *testing.T) {
+	data := map[string]interface{}{
+		"resource": "some-value",
+		"other":    "kept",
+	}
+
+	replaceResourceWithCLI(data)
+
+	if _, ok := data["resource"]; ok {
+		t.Error("resource key should be removed")
+	}
+	if data["other"] != "kept" {
+		t.Error("other keys should remain")
+	}
+}
+
+func TestWriteYAMLField(t *testing.T) {
+	buf := new(bytes.Buffer)
+	writeYAMLField(buf, "test", "value", 0)
+
+	result := buf.String()
+	if result == "" {
+		t.Error("writeYAMLField should produce output")
+	}
+}
+
+func TestWriteYAMLArrayItem(t *testing.T) {
+	buf := new(bytes.Buffer)
+	data := map[string]interface{}{"key": "value"}
+	writeYAMLArrayItem(buf, data, 0)
+
+	result := buf.String()
+	if result == "" {
+		t.Error("writeYAMLArrayItem should produce output")
 	}
 }
