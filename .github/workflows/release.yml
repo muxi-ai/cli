@@ -211,11 +211,11 @@ jobs:
       
       - name: Update Homebrew Formula
         env:
-          TAP_REPO_TOKEN: ${{ secrets.TAP_REPO_TOKEN }}
+          TAP_REPO_TOKEN: ${{ secrets.MUXI_TAP_REPO_TOKEN }}
         run: |
           # Skip if no TAP_REPO_TOKEN
           if [ -z "$TAP_REPO_TOKEN" ]; then
-            echo "⚠️ TAP_REPO_TOKEN not set, skipping Homebrew update"
+            echo "⚠️ MUXI_TAP_REPO_TOKEN not set, skipping Homebrew update"
             exit 0
           fi
           
