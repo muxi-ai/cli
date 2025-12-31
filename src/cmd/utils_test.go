@@ -210,3 +210,111 @@ func TestRemoveEmptyObjects(t *testing.T) {
 		t.Error("string value should remain")
 	}
 }
+
+func TestFormatBytes(t *testing.T) {
+	tests := []struct {
+		bytes int64
+		want  string
+	}{
+		{0, "0 B"},
+		{500, "500 B"},
+		{1024, "1.0 KB"},
+		{1536, "1.5 KB"},
+		{1048576, "1.0 MB"},
+		{1073741824, "1.0 GB"},
+	}
+
+	for _, tt := range tests {
+		got := formatBytes(tt.bytes)
+		if got != tt.want {
+			t.Errorf("formatBytes(%d) = %q, want %q", tt.bytes, got, tt.want)
+		}
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	tests := []struct {
+		seconds int64
+		wantLen int // Just check it's not empty
+	}{
+		{0, 1},
+		{30, 1},
+		{60, 1},
+		{3600, 1},
+		{86400, 1},
+	}
+
+	for _, tt := range tests {
+		got := formatDuration(tt.seconds)
+		if len(got) < tt.wantLen {
+			t.Errorf("formatDuration(%d) = %q, too short", tt.seconds, got)
+		}
+	}
+}
+
+func TestFormatStatus(t *testing.T) {
+	statuses := []string{"running", "stopped", "error", "starting", "unknown"}
+
+	for _, status := range statuses {
+		got := formatStatus(status)
+		if got == "" {
+			t.Errorf("formatStatus(%q) returned empty", status)
+		}
+	}
+}
+
+func TestCountFiles(t *testing.T) {
+	tmpDir, _ := os.MkdirTemp("", "test-*")
+	defer os.RemoveAll(tmpDir)
+
+	// Create some test files
+	os.WriteFile(filepath.Join(tmpDir, "file1.txt"), []byte("test"), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "file2.txt"), []byte("test"), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "file3.go"), []byte("test"), 0644)
+
+	count := countFiles(tmpDir, "*.txt")
+	if count != 2 {
+		t.Errorf("countFiles(*.txt) = %d, want 2", count)
+	}
+
+	count = countFiles(tmpDir, "*.go")
+	if count != 1 {
+		t.Errorf("countFiles(*.go) = %d, want 1", count)
+	}
+
+	count = countFiles("/nonexistent", "*.txt")
+	if count != 0 {
+		t.Errorf("countFiles(nonexistent) = %d, want 0", count)
+	}
+}
+
+func TestBuildOrderedConfigYAML(t *testing.T) {
+	data := map[string]interface{}{
+		"name":    "test",
+		"version": "1.0.0",
+	}
+
+	result := buildOrderedConfigYAML(data)
+	if result == "" {
+		t.Error("buildOrderedConfigYAML() returned empty string")
+	}
+}
+
+func TestTruncateString(t *testing.T) {
+	tests := []struct {
+		input  string
+		maxLen int
+		want   string
+	}{
+		{"hello", 10, "hello"},
+		{"hello world", 5, "hel.."},
+		{"hi", 5, "hi"},
+	}
+
+	for _, tt := range tests {
+		got := truncateString(tt.input, tt.maxLen)
+		if got != tt.want {
+			t.Errorf("truncateString(%q, %d) = %q, want %q", tt.input, tt.maxLen, got, tt.want)
+		}
+	}
+}
