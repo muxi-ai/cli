@@ -345,3 +345,101 @@ func TestA2AServiceTemplateWithCustomRetry(t *testing.T) {
 		t.Error("template should contain timeout")
 	}
 }
+
+func TestGitignoreTemplate(t *testing.T) {
+	result := gitignoreTemplate()
+	if result == "" {
+		t.Error("gitignoreTemplate returned empty string")
+	}
+	if !containsStr(result, ".key") {
+		t.Error("gitignoreTemplate should contain .key")
+	}
+}
+
+func TestMuxiTemplate(t *testing.T) {
+	result := muxiTemplate()
+	if result == "" {
+		t.Error("muxiTemplate returned empty string")
+	}
+	if !containsStr(result, "profile") {
+		t.Error("muxiTemplate should contain profile")
+	}
+}
+
+func TestGenerateFormationYAML(t *testing.T) {
+	config := &FormationConfig{
+		Name:        "test-formation",
+		DisplayName: "Test Formation",
+		Description: "A test formation",
+	}
+	result := generateFormationYAML(config)
+	if result == "" {
+		t.Error("generateFormationYAML returned empty string")
+	}
+	if !containsStr(result, "test-formation") {
+		t.Error("generateFormationYAML should contain formation ID")
+	}
+}
+
+func TestGenerateFormationYAML_WithAsync(t *testing.T) {
+	config := &FormationConfig{
+		Name:        "test-formation",
+		DisplayName: "Test Formation",
+		EnableAsync: true,
+		WebhookURL:  "https://example.com/webhook",
+	}
+	result := generateFormationYAML(config)
+	if result == "" {
+		t.Error("generateFormationYAML returned empty string")
+	}
+	if !containsStr(result, "async") {
+		t.Error("generateFormationYAML should contain async config")
+	}
+}
+
+func TestGenerateFormationYAML_WithStreaming(t *testing.T) {
+	config := &FormationConfig{
+		Name:            "test-formation",
+		DisplayName:     "Test Formation",
+		EnableStreaming: true,
+	}
+	result := generateFormationYAML(config)
+	if result == "" {
+		t.Error("generateFormationYAML returned empty string")
+	}
+}
+
+func TestGenerateFormationYAML_WithCloudProvider(t *testing.T) {
+	config := &FormationConfig{
+		Name:         "test-formation",
+		DisplayName:  "Test Formation",
+		ProviderType: "cloud",
+		Provider: &LLMProvider{
+			Name:         "openai",
+			Vendor:       "openai",
+			DefaultModel: "gpt-4o",
+		},
+		APIKey: "sk-test",
+	}
+	result := generateFormationYAML(config)
+	if result == "" {
+		t.Error("generateFormationYAML returned empty string")
+	}
+	if !containsStr(result, "openai") {
+		t.Error("generateFormationYAML should contain provider")
+	}
+}
+
+func TestGenerateFormationYAML_WithLocalProvider(t *testing.T) {
+	config := &FormationConfig{
+		Name:         "test-formation",
+		DisplayName:  "Test Formation",
+		ProviderType: "local",
+		LocalBaseURL: "http://localhost:11434",
+		LocalModel:   "llama2",
+	}
+	result := generateFormationYAML(config)
+	if result == "" {
+		t.Error("generateFormationYAML returned empty string")
+	}
+}

@@ -1291,4 +1291,25 @@ func TestGetCredential(t *testing.T) {
 	}
 }
 
+func TestResolveUserNew(t *testing.T) {
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"identifier":     "email:test@example.com",
+				"muxi_user_id":   "user-123",
+				"internal_user_id": 1,
+			},
+		})
+	})
+	defer server.Close()
 
+	result, err := client.ResolveUser("email:test@example.com", false)
+	if err != nil {
+		t.Fatalf("ResolveUser() error: %v", err)
+	}
+	if result.MuxiUserID != "user-123" {
+		t.Errorf("MuxiUserID = %q, want 'user-123'", result.MuxiUserID)
+	}
+}
