@@ -237,7 +237,7 @@ func printCommandGroup(cmd *cobra.Command, groupID string) {
 
 func printUngroupedCommands(cmd *cobra.Command) {
 	for _, c := range cmd.Commands() {
-		if c.GroupID == "" && c.Name() != "help" && c.Name() != "completion" {
+		if c.GroupID == "" && c.Name() != "help" && c.Name() != "completion" && !c.Hidden {
 			fmt.Printf("  %-12s%s\n", c.Name(), dimmed.Sprint(c.Short))
 		}
 	}
