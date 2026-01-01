@@ -3,8 +3,27 @@ package defaults
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
+
+// setTestHome sets the home directory for testing, handling both Unix (HOME) and Windows (USERPROFILE)
+func setTestHome(t *testing.T, tmpHome string) func() {
+	oldHome := os.Getenv("HOME")
+	oldUserProfile := os.Getenv("USERPROFILE")
+
+	os.Setenv("HOME", tmpHome)
+	if runtime.GOOS == "windows" {
+		os.Setenv("USERPROFILE", tmpHome)
+	}
+
+	return func() {
+		os.Setenv("HOME", oldHome)
+		if runtime.GOOS == "windows" {
+			os.Setenv("USERPROFILE", oldUserProfile)
+		}
+	}
+}
 
 func TestGetEffectiveUserID(t *testing.T) {
 	t.Run("formation user takes precedence", func(t *testing.T) {
@@ -23,13 +42,9 @@ func TestGetEffectiveUserID(t *testing.T) {
 }
 
 func TestConfigLoadSave(t *testing.T) {
-	// Create a temp home directory
 	tmpHome := t.TempDir()
-	
-	// Override HOME env var for test
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpHome)
+	defer cleanup()
 
 	t.Run("load returns defaults when file doesn't exist", func(t *testing.T) {
 		config, err := Load()
@@ -69,9 +84,8 @@ func TestConfigLoadSave(t *testing.T) {
 
 func TestSetUserID(t *testing.T) {
 	tmpHome := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpHome)
+	defer cleanup()
 
 	err := SetUserID("alice")
 	if err != nil {
@@ -86,9 +100,8 @@ func TestSetUserID(t *testing.T) {
 
 func TestFileExtension(t *testing.T) {
 	tmpHome := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpHome)
+	defer cleanup()
 
 	t.Run("defaults to afs", func(t *testing.T) {
 		got := GetFileExtension()
@@ -131,9 +144,8 @@ func TestFileExtension(t *testing.T) {
 
 func TestLoadInvalidYAML(t *testing.T) {
 	tmpHome := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpHome)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpHome)
+	defer cleanup()
 
 	// Create invalid YAML file
 	configDir := filepath.Join(tmpHome, ".muxi", "cli")
