@@ -125,6 +125,8 @@ func Send(event Event)   // POST, fire-and-forget, single retry
 **Timeout:** 2 seconds  
 **Retries:** 1 (non-blocking)
 
+> **TODO before release:** Confirm telemetry endpoint domain (capture.muxi.org) and ensure it's live.
+
 ### 5. Command Integration
 
 Telemetry hooks in specific commands (not generic PersistentPreRun):
