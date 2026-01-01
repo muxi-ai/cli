@@ -106,32 +106,31 @@ func Send(event Event)   // POST, fire-and-forget, single retry
 // In PersistentPreRun (runs before every command)
 func init() {
     rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-        if !telemetry.IsEnabled() {
-            return
-        }
-        
-        // Load local state
+        // Always load and collect locally (even if telemetry disabled)
         state := telemetry.Load()
         
         // Check if flush is due (>1h since last)
+        // Only sends if telemetry is enabled
         state.FlushIfDue()
         
-        // Increment command counter
+        // Always increment command counter
         state.IncrementCommand(cmd.Name())
         
-        // Save state
+        // Always save state
         state.Save()
     }
 }
 ```
 
 **Flow:**
-1. Load `~/.muxi/cli/telemetry.json`
+1. Load `~/.muxi/cli/telemetry.json` (always)
 2. If `last_flush` > 1h ago:
-   - Send hourly_summary with accumulated counters
+   - If telemetry enabled → send data
    - Clear file (reset all counters to 0, update `last_flush`)
-3. Increment command counter
-4. Save state
+3. Increment command counter (always)
+4. Save state (always)
+
+**Note:** Data is always collected locally. Only the send is conditional on telemetry being enabled. This preserves data if user enables telemetry later.
 
 ### 6. Connection Tracking (`pkg/server/client.go`)
 
@@ -155,7 +154,6 @@ Based on PRD, CLI telemetry uses **local aggregation with daily flush**.
 ```json
 {
   "module": "cli",
-  "event": "hourly_summary",
   "machine_id": "...",
   "ts": "2025-01-15T10:00:00Z",
   "country": "US",
