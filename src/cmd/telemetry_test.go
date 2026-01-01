@@ -3,10 +3,29 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"gopkg.in/yaml.v3"
 )
+
+// setTestHome sets the home directory for testing, handling both Unix (HOME) and Windows (USERPROFILE)
+func setTestHome(t *testing.T, tmpHome string) func() {
+	oldHome := os.Getenv("HOME")
+	oldUserProfile := os.Getenv("USERPROFILE")
+
+	os.Setenv("HOME", tmpHome)
+	if runtime.GOOS == "windows" {
+		os.Setenv("USERPROFILE", tmpHome)
+	}
+
+	return func() {
+		os.Setenv("HOME", oldHome)
+		if runtime.GOOS == "windows" {
+			os.Setenv("USERPROFILE", oldUserProfile)
+		}
+	}
+}
 
 func TestGlobalConfigPath(t *testing.T) {
 	path := globalConfigPath()
@@ -20,9 +39,8 @@ func TestGlobalConfigPath(t *testing.T) {
 
 func TestLoadGlobalConfigRaw_NotExists(t *testing.T) {
 	tmpDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	config, err := loadGlobalConfigRaw()
 	if err != nil {
@@ -38,9 +56,8 @@ func TestLoadGlobalConfigRaw_NotExists(t *testing.T) {
 
 func TestSetAndGetTelemetryStatus(t *testing.T) {
 	tmpDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	// Set telemetry enabled
 	err := setTelemetryStatus(true)
@@ -69,9 +86,8 @@ func TestSetAndGetTelemetryStatus(t *testing.T) {
 
 func TestTelemetryPreservesExistingConfig(t *testing.T) {
 	tmpDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	// Create config with other fields
 	configDir := filepath.Join(tmpDir, ".muxi")
@@ -125,9 +141,8 @@ func TestTelemetryPreservesExistingConfig(t *testing.T) {
 
 func TestRunTelemetryEnable(t *testing.T) {
 	tmpDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	err := runTelemetryEnable(nil, nil)
 	if err != nil {
@@ -142,9 +157,8 @@ func TestRunTelemetryEnable(t *testing.T) {
 
 func TestRunTelemetryDisable(t *testing.T) {
 	tmpDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	err := runTelemetryDisable(nil, nil)
 	if err != nil {
@@ -159,9 +173,8 @@ func TestRunTelemetryDisable(t *testing.T) {
 
 func TestRunTelemetryStatus(t *testing.T) {
 	tmpDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	// Test not configured
 	err := runTelemetryStatus(nil, nil)

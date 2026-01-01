@@ -7,15 +7,9 @@ import (
 )
 
 func TestFormationsCRUD(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "muxi-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	tmpDir := t.TempDir()
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	configDir := filepath.Join(tmpDir, ".muxi", "cli")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -29,7 +23,7 @@ func TestFormationsCRUD(t *testing.T) {
 		ClientKey:      "client-key",
 	}
 
-	err = AddFormation("test-formation", entry)
+	err := AddFormation("test-formation", entry)
 	if err != nil {
 		t.Fatalf("AddFormation() error: %v", err)
 	}
@@ -66,35 +60,23 @@ func TestFormationsCRUD(t *testing.T) {
 }
 
 func TestGetFormation_NotFound(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "muxi-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	tmpDir := t.TempDir()
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	configDir := filepath.Join(tmpDir, ".muxi", "cli")
 	os.MkdirAll(configDir, 0755)
 
-	_, err = GetFormation("nonexistent")
+	_, err := GetFormation("nonexistent")
 	if err == nil {
 		t.Error("GetFormation() should error for nonexistent formation")
 	}
 }
 
 func TestLoadFormations_Empty(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "muxi-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	tmpDir := t.TempDir()
+	cleanup := setTestHome(t, tmpDir)
+	defer cleanup()
 
 	configDir := filepath.Join(tmpDir, ".muxi", "cli")
 	os.MkdirAll(configDir, 0755)
