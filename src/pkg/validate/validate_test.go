@@ -325,8 +325,9 @@ id: "my-formation"
 		}
 
 		hasAgentError := false
+		expectedFile := filepath.Join("agents", "test-agent.yaml")
 		for _, e := range result.Errors {
-			if e.File == "agents/test-agent.yaml" && e.Field == "id" {
+			if e.File == expectedFile && e.Field == "id" {
 				hasAgentError = true
 			}
 		}
@@ -360,8 +361,9 @@ id: "my-formation"
 
 		hasMCPIDError := false
 		hasMCPTypeError := false
+		expectedFile := filepath.Join("mcps", "test-mcp.yaml")
 		for _, e := range result.Errors {
-			if e.File == "mcps/test-mcp.yaml" {
+			if e.File == expectedFile {
 				if e.Field == "id" {
 					hasMCPIDError = true
 				}
