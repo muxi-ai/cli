@@ -62,29 +62,54 @@ No separate geo.json file needed - everything in one config.
 
 ### 3. Local Aggregator (`pkg/telemetry/aggregator.go`)
 
-Stores counters locally, flushes daily.
+Stores counters locally, flushes hourly.
 
 ```go
 type LocalState struct {
-    LastFlush   time.Time         `json:"last_flush"`
-    Commands    map[string]int    `json:"commands"`
-    Connections ConnectionStats   `json:"connections"`
+    LastFlush    time.Time        `json:"last_flush"`
+    Registry     RegistryStats    `json:"registry"`
+    Formations   FormationStats   `json:"formations"`
+    Scaffolding  ScaffoldStats    `json:"scaffolding"`
+    Usage        UsageStats       `json:"usage"`
+    Help         map[string]int   `json:"help"`
 }
 
-type ConnectionStats struct {
-    ProfilesConfigured    int `json:"profiles_configured"`
-    FormationsConfigured  int `json:"formations_configured"`
-    RegistriesConfigured  int `json:"registries_configured"`
-    SuccessfulConnections int `json:"successful_connections"`
-    FailedConnections     int `json:"failed_connections"`
+type RegistryStats struct {
+    Pulls  int `json:"pulls"`
+    Pushes int `json:"pushes"`
+}
+
+type FormationStats struct {
+    Created  int `json:"created"`
+    Deployed int `json:"deployed"`
+}
+
+type ScaffoldStats struct {
+    Agents   int `json:"agents"`
+    MCPs     int `json:"mcps"`
+    SOPs     int `json:"sops"`
+    Triggers int `json:"triggers"`
+}
+
+type UsageStats struct {
+    ChatSessions int `json:"chat_sessions"`
+    LogsViewed   int `json:"logs_viewed"`
 }
 
 func Load() *LocalState              // from ~/.muxi/cli/telemetry.json
 func (s *LocalState) Save()          // to ~/.muxi/cli/telemetry.json
 func (s *LocalState) Reset()         // clear counters, update last_flush
-func (s *LocalState) IncrementCommand(cmd string)
-func (s *LocalState) RecordConnection(success bool)
 func (s *LocalState) FlushIfDue()    // check 1h, send if due, reset
+
+// Increment methods
+func (s *LocalState) IncrementPull()
+func (s *LocalState) IncrementPush()
+func (s *LocalState) IncrementFormationCreated()
+func (s *LocalState) IncrementDeploy()
+func (s *LocalState) IncrementScaffold(kind string)  // "agent", "mcp", "sop", "trigger"
+func (s *LocalState) IncrementChat()
+func (s *LocalState) IncrementLogs()
+func (s *LocalState) IncrementHelp(cmd string)
 ```
 
 **Storage:** `~/.muxi/cli/telemetry.json`
@@ -100,56 +125,83 @@ func Send(event Event)   // POST, fire-and-forget, single retry
 **Timeout:** 2 seconds  
 **Retries:** 1 (non-blocking)
 
-### 5. Command Integration (`cmd/root.go`)
+### 5. Command Integration
+
+Telemetry hooks in specific commands (not generic PersistentPreRun):
 
 ```go
-// In PersistentPreRun (runs before every command)
+// cmd/registry.go - pull command
+func runPull(cmd *cobra.Command, args []string) error {
+    state := telemetry.Load()
+    defer state.Save()
+    
+    // ... pull logic ...
+    
+    state.IncrementPull()
+    state.FlushIfDue()  // sends if enabled and 1h passed
+    return nil
+}
+
+// cmd/deploy.go
+func runDeploy(cmd *cobra.Command, args []string) error {
+    state := telemetry.Load()
+    defer state.Save()
+    
+    // ... deploy logic ...
+    
+    state.IncrementDeploy()
+    state.FlushIfDue()
+    return nil
+}
+
+// cmd/new.go - formation subcommand
+func runNewFormation(cmd *cobra.Command, args []string) error {
+    state := telemetry.Load()
+    defer state.Save()
+    
+    // ... scaffold logic ...
+    
+    state.IncrementFormationCreated()
+    state.FlushIfDue()
+    return nil
+}
+
+// Any command with --help flag
 func init() {
     rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-        // Always load and collect locally (even if telemetry disabled)
-        state := telemetry.Load()
-        
-        // Check if flush is due (>1h since last)
-        // Only sends if telemetry is enabled
-        state.FlushIfDue()
-        
-        // Always increment command counter
-        state.IncrementCommand(cmd.Name())
-        
-        // Always save state
-        state.Save()
+        if cmd.Flags().Changed("help") {
+            state := telemetry.Load()
+            state.IncrementHelp(cmd.Name())
+            state.FlushIfDue()
+            state.Save()
+        }
     }
 }
 ```
 
 **Flow:**
 1. Load `~/.muxi/cli/telemetry.json` (always)
-2. If `last_flush` > 1h ago:
-   - If telemetry enabled → send data
-   - Clear file (reset all counters to 0, update `last_flush`)
-3. Increment command counter (always)
+2. Increment relevant counter (always)
+3. Check if flush due (>1h) → send if telemetry enabled, then reset
 4. Save state (always)
 
-**Note:** Data is always collected locally. Only the send is conditional on telemetry being enabled. This preserves data if user enables telemetry later.
-
-### 6. Connection Tracking (`pkg/server/client.go`)
-
-```go
-// After each API call
-if err != nil {
-    telemetry.RecordConnection(false)
-} else {
-    telemetry.RecordConnection(true)
-}
-```
+**Note:** Data is always collected locally. Only the send is conditional on telemetry being enabled.
 
 ---
 
 ## Data to Collect
 
-Based on PRD, CLI telemetry uses **local aggregation with daily flush**.
+Based on PRD, CLI telemetry uses **local aggregation with hourly flush**.
 
-### Daily Payload (from PRD)
+### Payload Structure
+
+Designed to answer key product questions:
+1. **Registry adoption** - Are people sharing/consuming formations?
+2. **Creation → Deployment funnel** - Do formations get used?
+3. **Feature adoption** - What do people add to formations?
+4. **Infrastructure scale** - How do people set up?
+5. **Engagement mode** - Interactive vs automated?
+6. **UX friction** - Where do people need help?
 
 ```json
 {
@@ -160,75 +212,87 @@ Based on PRD, CLI telemetry uses **local aggregation with daily flush**.
   "schema_version": 1,
   "payload": {
     "system": {
-      "muxi_version": "0.20251024.3",
+      "version": "0.20251024.3",
       "os": "darwin",
       "arch": "arm64"
     },
-    "commands": {
-      "deploy": 15,
-      "new": 8,
-      "chat": 45,
-      "agents": 12,
-      "mcp": 5,
-      "scheduler": 3,
-      "logs": 20,
-      "registry": 10,
-      "sessions": 8,
-      "memory": 4,
-      "config": 6,
-      "secrets": 3,
-      "server": 12,
-      "profiles": 2,
-      "other": 15
+    "registry": {
+      "pulls": 7,
+      "pushes": 2
     },
-    "connections": {
+    "formations": {
+      "created": 3,
+      "deployed": 12
+    },
+    "scaffolding": {
+      "agents": 5,
+      "mcps": 2,
+      "sops": 1,
+      "triggers": 0
+    },
+    "usage": {
+      "chat_sessions": 45,
+      "logs_viewed": 8
+    },
+    "infrastructure": {
       "profiles_configured": 2,
       "formations_configured": 5,
-      "registries_configured": 1,
-      "successful_connections": 120,
-      "failed_connections": 3
+      "registries_configured": 1
+    },
+    "help": {
+      "total": 15,
+      "deploy": 5,
+      "registry": 3,
+      "secrets": 2,
+      "other": 5
     }
   }
 }
 ```
 
-### Command Categories
+### What Each Section Tracks
 
-| Command | Category | Notes |
-|---------|----------|-------|
-| `new` | `new` | Scaffolding |
-| `deploy` | `deploy` | Deployments |
-| `validate` | `validate` | Pre-deploy checks |
-| `chat` | `chat` | Interactive sessions |
-| `agents`, `mcp`, `sops`, `triggers` | Each tracked | Formation components |
-| `config`, `secrets` | Each tracked | Configuration |
-| `server`, `profiles`, `formations` | Each tracked | Server management |
-| `registry`, `login`, `push`, `pull` | `registry` | Registry operations |
-| `logs`, `sessions`, `memory` | Each tracked | Monitoring |
-| Everything else | `other` | Catch-all |
+| Section | Fields | Source |
+|---------|--------|--------|
+| `registry` | `pulls`, `pushes` | `muxi pull`, `muxi push` commands |
+| `formations` | `created`, `deployed` | `muxi new formation`, `muxi deploy` |
+| `scaffolding` | `agents`, `mcps`, `sops`, `triggers` | `muxi new agent/mcp/sop/trigger` |
+| `usage` | `chat_sessions`, `logs_viewed` | `muxi chat`, `muxi logs` |
+| `infrastructure` | counts | Read from `~/.muxi/cli/*.yaml` at flush |
+| `help` | per-command counts | Explicit `--help` flag only (not default subcommand listing) |
 
-### Connection Tracking
+### Help Tracking
 
-| Field | When to Increment |
-|-------|-------------------|
-| `successful_connections` | Any successful API call to server |
-| `failed_connections` | Network error, auth error, server error |
+Only track explicit `--help` / `-h` flag usage:
+
+```go
+// Only track when --help flag is explicitly used
+if cmd.Flags().Changed("help") {
+    telemetry.IncrementHelp(cmd.Name())
+}
+```
+
+This captures "I need help" intent, not just exploring subcommands.
 
 ---
 
 ## Commands to Track
 
-| Command | Subcommands | Notes |
-|---------|-------------|-------|
-| `new` | `formation`, `agent`, `mcp`, `sop`, `trigger` | Scaffolding usage |
-| `deploy` | - | Most important metric |
-| `validate` | - | Pre-deploy checks |
-| `chat` | - | Interactive usage |
-| `config` | `llm`, `memory`, `a2a`, etc. | Configuration patterns |
-| `secrets` | `set`, `get`, `list`, `delete` | Secrets management |
-| `server` | `list`, `get`, `start`, `stop`, `delete` | Server management |
-| `registry` | `push`, `pull`, `search`, `login` | Registry usage |
-| `profiles` | `add`, `list`, `remove`, `show` | Multi-server usage |
+| Metric | Command(s) | Increment Method |
+|--------|------------|------------------|
+| `registry.pulls` | `muxi pull`, `muxi registry pull` | `IncrementPull()` |
+| `registry.pushes` | `muxi push`, `muxi registry push` | `IncrementPush()` |
+| `formations.created` | `muxi new formation` | `IncrementFormationCreated()` |
+| `formations.deployed` | `muxi deploy` | `IncrementDeploy()` |
+| `scaffolding.agents` | `muxi new agent` | `IncrementScaffold("agent")` |
+| `scaffolding.mcps` | `muxi new mcp` | `IncrementScaffold("mcp")` |
+| `scaffolding.sops` | `muxi new sop` | `IncrementScaffold("sop")` |
+| `scaffolding.triggers` | `muxi new trigger` | `IncrementScaffold("trigger")` |
+| `usage.chat_sessions` | `muxi chat` | `IncrementChat()` |
+| `usage.logs_viewed` | `muxi logs` | `IncrementLogs()` |
+| `help.*` | Any `--help` flag | `IncrementHelp(cmdName)` |
+
+**Infrastructure counts** are read from config files at flush time (not incremented).
 
 ---
 
@@ -240,7 +304,7 @@ pkg/telemetry/
 ├── machine_test.go
 ├── geo.go           # Country lookup (one-time fetch, cached in config)
 ├── geo_test.go
-├── aggregator.go    # Local state storage, daily flush
+├── aggregator.go    # Local state storage, hourly flush
 ├── aggregator_test.go
 ├── client.go        # HTTP client for sending events
 ├── client_test.go
@@ -262,9 +326,12 @@ Check in order:
 3. Otherwise → enabled (default)
 
 When disabled:
-- No network requests
+- **Still collects locally** (to `~/.muxi/cli/telemetry.json`)
+- No network requests (data not sent)
 - No geo lookups
 - Machine ID still generated (for other features)
+
+If user later enables telemetry, accumulated data will be sent on next flush.
 
 ---
 
