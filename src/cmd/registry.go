@@ -15,6 +15,7 @@ import (
 
 	fcontext "github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/registry"
+	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
 
@@ -433,6 +434,12 @@ func runPush(cmd *cobra.Command, args []string) error {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	registryFlag, _ := cmd.Flags().GetString("registry")
 
+	// Track telemetry
+	state := telemetry.Load()
+	state.IncrementPush()
+	state.FlushIfDue()
+	defer state.Save()
+
 	// Check we're in a formation directory
 	formationPath, found := fcontext.FindFormationFile(".")
 	if !found {
@@ -568,6 +575,12 @@ func runPull(cmd *cobra.Command, args []string) error {
 	outputDir, _ := cmd.Flags().GetString("output")
 	force, _ := cmd.Flags().GetBool("force")
 	registryFlag, _ := cmd.Flags().GetString("registry")
+
+	// Track telemetry
+	state := telemetry.Load()
+	state.IncrementPull()
+	state.FlushIfDue()
+	defer state.Save()
 
 	client, err := registry.NewClient(registryFlag)
 	if err != nil {

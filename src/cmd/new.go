@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/muxi-ai/cli/pkg/scaffold"
+	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/spf13/cobra"
 )
 
@@ -44,6 +45,12 @@ Examples:
   muxi new formation my-bot --no-wizard  # Skip wizard entirely`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Track telemetry
+		state := telemetry.Load()
+		state.IncrementFormationCreated()
+		state.FlushIfDue()
+		defer state.Save()
+
 		var name string
 		if len(args) > 0 {
 			name = args[0]
@@ -71,6 +78,12 @@ Examples:
   muxi new agent weather --no-wizard`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Track telemetry
+		state := telemetry.Load()
+		state.IncrementScaffold("agent")
+		state.FlushIfDue()
+		defer state.Save()
+
 		var name string
 		if len(args) > 0 {
 			name = args[0]
@@ -95,6 +108,12 @@ Examples:
   muxi new mcp postgres --no-wizard   # Non-interactive`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Track telemetry
+		state := telemetry.Load()
+		state.IncrementScaffold("mcp")
+		state.FlushIfDue()
+		defer state.Save()
+
 		var name string
 		if len(args) > 0 {
 			name = args[0]
@@ -125,6 +144,12 @@ Examples:
   muxi new sop customer-onboarding --no-wizard`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Track telemetry
+		state := telemetry.Load()
+		state.IncrementScaffold("sop")
+		state.FlushIfDue()
+		defer state.Save()
+
 		var name string
 		if len(args) > 0 {
 			name = args[0]
@@ -155,6 +180,12 @@ Examples:
   muxi new trigger github-issue --no-wizard`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Track telemetry
+		state := telemetry.Load()
+		state.IncrementScaffold("trigger")
+		state.FlushIfDue()
+		defer state.Save()
+
 		var name string
 		if len(args) > 0 {
 			name = args[0]

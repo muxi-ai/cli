@@ -17,6 +17,7 @@ import (
 
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/server"
+	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/validate"
 
@@ -74,6 +75,12 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	noStream, _ := cmd.Flags().GetBool("no-stream")
+
+	// Track telemetry (always collect, conditionally send)
+	state := telemetry.Load()
+	state.IncrementDeploy()
+	state.FlushIfDue()
+	defer state.Save()
 
 	// Must be in formation directory
 	ctx, err := context.MustDetectFormation()

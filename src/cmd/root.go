@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/spf13/cobra"
 )
 
@@ -53,11 +54,22 @@ func init() {
 	rootCmd.AddGroup(&cobra.Group{ID: "server", Title: "Server Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "config", Title: "Setup Commands"})
 
-	// Override the help function with custom formatting
-	rootCmd.SetHelpFunc(customHelp)
+	// Override the help function with custom formatting and telemetry
+	rootCmd.SetHelpFunc(helpWithTelemetry)
 
 	// Add subcommands here as we build them
 	rootCmd.AddCommand(newCmd)
+}
+
+// helpWithTelemetry wraps customHelp with telemetry tracking
+func helpWithTelemetry(cmd *cobra.Command, args []string) {
+	// Track --help usage
+	state := telemetry.Load()
+	state.IncrementHelp(cmd.Name())
+	state.FlushIfDue()
+	state.Save()
+
+	customHelp(cmd, args)
 }
 
 // customHelp provides a beautifully formatted help output

@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muxi-ai/cli/pkg/chat"
 	"github.com/muxi-ai/cli/pkg/formation"
+	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
 )
@@ -84,6 +85,12 @@ func init() {
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
+	// Track telemetry
+	state := telemetry.Load()
+	state.IncrementChat()
+	state.FlushIfDue()
+	defer state.Save()
+
 	flags := formation.GetCommonFlags(cmd)
 	fileFlag, _ := cmd.Flags().GetString("file")
 	sessionID, _ := cmd.Flags().GetString("session")

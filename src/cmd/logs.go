@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/muxi-ai/cli/pkg/formation"
+	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
 	"github.com/tidwall/gjson"
@@ -49,6 +50,12 @@ func init() {
 }
 
 func runLogs(cmd *cobra.Command, args []string) error {
+	// Track telemetry
+	state := telemetry.Load()
+	state.IncrementLogs()
+	state.FlushIfDue()
+	defer state.Save()
+
 	userID, _ := cmd.Flags().GetString("user")
 	sessionID, _ := cmd.Flags().GetString("session")
 	requestID, _ := cmd.Flags().GetString("request")
