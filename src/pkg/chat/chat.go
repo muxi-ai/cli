@@ -291,11 +291,11 @@ func (m Model) printHeaderAbove() tea.Cmd {
 	header := "\n" +
 		dim("╭── ") + gold("MUXI Chat") + dim(" ─────────────────────────────────────────────────╮") + "\n" +
 		dim("│") + "               " + dim("│") + "                                              " + dim("│") + "\n" +
-		dim("│") + "  " + l1("███") + dim("╗") + "   " + l1("███") + dim("╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│") + "\n" +
-		dim("│") + "  " + l2("████") + dim("╗") + " " + l2("████") + dim("║") + "  " + dim("│") + "   " + gold("⌬") + "  " + dim("Formation:") + " " + m.config.FormationID + strings.Repeat(" ", max(0, 29-len(m.config.FormationID))) + dim("│") + "\n" +
-		dim("│") + "  " + l3("██") + dim("║╚") + l3("██") + dim("╔╝") + l3("██") + dim("║") + "  " + dim("│") + "   " + gold("⚙︎") + "  " + dim("Server:") + " " + m.config.ServerID + strings.Repeat(" ", max(0, 32-len(m.config.ServerID))) + dim("│") + "\n" +
-		dim("│") + "  " + l4("██") + dim("║") + " " + dim("╚═╝") + " " + l4("██") + dim("║") + "  " + dim("│") + "   " + gold("♛") + "  " + dim("User:") + " " + m.config.UserID + strings.Repeat(" ", max(0, 34-len(m.config.UserID))) + dim("│") + "\n" +
-		dim("│") + "  " + l5("╚═╝") + "     " + l5("╚═╝") + "  " + dim("│") + "                                              " + dim("│") + "\n" +
+		dim("│") + "  " + l1("███╗   ███╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│") + "\n" +
+		dim("│") + "  " + l2("████╗ ████║") + "  " + dim("│") + "   " + gold("⌬") + "  " + dim("Formation:") + " " + m.config.FormationID + strings.Repeat(" ", max(0, 29-len(m.config.FormationID))) + dim("│") + "\n" +
+		dim("│") + "  " + l3("██║╚██╔╝██║") + "  " + dim("│") + "   " + gold("⚙︎") + "  " + dim("Server:") + " " + m.config.ServerID + strings.Repeat(" ", max(0, 32-len(m.config.ServerID))) + dim("│") + "\n" +
+		dim("│") + "  " + l4("██║ ╚═╝ ██║") + "  " + dim("│") + "   " + gold("♛") + "  " + dim("User:") + " " + m.config.UserID + strings.Repeat(" ", max(0, 34-len(m.config.UserID))) + dim("│") + "\n" +
+		dim("│") + "  " + l5("╚═╝     ╚═╝") + "  " + dim("│") + "                                              " + dim("│") + "\n" +
 		dim("╰──────────────────────────────────────────────────────────────╯") + "\n\n" +
 		dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit") + "\n\n\n\n\n"
 
@@ -1235,11 +1235,11 @@ func (m Model) renderHeader() string {
 	l4 := logoStyle4.Render
 	l5 := logoStyle5.Render
 
-	mLine1 := l1("███") + dim("╗") + "   " + l1("███") + dim("╗")
-	mLine2 := l2("████") + dim("╗") + " " + l2("████") + dim("║")
-	mLine3 := l3("██") + dim("║╚") + l3("██") + dim("╔╝") + l3("██") + dim("║")
-	mLine4 := l4("██") + dim("║") + " " + dim("╚═╝") + " " + l4("██") + dim("║")
-	mLine5 := l5("╚═╝") + "     " + l5("╚═╝")
+	mLine1 := l1("███╗   ███╗")
+	mLine2 := l2("████╗ ████║")
+	mLine3 := l3("██║╚██╔╝██║")
+	mLine4 := l4("██║ ╚═╝ ██║")
+	mLine5 := l5("╚═╝     ╚═╝")
 
 	var b strings.Builder
 
