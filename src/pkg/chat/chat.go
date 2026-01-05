@@ -169,7 +169,7 @@ var (
 			Padding(0, 1)
 
 	userStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#c98b45")) // Dimmed orange for user messages
+			Foreground(lipgloss.Color("#d8893e")) // Brand color for user messages
 
 	assistantStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252"))
@@ -187,13 +187,20 @@ var (
 			Foreground(lipgloss.Color("#808080")) // Explicit gray for all terminals
 
 	goldStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#c98b45")) // Gold (matches muxi brand)
+			Foreground(lipgloss.Color("#d8893e")) // Brand color
 
 	cyanStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("86"))
 
 	dimmedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#808080")) // Explicit gray for all terminals
+
+	// Logo gradient colors (light to dark gold)
+	logoStyle1 = lipgloss.NewStyle().Foreground(lipgloss.Color("#d9aa54"))
+	logoStyle2 = lipgloss.NewStyle().Foreground(lipgloss.Color("#da9e4b"))
+	logoStyle3 = lipgloss.NewStyle().Foreground(lipgloss.Color("#db9647"))
+	logoStyle4 = lipgloss.NewStyle().Foreground(lipgloss.Color("#dc8f42"))
+	logoStyle5 = lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e"))
 )
 
 // chatStyle is a minimal glamour style without horizontal rules or header decorations
@@ -275,15 +282,20 @@ func (m Model) Init() tea.Cmd {
 func (m Model) printHeaderAbove() tea.Cmd {
 	gold := goldStyle.Render
 	dim := dimmedStyle.Render
+	l1 := logoStyle1.Render
+	l2 := logoStyle2.Render
+	l3 := logoStyle3.Render
+	l4 := logoStyle4.Render
+	l5 := logoStyle5.Render
 
 	header := "\n" +
 		dim("╭── ") + gold("MUXI Chat") + dim(" ─────────────────────────────────────────────────╮") + "\n" +
 		dim("│") + "               " + dim("│") + "                                              " + dim("│") + "\n" +
-		dim("│") + "  " + gold("███") + dim("╗") + "   " + gold("███") + dim("╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│") + "\n" +
-		dim("│") + "  " + gold("████") + dim("╗") + " " + gold("████") + dim("║") + "  " + dim("│") + "   " + gold("⌬") + "  " + dim("Formation:") + " " + m.config.FormationID + strings.Repeat(" ", max(0, 29-len(m.config.FormationID))) + dim("│") + "\n" +
-		dim("│") + "  " + gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║") + "  " + dim("│") + "   " + gold("⚙︎") + "  " + dim("Server:") + " " + m.config.ServerID + strings.Repeat(" ", max(0, 32-len(m.config.ServerID))) + dim("│") + "\n" +
-		dim("│") + "  " + gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║") + "  " + dim("│") + "   " + gold("♛") + "  " + dim("User:") + " " + m.config.UserID + strings.Repeat(" ", max(0, 34-len(m.config.UserID))) + dim("│") + "\n" +
-		dim("│") + "  " + dim("╚═╝") + "     " + dim("╚═╝") + "  " + dim("│") + "                                              " + dim("│") + "\n" +
+		dim("│") + "  " + l1("███") + dim("╗") + "   " + l1("███") + dim("╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│") + "\n" +
+		dim("│") + "  " + l2("████") + dim("╗") + " " + l2("████") + dim("║") + "  " + dim("│") + "   " + gold("⌬") + "  " + dim("Formation:") + " " + m.config.FormationID + strings.Repeat(" ", max(0, 29-len(m.config.FormationID))) + dim("│") + "\n" +
+		dim("│") + "  " + l3("██") + dim("║╚") + l3("██") + dim("╔╝") + l3("██") + dim("║") + "  " + dim("│") + "   " + gold("⚙︎") + "  " + dim("Server:") + " " + m.config.ServerID + strings.Repeat(" ", max(0, 32-len(m.config.ServerID))) + dim("│") + "\n" +
+		dim("│") + "  " + l4("██") + dim("║") + " " + dim("╚═╝") + " " + l4("██") + dim("║") + "  " + dim("│") + "   " + gold("♛") + "  " + dim("User:") + " " + m.config.UserID + strings.Repeat(" ", max(0, 34-len(m.config.UserID))) + dim("│") + "\n" +
+		dim("│") + "  " + l5("╚═╝") + "     " + l5("╚═╝") + "  " + dim("│") + "                                              " + dim("│") + "\n" +
 		dim("╰──────────────────────────────────────────────────────────────╯") + "\n\n" +
 		dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit") + "\n\n\n\n\n"
 
@@ -953,7 +965,7 @@ func (m Model) renderThinkingLive() string {
 		case "progress":
 			b.WriteString(" " + frame + " ")
 			if event.Stage == "tool_call" && event.ToolName != "" {
-				toolStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45"))
+				toolStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e"))
 				b.WriteString(contentStyle.Render("Using "))
 				b.WriteString(toolStyle.Render(event.ToolName))
 				b.WriteString(contentStyle.Render(" tool..."))
@@ -1082,7 +1094,7 @@ func formatStreamEvent(event StreamEvent, withSpinner bool) string {
 	case "progress":
 		// For tool_call, highlight the tool name
 		if event.Stage == "tool_call" && event.ToolName != "" {
-			toolStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45"))
+			toolStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e"))
 			return prefix + contentStyle.Render("Using ") + toolStyle.Render(event.ToolName) + contentStyle.Render(" tool...")
 		}
 		// Regular progress
@@ -1217,11 +1229,17 @@ func (m Model) renderHeader() string {
 	rightWidth := 46
 
 	// M logo lines (11 chars each)
-	mLine1 := gold("███") + dim("╗") + "   " + gold("███") + dim("╗")
-	mLine2 := gold("████") + dim("╗") + " " + gold("████") + dim("║")
-	mLine3 := gold("██") + dim("║╚") + gold("██") + dim("╔╝") + gold("██") + dim("║")
-	mLine4 := gold("██") + dim("║") + " " + dim("╚═╝") + " " + gold("██") + dim("║")
-	mLine5 := dim("╚═╝") + "     " + dim("╚═╝")
+	l1 := logoStyle1.Render
+	l2 := logoStyle2.Render
+	l3 := logoStyle3.Render
+	l4 := logoStyle4.Render
+	l5 := logoStyle5.Render
+
+	mLine1 := l1("███") + dim("╗") + "   " + l1("███") + dim("╗")
+	mLine2 := l2("████") + dim("╗") + " " + l2("████") + dim("║")
+	mLine3 := l3("██") + dim("║╚") + l3("██") + dim("╔╝") + l3("██") + dim("║")
+	mLine4 := l4("██") + dim("║") + " " + dim("╚═╝") + " " + l4("██") + dim("║")
+	mLine5 := l5("╚═╝") + "     " + l5("╚═╝")
 
 	var b strings.Builder
 
@@ -1353,7 +1371,7 @@ func (m Model) renderMessages() string {
 
 func (m Model) renderHelp() string {
 	dim := dimmedStyle.Render
-	key := userStyle.Render // #c98b45 for keys
+	key := userStyle.Render // Brand color for keys
 	
 	var b strings.Builder
 	b.WriteString(dim("╭───────────────────────────────────────────────────────────╮") + "\n")
@@ -1390,7 +1408,7 @@ func (m Model) filterCommands(input string) []Command {
 
 func (m Model) renderCommands() string {
 	dim := dimmedStyle.Render
-	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45")).Bold(true).Render
+	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e")).Bold(true).Render
 	
 	filtered := m.filterCommands(m.textarea.Value())
 	if len(filtered) == 0 {
@@ -1447,7 +1465,7 @@ func (m Model) handleSubmenuSelection(cmd *Command, idx int) string {
 
 func (m Model) renderSubmenu() string {
 	dim := dimmedStyle.Render
-	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#c98b45")).Bold(true).Render
+	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e")).Bold(true).Render
 	
 	cmd := m.getCommandByName(m.submenuParent)
 	if cmd == nil || len(cmd.Submenu) == 0 {

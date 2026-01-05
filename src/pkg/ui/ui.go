@@ -446,7 +446,7 @@ func MUXIHeader(version, arch string) {
 		logoColors[i].Println(line)
 	}
 	fmt.Println()
-	fmt.Printf("  MUXI CLI %s (Apache 2.0 %s)\n", version, arch)
+	bold.Printf("  MUXI CLI %s (Apache 2.0 %s)\n", version, arch)
 	fmt.Println()
 	dimmed.Println("   * Documentation:  https://muxi.ai/docs")
 	dimmed.Println("   * Support:        https://muxi.ai/support")
