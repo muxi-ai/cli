@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -16,6 +17,9 @@ import (
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/muxi-ai/cli/pkg/wizard"
 )
+
+// Version is set at build time
+var Version = "dev"
 
 // FormationConfig holds all configuration gathered during the wizard
 type FormationConfig struct {
@@ -50,13 +54,7 @@ func CreateFormation(name string, noWizard bool) error {
 
 	// Show logo and banner in interactive mode
 	if !noWizard {
-		fmt.Println()
-		ui.Gold(`  ███╗   ███╗██╗   ██╗██╗  ██╗██╗
-  ████╗ ████║██║   ██║╚██╗██╔╝██║
-  ██╔████╔██║██║   ██║ ╚███╔╝ ██║
-  ██║╚██╔╝██║██║   ██║ ██╔██╗ ██║
-  ██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗██║
-  ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝`)
+		ui.MUXIHeader(Version, runtime.GOARCH)
 		ui.Banner("╭──────────────────────────────────────────────────────────────╮\n│ [+] Creating new formation                              MUXI │\n│──────────────────────────────────────────────────────────────│\n│ A formation is a deployable unit containing agents, MCPs,    │\n│ SOPs, and configuration for your AI system.                  │\n╰──────────────────────────────────────────────────────────────╯")
 	}
 

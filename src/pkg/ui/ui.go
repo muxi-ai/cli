@@ -32,7 +32,7 @@ var (
 	cyan   = color.New(color.FgCyan)
 	dimmed = color.New(color.Faint)
 	bold   = color.New(color.Bold)
-	gold   = color.RGB(201, 139, 69) // Brand color #c98b45 (gold)
+	gold   = color.RGB(216, 137, 62) // Brand color #d8893e
 )
 
 // Success prints a success message with ✓ symbol (full line green, bold)
@@ -417,6 +417,41 @@ func Confirm(prompt string, defaultYes bool) {
 	} else {
 		fmt.Printf("%s [y/N]: ", prompt)
 	}
+}
+
+// Logo colors (gradient from light to dark gold)
+var logoColors = []*color.Color{
+	color.RGB(217, 170, 84),  // #d9aa54
+	color.RGB(218, 158, 75),  // #da9e4b
+	color.RGB(219, 150, 71),  // #db9647
+	color.RGB(220, 143, 66),  // #dc8f42
+	color.RGB(216, 137, 62),  // #d8893e
+	color.RGB(191, 120, 64),  // #bf7840
+}
+
+// MUXIHeader prints the MUXI ASCII art logo with gradient colors and version info
+func MUXIHeader(version, arch string) {
+	logo := []string{
+		"███╗   ███╗██╗   ██╗██╗  ██╗██╗",
+		"████╗ ████║██║   ██║╚██╗██╔╝██║",
+		"██╔████╔██║██║   ██║ ╚███╔╝ ██║",
+		"██║╚██╔╝██║██║   ██║ ██╔██╗ ██║",
+		"██║ ╚═╝ ██║╚██████╔╝██╔╝ ██╗██║",
+		"╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝",
+	}
+
+	fmt.Println()
+	for i, line := range logo {
+		fmt.Print("  ")
+		logoColors[i].Println(line)
+	}
+	fmt.Println()
+	fmt.Printf("  MUXI CLI %s (Apache 2.0 %s)\n", version, arch)
+	fmt.Println()
+	dimmed.Println("   * Documentation:  https://muxi.ai/docs")
+	dimmed.Println("   * Support:        https://muxi.ai/support")
+	fmt.Println()
+	fmt.Println()
 }
 
 // Banner displays a pre-formatted banner with box drawing characters

@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/muxi-ai/cli/pkg/telemetry"
+	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +24,7 @@ func RequireArgs(n int) cobra.PositionalArgs {
 
 // Colors for help output
 var (
-	gold   = color.New(color.FgHiYellow)
+	gold   = color.RGB(216, 137, 62) // Brand color #d8893e
 	cyan   = color.New(color.FgCyan)
 	dimmed = color.New(color.Faint)
 )
@@ -86,23 +88,8 @@ func customHelp(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Version header outside box
-	fmt.Print("MUXI CLI • ")
-	dimmed.Println(version)
-
-	// Header box
-	fmt.Println("╭──────────────────────────────────────────────────────────────╮")
-	fmt.Println("│ Build, deploy, and manage formations with ease               │")
-	printBoxDivider()
-	printBoxLine("Examples:")
-	printColoredCommand(" $ muxi new formation my-bot")
-	printColoredCommand(" $ muxi deploy --profile production")
-	printColoredCommand(" $ muxi agents list")
-	printBoxDivider()
-	printBoxLine("Usage:")
-	printColoredCommand(" $ muxi [command]")
-	printBoxBottom()
-	fmt.Println()
+	// MUXI header with logo
+	ui.MUXIHeader(version, runtime.GOARCH)
 
 	// Formation Commands
 	printBoxWithSubtitle("Formation Commands", "MUXI")
