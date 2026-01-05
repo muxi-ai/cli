@@ -8,6 +8,7 @@ import (
 
 	"github.com/muxi-ai/cli/cmd"
 	"github.com/muxi-ai/cli/pkg/scaffold"
+	"github.com/muxi-ai/cli/pkg/server"
 )
 
 //go:embed .version
@@ -26,9 +27,10 @@ func main() {
 		version = strings.TrimSpace(embeddedVersion)
 	}
 
-	// Set version info in root command and scaffold package
+	// Set version info in root command and packages
 	cmd.SetVersionInfo(version, commit, date)
 	scaffold.Version = version
+	server.Version = version
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

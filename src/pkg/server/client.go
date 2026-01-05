@@ -11,6 +11,19 @@ import (
 	"time"
 )
 
+// Version is set at build time
+var Version = "dev"
+
+// sdkTransport wraps http.RoundTripper to add X-Muxi-SDK header
+type sdkTransport struct {
+	base http.RoundTripper
+}
+
+func (t *sdkTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("X-Muxi-SDK", "cli/"+Version)
+	return t.base.RoundTrip(req)
+}
+
 // Client is an HTTP client for MUXI Server
 type Client struct {
 	BaseURL    string
@@ -36,7 +49,8 @@ func NewClientFromEntry(entry *ProfileEntry) *Client {
 		KeyID:     entry.KeyID,
 		SecretKey: entry.SecretKey,
 		HTTPClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: &sdkTransport{base: http.DefaultTransport},
 		},
 	}
 }
@@ -258,7 +272,7 @@ func (c *Client) startFormationInternal(id string, streaming bool, callback func
 	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "POST", path)
 	req.Header.Set("Authorization", authHeader)
 
-	client := &http.Client{Timeout: 10 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute, Transport: &sdkTransport{base: http.DefaultTransport}}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -296,7 +310,7 @@ func (c *Client) restartFormationInternal(id string, streaming bool, callback fu
 	req.Header.Set("Authorization", authHeader)
 
 	// Use longer timeout for streaming
-	client := &http.Client{Timeout: 10 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute, Transport: &sdkTransport{base: http.DefaultTransport}}
 
 	// Send request
 	resp, err := client.Do(req)
@@ -357,7 +371,7 @@ func (c *Client) RollbackFormationStreaming(id string, callback func(SSEEvent) e
 	authHeader := BuildAuthHeader(c.KeyID, c.SecretKey, "POST", path)
 	req.Header.Set("Authorization", authHeader)
 
-	client := &http.Client{Timeout: 10 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute, Transport: &sdkTransport{base: http.DefaultTransport}}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -438,7 +452,7 @@ func (c *Client) StreamFormationLogs(id, stream string, callback func(LogEvent) 
 	req.Header.Set("Authorization", authHeader)
 
 	// No timeout for streaming
-	client := &http.Client{Timeout: 0}
+	client := &http.Client{Timeout: 0, Transport: &sdkTransport{base: http.DefaultTransport}}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -527,7 +541,7 @@ func (c *Client) deployFormationInternal(id, bundlePath, version string, streami
 	req.Header.Set("Authorization", authHeader)
 
 	// Use longer timeout for streaming (deployment can take minutes)
-	client := &http.Client{Timeout: 10 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute, Transport: &sdkTransport{base: http.DefaultTransport}}
 
 	// Send request
 	resp, err := client.Do(req)
@@ -592,7 +606,7 @@ func (c *Client) updateFormationInternal(id, bundlePath, version string, streami
 	req.Header.Set("Authorization", authHeader)
 
 	// Use longer timeout for streaming
-	client := &http.Client{Timeout: 10 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute, Transport: &sdkTransport{base: http.DefaultTransport}}
 
 	// Send request
 	resp, err := client.Do(req)
