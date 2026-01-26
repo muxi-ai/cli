@@ -80,11 +80,17 @@ jobs:
           # Update .version file
           echo "$VERSION" > src/.version
           
-          # Update CHANGELOG.md - replace [Unreleased] with version and date
-          if [ -f CHANGELOG.md ] && grep -q "## \[Unreleased\]" CHANGELOG.md; then
-            sed -i.bak "s/## \[Unreleased\]/## [$VERSION] - $TODAY/" CHANGELOG.md
-            rm -f CHANGELOG.md.bak
-            echo "✓ Updated CHANGELOG.md with version $VERSION"
+          # Update CHANGELOG.md - handle both [Unreleased] and X.XXXXXXXX.X placeholders
+          if [ -f CHANGELOG.md ]; then
+            if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+              sed -i.bak "s/## \[Unreleased\]/## [$VERSION] - $TODAY/" CHANGELOG.md
+              rm -f CHANGELOG.md.bak
+              echo "✓ Updated CHANGELOG.md ([Unreleased] → $VERSION)"
+            elif grep -q "## X\.XXXXXXXX\.X" CHANGELOG.md; then
+              sed -i.bak "s/## X\.XXXXXXXX\.X.*/## $VERSION - $TODAY/" CHANGELOG.md
+              rm -f CHANGELOG.md.bak
+              echo "✓ Updated CHANGELOG.md (X.XXXXXXXX.X → $VERSION)"
+            fi
           fi
           
           git config user.name "github-actions[bot]"
