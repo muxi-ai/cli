@@ -1,7 +1,5 @@
 # MUXI CLI
 
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/muxi-ai/cli/badge)](https://scorecard.dev/viewer/?uri=github.com/muxi-ai/cli)
-
 The official command-line interface for creating, deploying, and managing MUXI AI agent formations.
 
 > [!IMPORTANT]
