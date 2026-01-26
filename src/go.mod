@@ -13,7 +13,7 @@ require (
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
 	github.com/spf13/cobra v1.10.2
 	github.com/tidwall/gjson v1.18.0
-	golang.org/x/term v0.38.0
+	golang.org/x/term v0.39.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -48,6 +48,6 @@ require (
 	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 )
