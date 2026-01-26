@@ -1,10 +1,5 @@
 # Changelog
 
-All notable changes to the MUXI CLI will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [ScalVer](https://scalver.org/) versioning: `MAJOR.YYYYMMDD.PATCH`.
-
 ## X.XXXXXXXX.X - Initial Public Release
 
 ### Core Features
