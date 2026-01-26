@@ -27,6 +27,8 @@ on:
   push:
     branches: [main]
 
+permissions: {}
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -37,7 +39,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0  # Need full history for versioning
           token: ${{ secrets.MUXI_RELEASE_TOKEN }}  # Use PAT to trigger workflows
@@ -120,7 +122,7 @@ jobs:
           fi
       
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: '1.21'
           cache-dependency-path: src/go.sum
@@ -165,7 +167,7 @@ jobs:
           ls -lh dist/
       
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: v${{ steps.version.outputs.VERSION }}
