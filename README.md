@@ -109,4 +109,4 @@ GOOS=windows GOARCH=amd64 go build -o muxi-windows-amd64.exe .
 
 ## License
 
-[MIT](LICENSE)
+[Apache 2.0](LICENSE-Apache-2.0)
