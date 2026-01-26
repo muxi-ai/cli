@@ -1,5 +1,7 @@
 # MUXI CLI Distribution Guide
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/muxi-ai/cli/badge)](https://scorecard.dev/viewer/?uri=github.com/muxi-ai/cli)
+
 This guide explains how to compile the MUXI CLI for multiple platforms and how to distribute it via Homebrew, APT, and other package managers.
 
 ---
@@ -10,8 +12,6 @@ This guide explains how to compile the MUXI CLI for multiple platforms and how t
 > This repository is part of the larger MUXI ecosystem.
 >
 > **📋 Complete architectural overview:** See [muxi/ARCHITECTURE.md](https://github.com/muxi-ai/muxi/blob/main/ARCHITECTURE.md) - explains how core repositories fit together, dependencies, status, and roadmap.
->
-> **🎯 This repo (cli):** Command-line tool for formation management - currently early WIP, blocked on runtime API finalization.
 
 ---
 

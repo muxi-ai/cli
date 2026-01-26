@@ -82,7 +82,6 @@ Thumbs.db
 *.swp
 *.swo
 .idea/
-.vscode/
 *.sublime-workspace
 *.sublime-project
 .project
@@ -130,7 +129,6 @@ ENV/
 
 # IDE specific files
 .idea/
-.vscode/
 *.swp
 *.swo
 
@@ -158,3 +156,5 @@ logs/
 .specstory/
 
 playground/
+.claude
+.factory

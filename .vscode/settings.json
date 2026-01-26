@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.afs": "yaml"
+    },
+    "editor.formatOnSave": true,
+    "editor.rulers": [100],
+    "go.formatTool": "goimports",
+    "go.lintTool": "golangci-lint",
+    "go.lintOnSave": "package"
+}
