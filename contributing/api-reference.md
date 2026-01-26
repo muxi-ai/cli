@@ -1,15 +1,15 @@
 # API Reference
 
-**Last Updated:** 2025-12-08
+**Last Updated:** 2026-01-26
 
 ---
 
 ## API Specifications
 
-The full OpenAPI specs are maintained in the schemas repository:
+The full OpenAPI specs are maintained in the muxi repository:
 
-- **Server API:** [../schemas/api/server-api-v1-final.yaml](../../schemas/api/server-api-v1-final.yaml)
-- **Formation API:** [../schemas/api/formation-api-v1-final.yaml](../../schemas/api/formation-api-v1-final.yaml)
+- **Server API:** `muxi/schemas/api/server-api-v1.yaml`
+- **Formation API:** `muxi/schemas/api/formation-api-v1.yaml`
 
 This document covers CLI-specific implementation details.
 
@@ -219,6 +219,5 @@ curl -X GET http://localhost:7890/rpc/formations \
 
 ## Related Documentation
 
-- [../schemas/api/server-api-v1-final.yaml](../../schemas/api/server-api-v1-final.yaml) - Full OpenAPI spec
 - [architecture.md](architecture.md) - CLI architecture
-- [../STATUS.md](../STATUS.md) - Implementation status
+- [streaming-events.md](streaming-events.md) - SSE event types

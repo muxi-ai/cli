@@ -1,6 +1,6 @@
 # CLI Architecture
 
-**Last Updated:** 2025-12-08
+**Last Updated:** 2026-01-26
 
 ---
 
@@ -11,7 +11,7 @@ The MUXI CLI is a Go-based command-line tool that communicates with MUXI Server 
 ```
 User Command
     ↓
-muxi formation deploy bundle.tar.gz
+muxi deploy
     ↓
 CLI (Go binary)
     ↓
@@ -31,9 +31,16 @@ CLI shows progress/result
 ```
 cli/
 ├── AGENTS.md                # Agent workflow guide
-├── AGENT_CHAT.md            # Multi-agent coordination
-├── STATUS.md                # Current status, what's working
-├── README.md                # User-facing documentation
+├── README.md                # Distribution guide
+├── CHANGELOG.md             # Release history
+│
+├── contributing/            # Contributor documentation
+│   ├── architecture.md      # This file
+│   ├── api-reference.md     # Server/Formation API
+│   ├── streaming-events.md  # SSE event types
+│   ├── ux-patterns.md       # TUI patterns
+│   ├── tui-design.md        # Design system
+│   └── banners.md           # Banner specs
 │
 ├── src/
 │   ├── cmd/                 # Command implementations
@@ -99,18 +106,6 @@ cli/
 │   │
 │   ├── go.mod
 │   └── main.go
-│
-└── docs/
-    ├── architecture.md      # This file
-    ├── api-reference.md     # Server API, HMAC auth
-    ├── UX-PATTERNS.md       # TUI design patterns
-    ├── BANNERS.md           # ASCII banner reference
-    ├── DESIGN.md            # Detailed design docs
-    └── guides/              # User guides
-        ├── formations.md
-        ├── agents.md
-        ├── mcps.md
-        └── ...
 ```
 
 ---
@@ -343,6 +338,5 @@ go func() {
 ## Related Documentation
 
 - [api-reference.md](api-reference.md) - HMAC auth, endpoints
-- [UX-PATTERNS.md](UX-PATTERNS.md) - TUI conventions
-- [DESIGN.md](DESIGN.md) - Detailed design decisions
-- [../schemas/api/](../../schemas/api/) - OpenAPI specs
+- [ux-patterns.md](ux-patterns.md) - TUI conventions
+- [tui-design.md](tui-design.md) - Design system

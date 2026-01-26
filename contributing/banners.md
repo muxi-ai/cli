@@ -349,6 +349,5 @@ For multi-step wizards:
 
 ## Related Documentation
 
-- **TUI Design:** [TUI-DESIGN.md](./TUI-DESIGN.md) - Full design system
-- **Command Semantics:** [COMMAND-SEMANTICS.md](./COMMAND-SEMANTICS.md) - Command structure
-- **A2A Wizard:** [A2A-WIZARD.md](./A2A-WIZARD.md) - A2A configuration details
+- [tui-design.md](tui-design.md) - Full design system
+- [ux-patterns.md](ux-patterns.md) - UX patterns and conventions

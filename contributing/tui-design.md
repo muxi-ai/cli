@@ -945,7 +945,7 @@ Endpoint URL: [Press ↑]
 Endpoint URL: https://api.example.com [Edit as needed]
 ```
 
-**See:** [INPUT-HISTORY.md](./INPUT-HISTORY.md) for complete documentation
+**Implementation:** See `pkg/wizard/wizard.go` for details
 
 ---
 
