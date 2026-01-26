@@ -1,6 +1,6 @@
 # Changelog
 
-## X.XXXXXXXX.X - Initial Public Release
+## 0.20260126.0 - 2026-01-26
 
 ### Core Features
 
