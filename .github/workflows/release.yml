@@ -3,23 +3,19 @@
 # RELEASE FLOW:
 #   develop → rc (PR) → main (merge) → auto-release
 #
+# STEP ORDER:
+#   1. Calculate version
+#   2. Commit .version + CHANGELOG → push to main
+#   3. Build 6 release binaries (linux/darwin/windows × amd64/arm64)
+#   4. Create + push git tag
+#   5. Create GitHub Release with binaries (attaches to existing tag)
+#   6. Merge main back to develop
+#
+# Tag is pushed AFTER binaries build but BEFORE GitHub Release,
+# so binaries must succeed before a tag exists.
+#
 # VERSION FORMAT (ScalVer):
 #   MAJOR.YYYYMMDD.PATCH
-#   - MAJOR: Manual change only (breaking changes)
-#   - YYYYMMDD: Auto-set to today's date
-#   - PATCH: Auto-incremented (resets to 0 on new day)
-#
-# ON MERGE TO MAIN:
-#   1. Read current version from src/.version
-#   2. Calculate next version:
-#      - Same day? → bump PATCH (0.20251205.0 → 0.20251205.1)
-#      - New day?  → reset to MAJOR.TODAY.0 (0.20251205.1 → 0.20251206.0)
-#   3. Update src/.version (embedded in binary at build time)
-#   4. Update CHANGELOG.md ([Unreleased] → [VERSION] - DATE)
-#   5. Commit & push "chore: release vX.Y.Z"
-#   6. Create git tag vX.Y.Z
-#   7. Build binaries for all platforms
-#   8. Create GitHub Release with artifacts
 #
 name: Release
 
@@ -108,19 +104,6 @@ jobs:
             git push
           fi
       
-      - name: Create git tag
-        run: |
-          TAG="v${{ steps.version.outputs.VERSION }}"
-          
-          # Check if tag already exists
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists"
-          else
-            git tag "$TAG"
-            git push origin "$TAG"
-            echo "Created and pushed tag $TAG"
-          fi
-      
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
@@ -165,6 +148,16 @@ jobs:
           
           echo "✓ All binaries built (version embedded from src/.version)"
           ls -lh dist/
+      
+      - name: Create and push git tag
+        run: |
+          TAG="v${{ steps.version.outputs.VERSION }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
@@ -217,60 +210,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Update Homebrew Formula
-        env:
-          TAP_REPO_TOKEN: ${{ secrets.MUXI_TAP_REPO_TOKEN }}
-        run: |
-          # Skip if no TAP_REPO_TOKEN
-          if [ -z "$TAP_REPO_TOKEN" ]; then
-            echo "⚠️ MUXI_TAP_REPO_TOKEN not set, skipping Homebrew update"
-            exit 0
-          fi
-          
-          echo "🍺 Updating Homebrew formula..."
-          
-          # Calculate SHA256 checksums for all platform binaries
-          SHA_DARWIN_ARM64=$(shasum -a 256 dist/muxi-darwin-arm64 | cut -d' ' -f1)
-          SHA_DARWIN_AMD64=$(shasum -a 256 dist/muxi-darwin-amd64 | cut -d' ' -f1)
-          SHA_LINUX_ARM64=$(shasum -a 256 dist/muxi-linux-arm64 | cut -d' ' -f1)
-          SHA_LINUX_AMD64=$(shasum -a 256 dist/muxi-linux-amd64 | cut -d' ' -f1)
-          
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          
-          echo "  Darwin ARM64: $SHA_DARWIN_ARM64"
-          echo "  Darwin AMD64: $SHA_DARWIN_AMD64"
-          echo "  Linux ARM64:  $SHA_LINUX_ARM64"
-          echo "  Linux AMD64:  $SHA_LINUX_AMD64"
-          
-          # Clone homebrew-tap repository
-          git clone https://x-access-token:$TAP_REPO_TOKEN@github.com/muxi-ai/homebrew-tap.git /tmp/tap
-          cd /tmp/tap
-          
-          # Check if formula exists
-          if [ ! -f Formula/muxi.rb ]; then
-            echo "⚠️ Formula/muxi.rb not found, skipping"
-            exit 0
-          fi
-          
-          # Update formula with new version and checksums
-          sed -i.bak "s|version \"[^\"]*\"|version \"$VERSION\"|" Formula/muxi.rb
-          sed -i.bak "s|download/v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/|download/v$VERSION/|g" Formula/muxi.rb
-          rm -f Formula/*.bak
-          
-          # Commit and push changes
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/muxi.rb
-          
-          # Only commit if there are changes
-          if git diff --cached --quiet; then
-            echo "No changes to Homebrew formula"
-          else
-            git commit -m "chore: update muxi to v$VERSION (auto-update from release workflow)"
-            git push origin main
-            echo "✓ Homebrew formula updated"
-          fi
-      
       - name: Merge main back to develop
         run: |
           echo "🔄 Merging main back to develop..."
@@ -284,14 +223,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MUXI_RELEASE_TOKEN }}
       
-      - name: Summary
-        run: |
-          echo "🎉 Release complete!"
-          echo ""
-          echo "Version:  v${{ steps.version.outputs.VERSION }}"
-          echo "Commit:   $(git rev-parse --short HEAD)"
-          echo "Released: $(date -u)"
-          echo ""
-          echo "✓ Binaries built"
-          echo "✓ GitHub release created"
-          echo "✓ main merged back to develop"
+
