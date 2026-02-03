@@ -107,8 +107,8 @@ func downloadInFormationDir(ctx *context.FormationContext, profileFlag string, f
 	}
 	defer os.Remove(zipPath)
 
-	// Clear directory (except .git and .muxi)
-	if err := clearFormationDir(ctx.RootDir); err != nil {
+	// Clear directory (except .git, .muxi, and DB files if not including them)
+	if err := clearFormationDir(ctx.RootDir, !includeDB); err != nil {
 		return fmt.Errorf("failed to clear directory: %w", err)
 	}
 
@@ -217,8 +217,8 @@ func downloadOutsideFormationDir(profileFlag string, force bool, includeDB bool,
 	return nil
 }
 
-// clearFormationDir removes all files except .git and .muxi
-func clearFormationDir(dir string) error {
+// clearFormationDir removes all files except .git, .muxi, and optionally DB files
+func clearFormationDir(dir string, preserveDB bool) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return err
@@ -229,11 +229,31 @@ func clearFormationDir(dir string) error {
 		".muxi": true,
 	}
 
+	// DB file extensions to preserve when preserveDB is true
+	dbExtensions := []string{".db", ".sqlite", ".sqlite3"}
+
 	for _, entry := range entries {
-		if preserve[entry.Name()] {
+		name := entry.Name()
+		
+		if preserve[name] {
 			continue
 		}
-		path := filepath.Join(dir, entry.Name())
+		
+		// Preserve DB files if requested
+		if preserveDB && !entry.IsDir() {
+			isDB := false
+			for _, ext := range dbExtensions {
+				if strings.HasSuffix(strings.ToLower(name), ext) {
+					isDB = true
+					break
+				}
+			}
+			if isDB {
+				continue
+			}
+		}
+		
+		path := filepath.Join(dir, name)
 		if err := os.RemoveAll(path); err != nil {
 			return err
 		}
