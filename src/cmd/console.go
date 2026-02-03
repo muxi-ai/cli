@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const consoleBaseURL = "https://muxi.dev"
+const consoleLaunchURL = "https://muxi.dev/launch"
 
 var consoleCmd = &cobra.Command{
 	Use:     "console",
@@ -65,13 +65,8 @@ func runConsole(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Build final URL
-	var targetURL string
-	if params.Get("server") != "" {
-		targetURL = fmt.Sprintf("%s/launch?%s", consoleBaseURL, params.Encode())
-	} else {
-		targetURL = fmt.Sprintf("%s?%s", consoleBaseURL, params.Encode())
-	}
+	// Build final URL - always use /launch endpoint
+	targetURL := fmt.Sprintf("%s?%s", consoleLaunchURL, params.Encode())
 
 	// Open in browser
 	if err := openBrowser(targetURL); err != nil {
