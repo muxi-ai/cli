@@ -102,6 +102,7 @@ GET /ping       → {"message": "pong"}
 | POST | `/rpc/formations/{id}/restart` | Restart formation |
 | POST | `/rpc/formations/{id}/rollback` | Rollback version |
 | GET | `/rpc/formations/{id}/logs` | Get logs |
+| GET | `/rpc/formations/{id}/download` | Download as zip (`?db=true` includes memory.db) |
 
 ### Server Management (Auth Required)
 

@@ -50,6 +50,8 @@ cli/
 │   │   ├── edit.go         # muxi edit <type>
 │   │   ├── secrets.go      # muxi secrets <action>
 │   │   ├── deploy.go       # muxi deploy
+│   │   ├── download.go     # muxi download
+│   │   ├── console.go      # muxi console
 │   │   ├── formation.go    # muxi formation <action>
 │   │   ├── server.go       # muxi server <action>
 │   │   ├── registry.go     # muxi registry <action>
@@ -150,7 +152,9 @@ Manage server profiles:
 
 ### Formation Lifecycle (`muxi formation`)
 Manage deployed formations:
-- `muxi deploy` - Deploy formation
+- `muxi deploy` - Deploy formation (excludes `memory.db` by default)
+- `muxi download` - Download formation from server (preserves local `memory.db`)
+- `muxi console` - Open MUXI Console in browser
 - `muxi formation list` - List formations
 - `muxi formation get` - Get details
 - `muxi formation stop` - Stop formation
