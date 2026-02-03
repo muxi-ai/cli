@@ -468,11 +468,10 @@ func TestShouldExclude(t *testing.T) {
 		{"main.go", false, false, false},
 		{"src", true, false, false},
 		{"formation.yaml", false, false, false},
-		// DB file tests
-		{"memory.db", false, false, true},      // excluded by default
+		// memory.db tests
+		{"memory.db", false, false, true},       // excluded by default
 		{"memory.db", false, true, false},       // included with flag
-		{"data.sqlite", false, false, true},     // excluded by default
-		{"data.sqlite", false, true, false},     // included with flag
+		{"other.db", false, false, false},       // other db files not excluded
 	}
 
 	for _, tt := range tests {

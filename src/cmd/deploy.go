@@ -65,12 +65,8 @@ var deployExcludedPatterns = []string{
 	".idea",
 }
 
-// DB patterns excluded by default (use --include-db to include)
-var deployDBPatterns = []string{
-	"*.db",
-	"*.sqlite",
-	"*.sqlite3",
-}
+// DB file excluded by default (use --include-db to include)
+const memoryDBFile = "memory.db"
 
 // FormationMetadata represents minimal formation.yaml fields we need
 type FormationMetadata struct {
@@ -624,16 +620,9 @@ func shouldExclude(path string, isDir bool, includeDB bool) bool {
 		}
 	}
 
-	// Check DB patterns (excluded by default unless --include-db)
-	if !includeDB {
-		for _, pattern := range deployDBPatterns {
-			if strings.Contains(pattern, "*") {
-				matched, _ := filepath.Match(pattern, name)
-				if matched {
-					return true
-				}
-			}
-		}
+	// Check memory.db (excluded by default unless --include-db)
+	if !includeDB && name == memoryDBFile {
+		return true
 	}
 
 	return false

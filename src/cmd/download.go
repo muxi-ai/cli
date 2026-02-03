@@ -217,7 +217,7 @@ func downloadOutsideFormationDir(profileFlag string, force bool, includeDB bool,
 	return nil
 }
 
-// clearFormationDir removes all files except .git, .muxi, and optionally DB files
+// clearFormationDir removes all files except .git, .muxi, and optionally memory.db
 func clearFormationDir(dir string, preserveDB bool) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -228,32 +228,16 @@ func clearFormationDir(dir string, preserveDB bool) error {
 		".git":  true,
 		".muxi": true,
 	}
-
-	// DB file extensions to preserve when preserveDB is true
-	dbExtensions := []string{".db", ".sqlite", ".sqlite3"}
+	
+	if preserveDB {
+		preserve["memory.db"] = true
+	}
 
 	for _, entry := range entries {
-		name := entry.Name()
-		
-		if preserve[name] {
+		if preserve[entry.Name()] {
 			continue
 		}
-		
-		// Preserve DB files if requested
-		if preserveDB && !entry.IsDir() {
-			isDB := false
-			for _, ext := range dbExtensions {
-				if strings.HasSuffix(strings.ToLower(name), ext) {
-					isDB = true
-					break
-				}
-			}
-			if isDB {
-				continue
-			}
-		}
-		
-		path := filepath.Join(dir, name)
+		path := filepath.Join(dir, entry.Name())
 		if err := os.RemoveAll(path); err != nil {
 			return err
 		}
