@@ -7,6 +7,7 @@ import (
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/server"
+	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/muxi-ai/cli/pkg/ui"
 
 	"github.com/spf13/cobra"
@@ -46,7 +47,9 @@ func runConsole(cmd *cobra.Command, args []string) error {
 	ctx, ctxErr := context.DetectFormation()
 	inFormationDir := ctxErr == nil
 
-	var targetURL string
+	// Build URL with machine ID
+	params := url.Values{}
+	params.Set("ic", telemetry.GetMachineID())
 
 	if inFormationDir {
 		// Try to resolve profile
@@ -56,18 +59,18 @@ func runConsole(cmd *cobra.Command, args []string) error {
 			// Get server URL from profile
 			profileEntry, err := server.GetProfile(profile)
 			if err == nil && profileEntry.URL != "" {
-				// Build launch URL with server and formation params
-				params := url.Values{}
 				params.Set("server", profileEntry.URL)
 				params.Set("formation", ctx.ID)
-				targetURL = fmt.Sprintf("%s/launch?%s", consoleBaseURL, params.Encode())
 			}
 		}
 	}
 
-	// Fall back to base URL if no context
-	if targetURL == "" {
-		targetURL = consoleBaseURL
+	// Build final URL
+	var targetURL string
+	if params.Get("server") != "" {
+		targetURL = fmt.Sprintf("%s/launch?%s", consoleBaseURL, params.Encode())
+	} else {
+		targetURL = fmt.Sprintf("%s?%s", consoleBaseURL, params.Encode())
 	}
 
 	// Open in browser
