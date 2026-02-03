@@ -268,8 +268,8 @@ func Execute() error {
 	// Show update notification if available (after command output)
 	if updateInfo != nil && os.Getenv("MUXI_NO_UPDATE_CHECK") == "" {
 		fmt.Fprintln(os.Stderr)
-		fmt.Fprintf(os.Stderr, "📦 muxi %s available (current: %s)\n", updateInfo.LatestVersion, updateInfo.CurrentVersion)
-		fmt.Fprintln(os.Stderr, "   Run: brew upgrade muxi")
+		fmt.Fprintf(os.Stderr, "[*] MUXI CLI %s available (current: %s)\n", updateInfo.LatestVersion, updateInfo.CurrentVersion)
+		fmt.Fprintln(os.Stderr, "    Run: muxi upgrade")
 	}
 
 	// Refresh cache in background for next run (fire-and-forget)
