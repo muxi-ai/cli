@@ -45,6 +45,7 @@ func init() {
 	deployCmd.Flags().String("profile", "", "Server profile to use")
 	deployCmd.Flags().Bool("dry-run", false, "Validate and create bundle without deploying")
 	deployCmd.Flags().Bool("no-stream", false, "Disable streaming progress (simpler output)")
+	deployCmd.Flags().Bool("include-db", false, "Include SQLite database files in deploy bundle")
 }
 
 // ExcludedPatterns are patterns to exclude from deploy bundles
@@ -64,6 +65,13 @@ var deployExcludedPatterns = []string{
 	".idea",
 }
 
+// DB patterns excluded by default (use --include-db to include)
+var deployDBPatterns = []string{
+	"*.db",
+	"*.sqlite",
+	"*.sqlite3",
+}
+
 // FormationMetadata represents minimal formation.yaml fields we need
 type FormationMetadata struct {
 	ID      string `yaml:"id"`
@@ -75,6 +83,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	noStream, _ := cmd.Flags().GetBool("no-stream")
+	includeDB, _ := cmd.Flags().GetBool("include-db")
 
 	// Track telemetry (always collect, conditionally send)
 	state := telemetry.Load()
@@ -193,7 +202,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	spinner := ui.NewSpinner("Creating bundle...")
 	spinner.Start()
 
-	bundlePath, fileCount, err := createTarGzBundle(ctx.RootDir, metadata.ID)
+	bundlePath, fileCount, err := createTarGzBundle(ctx.RootDir, metadata.ID, includeDB)
 	if err != nil {
 		spinner.StopWithError("Failed to create bundle")
 		return fmt.Errorf("failed to create bundle: %w", err)
@@ -497,7 +506,7 @@ func formatStageComplete(stage string, p *server.DeployProgressEvent) string {
 }
 
 // createTarGzBundle creates a tar.gz bundle of the formation directory
-func createTarGzBundle(formationDir, formationID string) (string, int, error) {
+func createTarGzBundle(formationDir, formationID string, includeDB bool) (string, int, error) {
 	// Create temp file
 	tmpFile, err := os.CreateTemp("", "muxi-deploy-*.tar.gz")
 	if err != nil {
@@ -529,7 +538,7 @@ func createTarGzBundle(formationDir, formationID string) (string, int, error) {
 		}
 
 		// Check if excluded
-		if shouldExclude(relPath, info.IsDir()) {
+		if shouldExclude(relPath, info.IsDir(), includeDB) {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
@@ -592,7 +601,7 @@ func createTarGzBundle(formationDir, formationID string) (string, int, error) {
 }
 
 // shouldExclude checks if a path should be excluded
-func shouldExclude(path string, isDir bool) bool {
+func shouldExclude(path string, isDir bool, includeDB bool) bool {
 	name := filepath.Base(path)
 
 	for _, pattern := range deployExcludedPatterns {
@@ -612,6 +621,18 @@ func shouldExclude(path string, isDir bool) bool {
 		// Check if path starts with pattern (for directories)
 		if isDir && strings.HasPrefix(path, pattern) {
 			return true
+		}
+	}
+
+	// Check DB patterns (excluded by default unless --include-db)
+	if !includeDB {
+		for _, pattern := range deployDBPatterns {
+			if strings.Contains(pattern, "*") {
+				matched, _ := filepath.Match(pattern, name)
+				if matched {
+					return true
+				}
+			}
 		}
 	}
 

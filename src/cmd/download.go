@@ -43,23 +43,25 @@ func init() {
 	rootCmd.AddCommand(downloadCmd)
 	downloadCmd.Flags().StringP("profile", "p", "", "Server profile to use")
 	downloadCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
+	downloadCmd.Flags().Bool("include-db", false, "Include SQLite database files in download")
 }
 
 func runDownload(cmd *cobra.Command, args []string) error {
 	profileFlag, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
+	includeDB, _ := cmd.Flags().GetBool("include-db")
 
 	// Check if we're in a formation directory
 	ctx, ctxErr := context.DetectFormation()
 	inFormationDir := ctxErr == nil
 
 	if inFormationDir {
-		return downloadInFormationDir(ctx, profileFlag, force, args)
+		return downloadInFormationDir(ctx, profileFlag, force, includeDB, args)
 	}
-	return downloadOutsideFormationDir(profileFlag, force, args)
+	return downloadOutsideFormationDir(profileFlag, force, includeDB, args)
 }
 
-func downloadInFormationDir(ctx *context.FormationContext, profileFlag string, force bool, args []string) error {
+func downloadInFormationDir(ctx *context.FormationContext, profileFlag string, force bool, includeDB bool, args []string) error {
 	// If user specified a different formation ID, show error
 	if len(args) > 0 && args[0] != ctx.ID {
 		ui.ErrorBlock(
@@ -99,7 +101,7 @@ func downloadInFormationDir(ctx *context.FormationContext, profileFlag string, f
 	fmt.Println()
 	ui.Step("Downloading from server...")
 
-	zipPath, err := client.DownloadFormation(ctx.ID)
+	zipPath, err := client.DownloadFormation(ctx.ID, includeDB)
 	if err != nil {
 		return fmt.Errorf("failed to download: %w", err)
 	}
@@ -121,7 +123,7 @@ func downloadInFormationDir(ctx *context.FormationContext, profileFlag string, f
 	return nil
 }
 
-func downloadOutsideFormationDir(profileFlag string, force bool, args []string) error {
+func downloadOutsideFormationDir(profileFlag string, force bool, includeDB bool, args []string) error {
 	// Require formation ID
 	if len(args) == 0 {
 		ui.ErrorBlock(
@@ -192,7 +194,7 @@ func downloadOutsideFormationDir(profileFlag string, force bool, args []string) 
 	fmt.Println()
 	ui.Step("Downloading from server...")
 
-	zipPath, err := client.DownloadFormation(formationID)
+	zipPath, err := client.DownloadFormation(formationID, includeDB)
 	if err != nil {
 		return fmt.Errorf("failed to download: %w", err)
 	}

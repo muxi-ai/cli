@@ -721,8 +721,12 @@ func cleanDeployErrorMessage(msg string) string {
 
 // DownloadFormation downloads a formation as a zip file
 // Returns the path to the temporary zip file (caller must delete it)
-func (c *Client) DownloadFormation(id string) (string, error) {
+// If includeDB is true, adds ?db=true to include SQLite database files
+func (c *Client) DownloadFormation(id string, includeDB bool) (string, error) {
 	path := "/rpc/formations/" + id + "/download"
+	if includeDB {
+		path += "?db=true"
+	}
 
 	resp, err := c.Get(path)
 	if err != nil {

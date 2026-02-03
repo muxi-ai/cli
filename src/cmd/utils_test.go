@@ -456,23 +456,29 @@ func TestNormalizeService(t *testing.T) {
 
 func TestShouldExclude(t *testing.T) {
 	tests := []struct {
-		path  string
-		isDir bool
-		want  bool
+		path      string
+		isDir     bool
+		includeDB bool
+		want      bool
 	}{
-		{".git", true, true},
-		{"node_modules", true, true},
-		{"__pycache__", true, true},
-		{".DS_Store", false, true},
-		{"main.go", false, false},
-		{"src", true, false},
-		{"formation.yaml", false, false},
+		{".git", true, false, true},
+		{"node_modules", true, false, true},
+		{"__pycache__", true, false, true},
+		{".DS_Store", false, false, true},
+		{"main.go", false, false, false},
+		{"src", true, false, false},
+		{"formation.yaml", false, false, false},
+		// DB file tests
+		{"memory.db", false, false, true},      // excluded by default
+		{"memory.db", false, true, false},       // included with flag
+		{"data.sqlite", false, false, true},     // excluded by default
+		{"data.sqlite", false, true, false},     // included with flag
 	}
 
 	for _, tt := range tests {
-		got := shouldExclude(tt.path, tt.isDir)
+		got := shouldExclude(tt.path, tt.isDir, tt.includeDB)
 		if got != tt.want {
-			t.Errorf("shouldExclude(%q, %v) = %v, want %v", tt.path, tt.isDir, got, tt.want)
+			t.Errorf("shouldExclude(%q, %v, %v) = %v, want %v", tt.path, tt.isDir, tt.includeDB, got, tt.want)
 		}
 	}
 }
@@ -808,7 +814,7 @@ version: "0.0.1"
 	}
 
 	// Create bundle
-	bundlePath, fileCount, err := createTarGzBundle(tmpDir, "test-formation")
+	bundlePath, fileCount, err := createTarGzBundle(tmpDir, "test-formation", false)
 	if err != nil {
 		t.Fatalf("createTarGzBundle() error: %v", err)
 	}
