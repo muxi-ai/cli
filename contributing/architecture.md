@@ -52,6 +52,7 @@ cli/
 │   │   ├── deploy.go       # muxi deploy
 │   │   ├── download.go     # muxi download
 │   │   ├── console.go      # muxi console
+│   │   ├── upgrade.go      # muxi upgrade
 │   │   ├── formation.go    # muxi formation <action>
 │   │   ├── server.go       # muxi server <action>
 │   │   ├── registry.go     # muxi registry <action>
@@ -103,8 +104,11 @@ cli/
 │   │   ├── config/         # Config management
 │   │   │   └── config.go
 │   │   │
-│   │   └── bundle/         # Formation bundling
-│   │       └── bundle.go
+│   │   ├── bundle/         # Formation bundling
+│   │   │   └── bundle.go
+│   │   │
+│   │   └── updates/        # Auto-update checking
+│   │       └── updates.go
 │   │
 │   ├── go.mod
 │   └── main.go
@@ -187,6 +191,28 @@ Formation distribution:
 - `muxi login/logout` - Registry auth
 - `muxi push/pull` - Publish/download
 - `muxi search/show` - Discovery
+
+### Utility Commands
+- `muxi upgrade` - Upgrade CLI to latest version
+- `muxi version` - Show version info
+
+---
+
+## Auto-Update Notifications
+
+The CLI checks for updates asynchronously without blocking:
+
+1. **On startup**: Check cached version, show notification if update available
+2. **On finalize**: Fire-and-forget goroutine to refresh cache for next run
+3. **Cache**: `~/.muxi/cli/version-cache.json` (24h TTL)
+4. **Source**: `https://raw.githubusercontent.com/muxi-ai/cli/main/src/.version`
+
+```
+[*] MUXI CLI 0.20260210.0 available (current: 0.20260203.0)
+    Run: muxi upgrade
+```
+
+Opt-out: `MUXI_NO_UPDATE_CHECK=1`
 
 ---
 
