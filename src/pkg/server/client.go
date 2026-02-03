@@ -719,6 +719,37 @@ func cleanDeployErrorMessage(msg string) string {
 	return strings.TrimSpace(result)
 }
 
+// DownloadFormation downloads a formation as a zip file
+// Returns the path to the temporary zip file (caller must delete it)
+func (c *Client) DownloadFormation(id string) (string, error) {
+	path := "/rpc/formations/" + id + "/download"
+
+	resp, err := c.Get(path)
+	if err != nil {
+		return "", fmt.Errorf("cannot connect to server: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if err := checkResponse(resp); err != nil {
+		return "", err
+	}
+
+	// Create temp file
+	tmpFile, err := os.CreateTemp("", "muxi-download-*.zip")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer tmpFile.Close()
+
+	// Copy response body to temp file
+	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+		os.Remove(tmpFile.Name())
+		return "", fmt.Errorf("failed to download: %w", err)
+	}
+
+	return tmpFile.Name(), nil
+}
+
 // checkResponse checks for common error responses
 func checkResponse(resp *http.Response) error {
 	switch resp.StatusCode {
