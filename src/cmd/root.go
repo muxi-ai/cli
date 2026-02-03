@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/muxi-ai/cli/pkg/telemetry"
 	"github.com/muxi-ai/cli/pkg/ui"
+	"github.com/muxi-ai/cli/pkg/updates"
 	"github.com/spf13/cobra"
 )
 
@@ -252,9 +254,26 @@ func SetVersionInfo(v, c, d string) {
 	date = d
 	rootCmd.Version = v
 	rootCmd.SetVersionTemplate(fmt.Sprintf("muxi version %s\n", v))
+	updates.SetCurrentVersion(v)
 }
 
 // Execute runs the root command
 func Execute() error {
-	return rootCmd.Execute()
+	// Check for updates from cache (instant, no network)
+	updateInfo := updates.CheckCachedUpdate()
+
+	// Run the command
+	err := rootCmd.Execute()
+
+	// Show update notification if available (after command output)
+	if updateInfo != nil && os.Getenv("MUXI_NO_UPDATE_CHECK") == "" {
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintf(os.Stderr, "📦 muxi %s available (current: %s)\n", updateInfo.LatestVersion, updateInfo.CurrentVersion)
+		fmt.Fprintln(os.Stderr, "   Run: brew upgrade muxi")
+	}
+
+	// Refresh cache in background for next run (fire-and-forget)
+	go updates.RefreshCache()
+
+	return err
 }
