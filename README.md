@@ -47,11 +47,14 @@ cd my-bot
 # Configure secrets
 muxi secrets setup
 
-# Run locally
-muxi dev
+# Start locally (requires muxi-server running)
+muxi up
 
 # Chat with your formation
 muxi chat "Hello!"
+
+# Stop local formation
+muxi down
 
 # Deploy to server
 muxi deploy --profile production
@@ -66,6 +69,7 @@ muxi deploy --profile production
 ## Features
 
 - **Formation Management** - Create, deploy, and manage AI agent formations
+- **Local Development** - Fast iteration with `muxi up/down` (no deploy cycle)
 - **Interactive Chat** - TUI-based chat with streaming and markdown rendering
 - **Server Profiles** - Multi-server support with HMAC authentication
 - **Registry Integration** - Push/pull formations from the MUXI registry

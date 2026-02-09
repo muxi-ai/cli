@@ -1,7 +1,7 @@
 # Agent Workflow Guide
 
 **Project:** MUXI CLI  
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-02-09
 
 ---
 
@@ -61,6 +61,8 @@ src/
 │   ├── new.go             # muxi new subcommands
 │   ├── config.go          # muxi config subcommands
 │   ├── deploy.go          # muxi deploy
+│   ├── up.go              # muxi up (local dev)
+│   ├── down.go            # muxi down (stop local dev)
 │   ├── server.go          # muxi server subcommands
 │   ├── secrets.go         # muxi secrets subcommands
 │   ├── chat.go            # muxi chat

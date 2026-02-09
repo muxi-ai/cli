@@ -1,6 +1,6 @@
 # CLI Architecture
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-02-09
 
 ---
 
@@ -50,6 +50,8 @@ cli/
 │   │   ├── edit.go         # muxi edit <type>
 │   │   ├── secrets.go      # muxi secrets <action>
 │   │   ├── deploy.go       # muxi deploy
+│   │   ├── up.go           # muxi up (local dev)
+│   │   ├── down.go         # muxi down (stop local dev)
 │   │   ├── download.go     # muxi download
 │   │   ├── console.go      # muxi console
 │   │   ├── upgrade.go      # muxi upgrade
@@ -153,6 +155,19 @@ Manage server profiles:
 - `muxi server remove` - Remove profile
 - `muxi server status` - Show status
 - `muxi server ping` - Continuous ping
+
+### Local Development
+Fast iteration without full deploy cycle:
+- `muxi up` - Start formation from current directory
+- `muxi down [id]` - Stop locally running formation
+
+```bash
+$ cd my-formation
+$ muxi up              # Requires muxi-server running locally
+# → http://localhost:7890/draft/my-formation
+$ muxi down            # Stop the formation
+$ muxi down other-app  # Or stop by ID from anywhere
+```
 
 ### Formation Lifecycle (`muxi formation`)
 Manage deployed formations:

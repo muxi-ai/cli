@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `muxi up` - Start formation in local development mode (runs from source directory)
+- `muxi down` - Stop formation running in local development mode
+
 ## 0.20260126.0 - 2026-01-26
 
 ### Core Features
