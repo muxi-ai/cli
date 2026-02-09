@@ -112,7 +112,7 @@ jobs:
         with:
           name: muxi-${{ matrix.goos }}-${{ matrix.goarch }}
           path: muxi-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
-          retention-days: 7
+          retention-days: 1
   
   summary:
     needs: build-and-test
