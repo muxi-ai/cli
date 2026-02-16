@@ -21,10 +21,10 @@ var inputHistory []string
 func PromptString(prompt, defaultValue string, validator func(string) error) (string, error) {
 	// Try to use readline for better UX (arrow keys, history, etc.)
 	// Falls back to basic input if readline initialization fails
-	
+
 	// For long prompts (>60 chars), put input on new line
 	useTwoLines := len(prompt) > 60
-	
+
 	var promptText string
 	if useTwoLines {
 		// Print prompt on first line, cursor on second
@@ -43,38 +43,38 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 			promptText = prompt + ": "
 		}
 	}
-	
+
 	rl, err := readline.NewEx(&readline.Config{
-		Prompt:            promptText,
-		HistoryLimit:      100,
+		Prompt:                 promptText,
+		HistoryLimit:           100,
 		DisableAutoSaveHistory: true, // We'll manage history manually
 	})
-	
+
 	if err != nil {
 		// Fallback to basic input if readline fails
 		return promptStringFallback(prompt, defaultValue, validator)
 	}
 	defer rl.Close()
-	
+
 	// Load session history into readline
 	for _, h := range inputHistory {
 		rl.SaveHistory(h)
 	}
-	
+
 	for {
 		line, err := rl.Readline()
 		if err != nil {
 			// Handle EOF or errors
 			return "", err
 		}
-		
+
 		input := strings.TrimSpace(line)
-		
+
 		// Use default if empty
 		if input == "" && defaultValue != "" {
 			input = defaultValue
 		}
-		
+
 		// Validate if validator provided
 		if validator != nil && input != "" {
 			if err := validator(input); err != nil {
@@ -85,7 +85,7 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 				continue
 			}
 		}
-		
+
 		// Save to session history (only valid inputs)
 		if input != "" {
 			inputHistory = append(inputHistory, input)
@@ -94,7 +94,7 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 				inputHistory = inputHistory[len(inputHistory)-100:]
 			}
 		}
-		
+
 		// Clear the input line (so caller can replace with success message)
 		if useTwoLines {
 			// Clear input line and prompt line
@@ -104,7 +104,7 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 			// Clear single-line prompt
 			fmt.Print("\033[1A\033[2K")
 		}
-		
+
 		return input, nil
 	}
 }
@@ -113,7 +113,7 @@ func PromptString(prompt, defaultValue string, validator func(string) error) (st
 // Used as fallback when readline initialization fails
 func promptStringFallback(prompt, defaultValue string, validator func(string) error) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
-	
+
 	// For long prompts (>60 chars), put input on new line
 	useTwoLines := len(prompt) > 60
 
@@ -177,7 +177,7 @@ func promptStringFallback(prompt, defaultValue string, validator func(string) er
 			// Move cursor up one line and clear it (so caller can replace with success)
 			fmt.Print("\033[1A\033[2K")
 		}
-		
+
 		return input, nil
 	}
 }
@@ -347,7 +347,7 @@ func PromptSelect(prompt string, options []SelectOption, defaultIndex int) (stri
 // displayOptions displays the selection menu
 func displayOptions(options []SelectOption, selected int) {
 	green := color.New(color.FgGreen, color.Bold)
-	
+
 	for i, opt := range options {
 		symbol := "◯"
 		if i == selected {

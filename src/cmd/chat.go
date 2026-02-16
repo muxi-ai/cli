@@ -163,9 +163,9 @@ func runChat(cmd *cobra.Command, args []string) error {
 		UserID:      userID,
 		SessionID:   sessionID,
 
-		Client:      client,
-		Verbose:     verbose,
-		Debug:       debug,
+		Client:  client,
+		Verbose: verbose,
+		Debug:   debug,
 	}
 
 	return chat.Run(cfg)

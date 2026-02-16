@@ -624,7 +624,7 @@ func writeYAMLField(buf *bytes.Buffer, key string, value interface{}, indent int
 func writeYAMLArrayItem(buf *bytes.Buffer, data map[string]interface{}, indent int) {
 	baseIndent := strings.Repeat("  ", indent)
 	contentIndent := baseIndent + "  " // Content after "- " aligns here
-	
+
 	// Sort keys for consistent output
 	keys := make([]string, 0, len(data))
 	for k := range data {

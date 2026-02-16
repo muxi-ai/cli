@@ -7,11 +7,11 @@ import (
 func TestUserIDRequiredError(t *testing.T) {
 	err := &UserIDRequiredError{}
 	msg := err.Error()
-	
+
 	if msg == "" {
 		t.Error("Error() should return non-empty message")
 	}
-	
+
 	// Should mention user ID
 	if !containsSubstring(msg, "user") {
 		t.Errorf("Error() should mention user, got: %s", msg)
@@ -25,7 +25,7 @@ func TestChatFile(t *testing.T) {
 		ContentType: "audio/mpeg",
 		Size:        1024,
 	}
-	
+
 	if file.Filename != "test.mp3" {
 		t.Errorf("Filename = %q, want 'test.mp3'", file.Filename)
 	}
@@ -40,7 +40,7 @@ func TestChatRequest(t *testing.T) {
 		SessionID: "sess_123",
 		Stream:    true,
 	}
-	
+
 	if req.Message != "Hello" {
 		t.Errorf("Message = %q, want 'Hello'", req.Message)
 	}
@@ -58,7 +58,7 @@ func TestAudioChatRequest(t *testing.T) {
 		SessionID: "sess_123",
 		Stream:    true,
 	}
-	
+
 	if len(req.Files) != 1 {
 		t.Errorf("Files length = %d, want 1", len(req.Files))
 	}

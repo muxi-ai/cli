@@ -46,10 +46,10 @@ var LocalProviders = []LocalProvider{
 
 // EnterpriseProvider represents an enterprise cloud provider
 type EnterpriseProvider struct {
-	Name           string
-	Vendor         string
-	YAMLTemplate   string
-	NextSteps      []string
+	Name         string
+	Vendor       string
+	YAMLTemplate string
+	NextSteps    []string
 }
 
 // EnterpriseProviders is the list of enterprise providers

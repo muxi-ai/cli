@@ -1175,4 +1175,3 @@ func displayFormationDetails(f *server.FormationDetail, verbose bool, profile st
 
 	return nil
 }
-

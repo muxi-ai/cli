@@ -701,7 +701,7 @@ func cleanDeployErrorMessage(msg string) string {
 		"Formation failed health check after ",
 		"Formation crashed during startup: ",
 	}
-	
+
 	result := msg
 	for _, prefix := range prefixes {
 		if idx := strings.Index(result, prefix); idx != -1 {
@@ -715,7 +715,7 @@ func cleanDeployErrorMessage(msg string) string {
 			}
 		}
 	}
-	
+
 	return strings.TrimSpace(result)
 }
 

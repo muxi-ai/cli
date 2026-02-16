@@ -54,7 +54,7 @@ func runConsole(cmd *cobra.Command, args []string) error {
 	if inFormationDir {
 		// Try to resolve profile
 		profile := formation.ResolveProfile(profileFlag)
-		
+
 		if profile != "" {
 			// Get server URL from profile
 			profileEntry, err := server.GetProfile(profile)

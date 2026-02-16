@@ -87,9 +87,9 @@ func isExpectedMappingForTest(key string) bool {
 
 func TestFormationTemplate_CloudProvider(t *testing.T) {
 	config := &FormationConfig{
-		Name:        "test-formation",
-		DisplayName: "Test Formation",
-		Description: "A test formation",
+		Name:         "test-formation",
+		DisplayName:  "Test Formation",
+		Description:  "A test formation",
 		ProviderType: "cloud",
 		Provider: &LLMProvider{
 			Vendor:       "openai",
@@ -105,9 +105,9 @@ func TestFormationTemplate_CloudProvider(t *testing.T) {
 
 func TestFormationTemplate_LocalProvider(t *testing.T) {
 	config := &FormationConfig{
-		Name:        "test-formation",
-		DisplayName: "Test Formation",
-		Description: "A test formation",
+		Name:         "test-formation",
+		DisplayName:  "Test Formation",
+		Description:  "A test formation",
 		ProviderType: "local",
 		LocalProvider: &LocalProvider{
 			Name:   "Ollama",
@@ -123,9 +123,9 @@ func TestFormationTemplate_LocalProvider(t *testing.T) {
 
 func TestFormationTemplate_Async(t *testing.T) {
 	config := &FormationConfig{
-		Name:        "test-formation",
-		DisplayName: "Test Formation",
-		Description: "A test formation",
+		Name:         "test-formation",
+		DisplayName:  "Test Formation",
+		Description:  "A test formation",
 		ProviderType: "cloud",
 		Provider: &LLMProvider{
 			Vendor:       "openai",
@@ -169,14 +169,14 @@ func TestMCPTemplate_Command(t *testing.T) {
 		"test-mcp",
 		"A test MCP server",
 		"command",
-		"",                    // endpoint
-		"python",              // command
-		"-m mcp_server",       // args
-		"/path/to/server",     // workingDir
-		"pip install mcp",     // installCmd
-		"",                    // authType
-		"",                    // authHeader
-		[]string{"API_KEY"},   // envVars
+		"",                  // endpoint
+		"python",            // command
+		"-m mcp_server",     // args
+		"/path/to/server",   // workingDir
+		"pip install mcp",   // installCmd
+		"",                  // authType
+		"",                  // authHeader
+		[]string{"API_KEY"}, // envVars
 	)
 	validateYAML(t, "MCPTemplate_Stdio", yaml)
 }

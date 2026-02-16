@@ -266,7 +266,7 @@ func PromptSuccess(prompt, value string) {
 // Example:
 // ✗ Formation name: My-Bot
 //
-//   Names must be lowercase
+//	Names must be lowercase
 func PromptError(prompt, value string, err error) {
 	red.Printf("%s ", SymbolError)
 	fmt.Printf("%s: %s\n\n", prompt, value)
@@ -308,10 +308,10 @@ func Section(title string) {
 // Example:
 // ✗ FORMATION NOT FOUND
 //
-//   Formation 'my-bot' does not exist
+//	Formation 'my-bot' does not exist
 //
-//   Check available formations:
-//     muxi server list
+//	Check available formations:
+//	  muxi server list
 func ErrorBlock(title string, details string, suggestion string) {
 	red.Printf("%s %s\n\n", SymbolError, title)
 
@@ -421,12 +421,12 @@ func Confirm(prompt string, defaultYes bool) {
 
 // Logo colors (gradient from light to dark gold)
 var logoColors = []*color.Color{
-	color.RGB(217, 170, 84),  // #d9aa54
-	color.RGB(218, 158, 75),  // #da9e4b
-	color.RGB(219, 150, 71),  // #db9647
-	color.RGB(220, 143, 66),  // #dc8f42
-	color.RGB(216, 137, 62),  // #d8893e
-	color.RGB(191, 120, 64),  // #bf7840
+	color.RGB(217, 170, 84), // #d9aa54
+	color.RGB(218, 158, 75), // #da9e4b
+	color.RGB(219, 150, 71), // #db9647
+	color.RGB(220, 143, 66), // #dc8f42
+	color.RGB(216, 137, 62), // #d8893e
+	color.RGB(191, 120, 64), // #bf7840
 }
 
 // MUXIHeader prints the MUXI ASCII art logo with gradient colors and version info
@@ -499,7 +499,7 @@ func FormationMCPBanner() {
 
 // InfoBanner displays an info message in a framed box with fixed width (64 chars)
 func InfoBanner(message string) {
-	const frameWidth = 64  // Total frame width including borders
+	const frameWidth = 64   // Total frame width including borders
 	const contentWidth = 60 // Content area width (frameWidth - 4 for borders and padding)
 
 	lines := strings.Split(message, "\n")

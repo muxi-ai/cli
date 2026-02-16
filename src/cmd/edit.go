@@ -27,12 +27,12 @@ Falls back to: vim (Unix) or notepad (Windows) if $EDITOR is not set.`,
 	Args: RequireArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		component := args[0]
-		
+
 		var id string
 		if len(args) > 1 {
 			id = args[1]
 		}
-		
+
 		if err := scaffold.EditComponent(component, id); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)

@@ -72,9 +72,9 @@ type Config struct {
 	UserID      string
 	SessionID   string
 
-	Client      *formation.Client
-	Verbose     bool // Show all streaming events (don't replace)
-	Debug       bool // Enable debug output to stderr
+	Client  *formation.Client
+	Verbose bool // Show all streaming events (don't replace)
+	Debug   bool // Enable debug output to stderr
 }
 
 // StreamEvent represents a streaming event from the server
@@ -102,40 +102,40 @@ type ThinkingStep struct {
 
 // Model is the Bubble Tea model for the chat UI
 type Model struct {
-	config          Config
-	messages        []Message
-	thinking        []ThinkingStep
-	isThinking      bool
-	thinkingStart   time.Time
-	textarea        textarea.Model
-	viewport        viewport.Model
-	renderer        *glamour.TermRenderer
-	width           int
-	height          int
-	ready           bool
-	quitting        bool
-	showHelp        bool
-	showCommands    bool
-	commandSelected int
-	showSubmenu     bool
-	submenuSelected int
-	submenuParent   string
-	asyncMode       string // "auto", "on", "off" - shown as ⚡/A/S indicator
-	err             error
-	inputHistory    []string  // History of user inputs
-	historyIndex    int       // Current position in history (-1 = new input)
-	currentInput    string    // Saved current input when navigating history
-	showExitHint    bool      // Show "Ctrl+C again to exit" hint
-	exitHintStart   time.Time // When the exit hint was shown
-	requestAborted   bool   // Flag to ignore response after abort
-	sessionID        string // Current session ID (from API response)
-	currentRequestID string // Current request ID (for cancellation)
-	lastError        string        // Last error message from server
-	streamBody       io.ReadCloser // Current stream body (for cancellation)
-	streamingText   strings.Builder // Accumulated streaming response
-	eventChan       chan StreamEvent // Channel for streaming events
-	currentEvent    *StreamEvent     // Current event being displayed
-	eventHistory    []StreamEvent    // History of events (for verbose mode)
+	config           Config
+	messages         []Message
+	thinking         []ThinkingStep
+	isThinking       bool
+	thinkingStart    time.Time
+	textarea         textarea.Model
+	viewport         viewport.Model
+	renderer         *glamour.TermRenderer
+	width            int
+	height           int
+	ready            bool
+	quitting         bool
+	showHelp         bool
+	showCommands     bool
+	commandSelected  int
+	showSubmenu      bool
+	submenuSelected  int
+	submenuParent    string
+	asyncMode        string // "auto", "on", "off" - shown as ⚡/A/S indicator
+	err              error
+	inputHistory     []string         // History of user inputs
+	historyIndex     int              // Current position in history (-1 = new input)
+	currentInput     string           // Saved current input when navigating history
+	showExitHint     bool             // Show "Ctrl+C again to exit" hint
+	exitHintStart    time.Time        // When the exit hint was shown
+	requestAborted   bool             // Flag to ignore response after abort
+	sessionID        string           // Current session ID (from API response)
+	currentRequestID string           // Current request ID (for cancellation)
+	lastError        string           // Last error message from server
+	streamBody       io.ReadCloser    // Current stream body (for cancellation)
+	streamingText    strings.Builder  // Accumulated streaming response
+	eventChan        chan StreamEvent // Channel for streaming events
+	currentEvent     *StreamEvent     // Current event being displayed
+	eventHistory     []StreamEvent    // History of events (for verbose mode)
 }
 
 // Command represents a slash command
@@ -542,7 +542,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if !m.isThinking && strings.TrimSpace(val) != "" {
 				input := m.textarea.Value()
-				
+
 				// Handle slash commands
 				if strings.HasPrefix(input, "/") {
 					return m.handleCommand(input)
@@ -558,9 +558,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.historyIndex = -1
 				m.currentInput = ""
-				m.requestAborted = false  // Reset abort flag for new request
-				m.currentRequestID = "" // Clear previous request ID
-				m.lastError = ""        // Clear previous error
+				m.requestAborted = false // Reset abort flag for new request
+				m.currentRequestID = ""  // Clear previous request ID
+				m.lastError = ""         // Clear previous error
 
 				// Add user message and print above TUI (persists in scrollback)
 				m.messages = append(m.messages, Message{
@@ -1118,7 +1118,7 @@ func indentContent(content string) string {
 			wrappedLines = append(wrappedLines, wrapText(line, 72)...)
 		}
 	}
-	
+
 	// Add indentation
 	for i, line := range wrappedLines {
 		if i == 0 {
@@ -1244,7 +1244,7 @@ func (m Model) renderHeader() string {
 	var b strings.Builder
 
 	// Top border: ╭─── MUXI Chat ─────...─╮ (64 chars)
-	b.WriteString(dim("╭─── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", 48) + "╮"))
+	b.WriteString(dim("╭─── ") + gold("MUXI Chat") + dim(" "+strings.Repeat("─", 48)+"╮"))
 	b.WriteString("\n")
 
 	// Line 1: empty (64 chars)
@@ -1330,7 +1330,7 @@ func (m Model) renderMessages() string {
 				}
 				b.WriteString("\n")
 			}
-			
+
 			// Show thinking after user message (before response)
 			// Check if next message is assistant or if we're still thinking
 			isLastMsg := i == len(m.messages)-1
@@ -1348,7 +1348,7 @@ func (m Model) renderMessages() string {
 			// Add M prefix on first line, then align rest
 			b.WriteString(" ")
 			b.WriteString(goldStyle.Render("𝐌"))
-			
+
 			lines := strings.Split(strings.TrimSpace(rendered), "\n")
 			for j, line := range lines {
 				if j > 0 {
@@ -1372,7 +1372,7 @@ func (m Model) renderMessages() string {
 func (m Model) renderHelp() string {
 	dim := dimmedStyle.Render
 	key := userStyle.Render // Brand color for keys
-	
+
 	var b strings.Builder
 	b.WriteString(dim("╭───────────────────────────────────────────────────────────╮") + "\n")
 	b.WriteString(dim("│  Basics                                                   │") + "\n")
@@ -1391,7 +1391,7 @@ func (m Model) renderHelp() string {
 	b.WriteString(dim("│  Delete word                             ") + key("Option + Delete") + dim("  │") + "\n")
 	b.WriteString(dim("│  Delete line                                ") + key("Cmd + Delete") + dim("  │") + "\n")
 	b.WriteString(dim("╰───────────────────────────────────────────────────────────╯") + "\n")
-	
+
 	return b.String()
 }
 
@@ -1409,7 +1409,7 @@ func (m Model) filterCommands(input string) []Command {
 func (m Model) renderCommands() string {
 	dim := dimmedStyle.Render
 	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e")).Bold(true).Render
-	
+
 	filtered := m.filterCommands(m.textarea.Value())
 	if len(filtered) == 0 {
 		return ""
@@ -1417,13 +1417,13 @@ func (m Model) renderCommands() string {
 
 	var b strings.Builder
 	b.WriteString(dim("╭──────────────────────────────────────────────────────────────╮") + "\n")
-	
+
 	for i, cmd := range filtered {
 		prefix := "  "
 		if i == m.commandSelected {
 			prefix = "> "
 		}
-		
+
 		// Format: prefix + command name (padded) + description
 		name := cmd.Name
 		desc := cmd.Description
@@ -1432,7 +1432,7 @@ func (m Model) renderCommands() string {
 		if len(desc) > maxDesc {
 			desc = desc[:maxDesc-3] + "..."
 		}
-		
+
 		line := fmt.Sprintf("%-12s  %-42s", name, desc)
 		if i == m.commandSelected {
 			b.WriteString(dim("│ ") + sel(prefix+line) + dim("   │") + "\n")
@@ -1440,10 +1440,10 @@ func (m Model) renderCommands() string {
 			b.WriteString(dim("│ "+prefix) + fmt.Sprintf("%-12s", name) + dim("  "+fmt.Sprintf("%-42s", desc)) + dim("   │") + "\n")
 		}
 	}
-	
+
 	b.WriteString(dim("╰──────────────────────────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
-	
+
 	return b.String()
 }
 
@@ -1466,7 +1466,7 @@ func (m Model) handleSubmenuSelection(cmd *Command, idx int) string {
 func (m Model) renderSubmenu() string {
 	dim := dimmedStyle.Render
 	sel := lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e")).Bold(true).Render
-	
+
 	cmd := m.getCommandByName(m.submenuParent)
 	if cmd == nil || len(cmd.Submenu) == 0 {
 		return ""
@@ -1477,13 +1477,13 @@ func (m Model) renderSubmenu() string {
 	b.WriteString(dim("╭──────────────────────────────────────────╮") + "\n")
 	b.WriteString(dim("│") + fmt.Sprintf("  %-40s", cmd.Name) + dim("│") + "\n")
 	b.WriteString(dim("├──────────────────────────────────────────┤") + "\n")
-	
+
 	for i, item := range cmd.Submenu {
 		prefix := "  "
 		if i == m.submenuSelected {
 			prefix = "> "
 		}
-		
+
 		content := fmt.Sprintf("%-10s %-27s", item.Name, item.Description)
 		if i == m.submenuSelected {
 			b.WriteString(dim("│") + sel(" "+prefix+content) + dim(" │") + "\n")
@@ -1491,17 +1491,17 @@ func (m Model) renderSubmenu() string {
 			b.WriteString(dim("│ "+prefix+content+" │") + "\n")
 		}
 	}
-	
+
 	b.WriteString(dim("╰──────────────────────────────────────────╯") + "\n")
 	b.WriteString(dim("  ↑/↓ navigate • Tab/Enter select • Esc cancel") + "\n")
-	
+
 	return b.String()
 }
 
 func (m Model) renderThinking() string {
 	var b strings.Builder
 	margin := " "
-	
+
 	frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 	elapsed := time.Since(m.thinkingStart)
 	frame := frames[int(elapsed.Milliseconds()/100)%len(frames)]

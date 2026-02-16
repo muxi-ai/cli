@@ -1260,7 +1260,7 @@ func checkResponse(resp *http.Response) error {
 	}
 
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	// Try to parse as API error
 	var apiResp APIResponse
 	if json.Unmarshal(body, &apiResp) == nil && apiResp.Error != nil {

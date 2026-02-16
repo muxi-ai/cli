@@ -469,9 +469,9 @@ func TestShouldExclude(t *testing.T) {
 		{"src", true, false, false},
 		{"formation.yaml", false, false, false},
 		// memory.db tests
-		{"memory.db", false, false, true},       // excluded by default
-		{"memory.db", false, true, false},       // included with flag
-		{"other.db", false, false, false},       // other db files not excluded
+		{"memory.db", false, false, true}, // excluded by default
+		{"memory.db", false, true, false}, // included with flag
+		{"other.db", false, false, false}, // other db files not excluded
 	}
 
 	for _, tt := range tests {

@@ -139,8 +139,8 @@ type ConfigResponse struct {
 		Resource string `json:"resource"`
 	} `json:"secrets"`
 	MCP struct {
-		DefaultRetryAttempts  int    `json:"default_retry_attempts"`
-		DefaultTimeoutSeconds int    `json:"default_timeout_seconds"`
+		DefaultRetryAttempts  int `json:"default_retry_attempts"`
+		DefaultTimeoutSeconds int `json:"default_timeout_seconds"`
 		Servers               struct {
 			Total    int    `json:"total"`
 			Resource string `json:"resource"`
@@ -286,10 +286,10 @@ type Message struct {
 
 // MessageMetadata contains message metadata
 type MessageMetadata struct {
-	Role       string `json:"role"`
-	UserID     string `json:"user_id,omitempty"`
-	SessionID  string `json:"session_id,omitempty"`
-	AgentID    string `json:"agent_id,omitempty"`
+	Role      string `json:"role"`
+	UserID    string `json:"user_id,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
+	AgentID   string `json:"agent_id,omitempty"`
 }
 
 // GetContent returns text or content
@@ -599,15 +599,15 @@ type OverlordConfigResponse struct {
 	} `json:"clarification,omitempty"`
 
 	Workflow struct {
-		RoutingStrategy      string `json:"routing_strategy,omitempty"`
-		AutoDecomposition    bool   `json:"auto_decomposition,omitempty"`
-		PlanApprovalThreshold int   `json:"plan_approval_threshold,omitempty"`
-		ComplexityMethod     string `json:"complexity_method,omitempty"`
-		ParallelExecution    bool   `json:"parallel_execution,omitempty"`
-		MaxParallelTasks     int    `json:"max_parallel_tasks,omitempty"`
-		EnableAgentAffinity  bool   `json:"enable_agent_affinity,omitempty"`
-		ErrorRecovery        string `json:"error_recovery,omitempty"`
-		Timeouts             struct {
+		RoutingStrategy       string `json:"routing_strategy,omitempty"`
+		AutoDecomposition     bool   `json:"auto_decomposition,omitempty"`
+		PlanApprovalThreshold int    `json:"plan_approval_threshold,omitempty"`
+		ComplexityMethod      string `json:"complexity_method,omitempty"`
+		ParallelExecution     bool   `json:"parallel_execution,omitempty"`
+		MaxParallelTasks      int    `json:"max_parallel_tasks,omitempty"`
+		EnableAgentAffinity   bool   `json:"enable_agent_affinity,omitempty"`
+		ErrorRecovery         string `json:"error_recovery,omitempty"`
+		Timeouts              struct {
 			TaskTimeout     int `json:"task_timeout,omitempty"`
 			WorkflowTimeout int `json:"workflow_timeout,omitempty"`
 		} `json:"timeouts,omitempty"`
@@ -687,8 +687,8 @@ type TriggerRequest struct {
 // Async: status="processing", Content empty
 // Sync: status="completed", Content has response
 type TriggerResponse struct {
-	RequestID string `json:"-"`                // From envelope request.id (not in data)
-	Status    string `json:"status"`           // "processing" or "completed"
+	RequestID string `json:"-"`                 // From envelope request.id (not in data)
+	Status    string `json:"status"`            // "processing" or "completed"
 	Content   string `json:"content,omitempty"` // Response content (sync only)
 }
 
@@ -823,8 +823,8 @@ type SessionDetailResponse struct {
 
 // LoggingDestinationsResponse from GET /logging/destinations
 type LoggingDestinationsResponse struct {
-	System       LoggingSystemConfig              `json:"system"`
-	Conversation LoggingConversationDestinations  `json:"conversation"`
+	System       LoggingSystemConfig             `json:"system"`
+	Conversation LoggingConversationDestinations `json:"conversation"`
 }
 
 // LoggingConversationDestinations represents conversation logging destinations

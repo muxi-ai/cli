@@ -404,23 +404,23 @@ type ModelSettings struct {
 	MaxRetries    string
 	FallbackModel string
 	// Vision-specific
-	ImageMaxSizeMB    string
-	ImageResize       bool
-	ImageMaxWidth     string
-	ImageMaxHeight    string
+	ImageMaxSizeMB string
+	ImageResize    bool
+	ImageMaxWidth  string
+	ImageMaxHeight string
 	// Audio-specific
 	AudioMaxSizeMB string
 	AudioLanguage  string
 	// Video-specific
-	VideoMaxSizeMB       string
-	VideoMaxDuration     string
-	VideoIncludeAudio    bool
+	VideoMaxSizeMB    string
+	VideoMaxDuration  string
+	VideoIncludeAudio bool
 	// Documents-specific
-	DocsMaxSizeMB    string
-	DocsChunkSize    string
-	DocsOverlap      string
-	DocsStrategy     string
-	DocsCacheTTL     string
+	DocsMaxSizeMB string
+	DocsChunkSize string
+	DocsOverlap   string
+	DocsStrategy  string
+	DocsCacheTTL  string
 }
 
 // configureModelSettings configures settings for a model

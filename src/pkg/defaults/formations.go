@@ -11,7 +11,7 @@ import (
 
 // FormationsConfig is the structure of ~/.muxi/cli/formations.yaml
 type FormationsConfig struct {
-	Version    string                     `yaml:"version"`
+	Version    string                    `yaml:"version"`
 	Formations map[string]FormationEntry `yaml:"formations"`
 }
 

@@ -46,7 +46,7 @@ func TestHashMachineID(t *testing.T) {
 func TestLocalState(t *testing.T) {
 	// Create temp dir for test
 	tmpDir := t.TempDir()
-	
+
 	// Override home dir for test
 	origHome := os.Getenv("HOME")
 	os.Setenv("HOME", tmpDir)

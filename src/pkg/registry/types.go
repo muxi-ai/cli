@@ -4,19 +4,19 @@ import "time"
 
 // Formation represents a formation in the registry
 type Formation struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Owner       string    `json:"owner"`
-	Description string    `json:"description"`
-	Version     string    `json:"version"`
-	Stars       int       `json:"stars"`
-	Downloads   int       `json:"downloads"`
-	Size        int64     `json:"size"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Owner       string     `json:"owner"`
+	Description string     `json:"description"`
+	Version     string     `json:"version"`
+	Stars       int        `json:"stars"`
+	Downloads   int        `json:"downloads"`
+	Size        int64      `json:"size"`
 	Components  Components `json:"components"`
-	RegistryURL string    `json:"registry_url"`
-	GitHubURL   string    `json:"github_url"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	RegistryURL string     `json:"registry_url"`
+	GitHubURL   string     `json:"github_url"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // Components describes formation components
@@ -56,8 +56,8 @@ type SearchItem struct {
 
 // PublishResult represents publish response
 type PublishResult struct {
-	Status    string              `json:"status"`
-	Message   string              `json:"message"`
+	Status    string               `json:"status"`
+	Message   string               `json:"message"`
 	Formation PublishFormationInfo `json:"formation"`
 }
 

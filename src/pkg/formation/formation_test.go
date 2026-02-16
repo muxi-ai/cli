@@ -36,7 +36,7 @@ func TestResolveUserID(t *testing.T) {
 
 func TestNewClient(t *testing.T) {
 	client := NewClient("http://localhost:7890/api/test/v1", "admin-key", "client-key")
-	
+
 	if client.BaseURL != "http://localhost:7890/api/test/v1" {
 		t.Errorf("BaseURL = %q, want %q", client.BaseURL, "http://localhost:7890/api/test/v1")
 	}

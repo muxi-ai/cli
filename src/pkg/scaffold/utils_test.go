@@ -137,7 +137,7 @@ func TestParseEnvironmentVariables(t *testing.T) {
 
 func TestTriggerTemplateBasic(t *testing.T) {
 	result := triggerTemplate("on-message")
-	
+
 	if result == "" {
 		t.Error("triggerTemplate() returned empty string")
 	}
@@ -152,7 +152,7 @@ func TestExtractA2ARegistries(t *testing.T) {
     registries:
       - http://registry1.com
       - http://registry2.com`
-	
+
 	result := extractA2ARegistries(content)
 	_ = result
 }
@@ -162,7 +162,7 @@ func TestExtractA2AAuthType(t *testing.T) {
   inbound:
     auth:
       type: bearer`
-	
+
 	result := extractA2AAuthType(content)
 	_ = result
 }
@@ -181,7 +181,7 @@ func TestMCPTemplateNew(t *testing.T) {
 		"",
 		nil,
 	)
-	
+
 	if result == "" {
 		t.Error("mcpTemplateNew() returned empty string")
 	}
@@ -192,7 +192,7 @@ func TestMCPTemplateNew(t *testing.T) {
 
 func TestFormatExistingInfo(t *testing.T) {
 	result := formatExistingInfo("My Agent", "Does helpful things")
-	
+
 	if result == "" {
 		t.Error("formatExistingInfo() returned empty string")
 	}

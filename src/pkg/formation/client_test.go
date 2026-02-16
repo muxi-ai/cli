@@ -22,7 +22,7 @@ func TestHealth(t *testing.T) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
-		
+
 		// Health endpoint returns plain JSON (no envelope)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -46,7 +46,7 @@ func TestGetStatus(t *testing.T) {
 		if r.URL.Path != "/status" {
 			t.Errorf("expected path /status, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -79,7 +79,7 @@ func TestGetConfig(t *testing.T) {
 		if r.URL.Path != "/config" {
 			t.Errorf("expected path /config, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -105,7 +105,7 @@ func TestGetAgents(t *testing.T) {
 		if r.URL.Path != "/agents" {
 			t.Errorf("expected path /agents, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -134,7 +134,7 @@ func TestGetSecrets(t *testing.T) {
 		if r.URL.Path != "/secrets" {
 			t.Errorf("expected path /secrets, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -163,7 +163,7 @@ func TestGetTriggers(t *testing.T) {
 		if r.URL.Path != "/triggers" {
 			t.Errorf("expected path /triggers, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -189,7 +189,7 @@ func TestGetSOPs(t *testing.T) {
 		if r.URL.Path != "/sops" {
 			t.Errorf("expected path /sops, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -215,13 +215,13 @@ func TestGetSessions(t *testing.T) {
 		if r.URL.Path != "/sessions" {
 			t.Errorf("expected path /sessions, got %s", r.URL.Path)
 		}
-		
+
 		// Check user header
 		userID := r.Header.Get("X-Muxi-User-ID")
 		if userID != "alice" {
 			t.Errorf("X-Muxi-User-ID = %q, want 'alice'", userID)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -249,7 +249,7 @@ func TestGetRequests(t *testing.T) {
 		if r.URL.Path != "/requests" {
 			t.Errorf("expected path /requests, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -280,7 +280,7 @@ func TestCancelRequest(t *testing.T) {
 		if r.Method != "DELETE" {
 			t.Errorf("expected DELETE, got %s", r.Method)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -300,7 +300,7 @@ func TestGetAuditLog(t *testing.T) {
 		if r.URL.Path != "/audit" {
 			t.Errorf("expected path /audit, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -329,7 +329,7 @@ func TestClearAuditLog(t *testing.T) {
 		if r.Method != "DELETE" {
 			t.Errorf("expected DELETE, got %s", r.Method)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -352,13 +352,13 @@ func TestChat(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		
+
 		var req ChatRequest
 		json.NewDecoder(r.Body).Decode(&req)
 		if req.Message != "Hello" {
 			t.Errorf("Message = %q, want 'Hello'", req.Message)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -388,7 +388,7 @@ func TestSetSecret(t *testing.T) {
 		if r.Method != "PUT" {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -411,7 +411,7 @@ func TestDeleteSecret(t *testing.T) {
 		if r.Method != "DELETE" {
 			t.Errorf("expected DELETE, got %s", r.Method)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -471,7 +471,7 @@ func TestAPIKeyHeaders(t *testing.T) {
 			if adminKey != "test-admin-key" {
 				t.Errorf("X-MUXI-ADMIN-KEY = %q, want 'test-admin-key'", adminKey)
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success": true,
@@ -489,7 +489,7 @@ func TestAPIKeyHeaders(t *testing.T) {
 			if clientKey != "test-client-key" {
 				t.Errorf("X-MUXI-CLIENT-KEY = %q, want 'test-client-key'", clientKey)
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success": true,
@@ -511,7 +511,7 @@ func TestGetAgent(t *testing.T) {
 		if r.URL.Path != "/agents/test-agent" {
 			t.Errorf("expected path /agents/test-agent, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -537,7 +537,7 @@ func TestGetMCPServers(t *testing.T) {
 		if r.URL.Path != "/mcp/servers" {
 			t.Errorf("expected path /mcp/servers, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -565,7 +565,7 @@ func TestGetTrigger(t *testing.T) {
 		if r.URL.Path != "/triggers/on-message" {
 			t.Errorf("expected path /triggers/on-message, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -591,7 +591,7 @@ func TestGetSOP(t *testing.T) {
 		if r.URL.Path != "/sops/test-sop" {
 			t.Errorf("expected path /sops/test-sop, got %s", r.URL.Path)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -1297,8 +1297,8 @@ func TestResolveUserNew(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"data": map[string]interface{}{
-				"identifier":     "email:test@example.com",
-				"muxi_user_id":   "user-123",
+				"identifier":       "email:test@example.com",
+				"muxi_user_id":     "user-123",
 				"internal_user_id": 1,
 			},
 		})

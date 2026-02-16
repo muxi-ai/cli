@@ -66,17 +66,17 @@ server:
     admin_key: "${{ secrets.FORMATION_ADMIN_API_KEY }}"
     client_key: "${{ secrets.FORMATION_CLIENT_API_KEY }}"
 
-overlord: {}
 `, config.Name, config.DisplayName, description))
 
-	// Streaming (only if enabled)
+	// Overlord + streaming
 	if config.EnableStreaming {
-		b.WriteString(`  response:
+		b.WriteString(`overlord:
+  response:
     streaming: true
 
 `)
 	} else {
-		b.WriteString("\n")
+		b.WriteString("overlord: {}\n\n")
 	}
 
 	// Async (only if enabled with webhook)
@@ -227,46 +227,46 @@ Created with MUXI CLI.
 
 ## Structure
 
-- ` + "`formation.yaml`" + ` - Formation configuration
-- ` + "`agents/`" + ` - Agent definitions
-- ` + "`mcps/`" + ` - MCP server configurations
-- ` + "`a2a/`" + ` - Agent-to-Agent communication configs
-- ` + "`sops/`" + ` - Standard Operating Procedures
-- ` + "`triggers/`" + ` - Event triggers
-- ` + "`knowledge/`" + ` - Knowledge base documents
-- ` + "`secrets.enc`" + ` - Encrypted secrets
-- ` + "`.key`" + ` - Encryption key (**never commit!**)
+- `+"`formation.yaml`"+` - Formation configuration
+- `+"`agents/`"+` - Agent definitions
+- `+"`mcps/`"+` - MCP server configurations
+- `+"`a2a/`"+` - Agent-to-Agent communication configs
+- `+"`sops/`"+` - Standard Operating Procedures
+- `+"`triggers/`"+` - Event triggers
+- `+"`knowledge/`"+` - Knowledge base documents
+- `+"`secrets.enc`"+` - Encrypted secrets
+- `+"`.key`"+` - Encryption key (**never commit!**)
 
 ## Getting Started
 
 1. Configure secrets (if not done during init):
-   ` + "```bash\n" + `   muxi secrets setup
-   ` + "```\n" + `
+   `+"```bash\n"+`   muxi secrets setup
+   `+"```\n"+`
 
 2. Validate formation:
-   ` + "```bash\n" + `   muxi validate
-   ` + "```\n" + `
+   `+"```bash\n"+`   muxi validate
+   `+"```\n"+`
 
 3. Deploy:
-   ` + "```bash\n" + `   muxi deploy --profile production
-   ` + "```\n" + `
+   `+"```bash\n"+`   muxi deploy --profile production
+   `+"```\n"+`
 
 ## Adding Components
 
-` + "```bash\n" + `muxi new agent my-agent
+`+"```bash\n"+`muxi new agent my-agent
 muxi new mcp my-mcp
 muxi new sop my-procedure
 muxi new trigger my-trigger
 muxi new a2a external-api
-` + "```\n" + `
+`+"```\n"+`
 
 ## Development
 
-Edit ` + "`formation.yaml`" + ` and component files, then:
+Edit `+"`formation.yaml`"+` and component files, then:
 
-` + "```bash\n" + `muxi validate          # Check configuration
+`+"```bash\n"+`muxi validate          # Check configuration
 muxi deploy --profile localhost  # Test locally
-` + "```\n" + `
+`+"```\n"+`
 `, name, description)
 }
 

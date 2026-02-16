@@ -23,19 +23,19 @@ var Version = "dev"
 
 // FormationConfig holds all configuration gathered during the wizard
 type FormationConfig struct {
-	Name             string // ID (slug)
-	DisplayName      string // Human-readable name
-	Description      string
-	EnableStreaming  bool
-	EnableAsync      bool
-	WebhookURL       string
-	ProviderType     string // "cloud", "local", "enterprise"
-	Provider         *LLMProvider
-	LocalProvider    *LocalProvider
-	LocalBaseURL     string
-	LocalModel       string
+	Name               string // ID (slug)
+	DisplayName        string // Human-readable name
+	Description        string
+	EnableStreaming    bool
+	EnableAsync        bool
+	WebhookURL         string
+	ProviderType       string // "cloud", "local", "enterprise"
+	Provider           *LLMProvider
+	LocalProvider      *LocalProvider
+	LocalBaseURL       string
+	LocalModel         string
 	EnterpriseProvider *EnterpriseProvider
-	APIKey           string
+	APIKey             string
 }
 
 // CreateFormation creates a new formation directory with all necessary files
@@ -252,11 +252,11 @@ func CreateFormation(name string, noWizard bool) error {
 	// Use preferred file extension (.afs or .yaml)
 	formationFileName := "formation." + defaults.GetFileExtension()
 	files := map[string]string{
-		".gitignore":        gitignoreTemplate(),
-		".muxi":             muxiTemplate(),
-		formationFileName:   generateFormationYAML(config),
-		"README.md":         readmeTemplate(config.Name, config.Description),
-		"SOUL.md":           soulTemplate(),
+		".gitignore":      gitignoreTemplate(),
+		".muxi":           muxiTemplate(),
+		formationFileName: generateFormationYAML(config),
+		"README.md":       readmeTemplate(config.Name, config.Description),
+		"SOUL.md":         soulTemplate(),
 	}
 
 	for filename, content := range files {

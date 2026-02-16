@@ -19,8 +19,8 @@ var embeddingModelDimensions = map[string]int{
 	"openai/text-embedding-3-small": 1536,
 	"openai/text-embedding-ada-002": 1536,
 	// Cohere
-	"cohere/embed-english-v3.0":      1024,
-	"cohere/embed-multilingual-v3.0": 1024,
+	"cohere/embed-english-v3.0":       1024,
+	"cohere/embed-multilingual-v3.0":  1024,
 	"cohere/embed-english-light-v3.0": 384,
 	// Voyage
 	"voyage/voyage-large-2": 1536,

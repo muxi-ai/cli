@@ -167,21 +167,21 @@ fi`
 		// Fish uses a completions directory, just write directly
 		completionsDir := filepath.Join(home, ".config", "fish", "completions")
 		completionFile := filepath.Join(completionsDir, "muxi.fish")
-		
+
 		if err := os.MkdirAll(completionsDir, 0755); err != nil {
 			return fmt.Errorf("failed to create completions directory: %w", err)
 		}
-		
+
 		f, err := os.Create(completionFile)
 		if err != nil {
 			return fmt.Errorf("failed to create completion file: %w", err)
 		}
 		defer f.Close()
-		
+
 		if err := rootCmd.GenFishCompletion(f, true); err != nil {
 			return fmt.Errorf("failed to generate fish completion: %w", err)
 		}
-		
+
 		fmt.Println()
 		ui.Success(fmt.Sprintf("Installed completion to %s", completionFile))
 		fmt.Println()

@@ -32,12 +32,12 @@ Status can be: processing, completed, failed, or cancelled.`,
 }
 
 var requestsShowCmd = &cobra.Command{
-	Use:   "show <request-id>",
-	Short: "Get request status",
-	Long:  `Get detailed status of a specific request.`,
+	Use:     "show <request-id>",
+	Short:   "Get request status",
+	Long:    `Get detailed status of a specific request.`,
 	Example: `  muxi requests show req_abc123`,
-	Args: RequireArgs(1),
-	RunE: runRequestsShow,
+	Args:    RequireArgs(1),
+	RunE:    runRequestsShow,
 }
 
 var requestsCancelCmd = &cobra.Command{

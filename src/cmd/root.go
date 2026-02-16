@@ -40,9 +40,9 @@ var (
 const boxWidth = 64
 
 var rootCmd = &cobra.Command{
-	Use:   "muxi",
-	Short: "MUXI CLI - Formation development and server management",
-	Long:  "Build, deploy, and manage MUXI formations with ease.",
+	Use:           "muxi",
+	Short:         "MUXI CLI - Formation development and server management",
+	Long:          "Build, deploy, and manage MUXI formations with ease.",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -151,7 +151,7 @@ func printBoxWithSubtitle(title, subtitle string) {
 	fmt.Print("╭")
 	fmt.Print(strings.Repeat("─", boxWidth-2))
 	fmt.Println("╮")
-	
+
 	// Title with colored subtitle right-aligned
 	content := title
 	padding := boxWidth - 4 - len(content) - len(subtitle)
@@ -159,7 +159,7 @@ func printBoxWithSubtitle(title, subtitle string) {
 		padding = 1
 	}
 	fmt.Printf("│ %s%s%s │\n", content, strings.Repeat(" ", padding), gold.Sprint(subtitle))
-	
+
 	printBoxDivider()
 }
 
@@ -167,14 +167,14 @@ func printBoxSimple(title, subtitle string) {
 	fmt.Print("╭")
 	fmt.Print(strings.Repeat("─", boxWidth-2))
 	fmt.Println("╮")
-	
+
 	content := title
 	padding := boxWidth - 4 - len(content) - len(subtitle)
 	if padding < 1 {
 		padding = 1
 	}
 	fmt.Printf("│ %s%s%s │\n", content, strings.Repeat(" ", padding), gold.Sprint(subtitle))
-	
+
 	fmt.Print("╰")
 	fmt.Print(strings.Repeat("─", boxWidth-2))
 	fmt.Println("╯")
@@ -218,7 +218,7 @@ func printColoredCommand(content string) {
 	// Color $ as dimmed, muxi as cyan
 	colored := strings.Replace(content, "$", dimmed.Sprint("$"), 1)
 	colored = strings.Replace(colored, "muxi", cyan.Sprint("muxi"), 1)
-	
+
 	// Calculate padding (account for ANSI codes not taking visual space)
 	visualLen := len(content)
 	padding := boxWidth - 4 - visualLen

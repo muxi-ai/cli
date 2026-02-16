@@ -89,7 +89,7 @@ func downloadInFormationDir(ctx *context.FormationContext, profileFlag string, f
 		fmt.Println()
 		ui.Warning(fmt.Sprintf("This will replace the entire '%s' directory with the server version.", ctx.ID))
 		fmt.Println()
-		
+
 		confirmed, err := wizard.PromptConfirm("Download and replace?", false)
 		if err != nil || !confirmed {
 			ui.Dimmed("Cancelled")
@@ -162,7 +162,7 @@ func downloadOutsideFormationDir(profileFlag string, force bool, includeDB bool,
 			fmt.Println()
 			ui.Warning(fmt.Sprintf("Directory '%s' already exists and will be overwritten.", formationID))
 			fmt.Println()
-			
+
 			confirmed, err := wizard.PromptConfirm("Continue?", false)
 			if err != nil || !confirmed {
 				ui.Dimmed("Cancelled")
@@ -182,7 +182,7 @@ func downloadOutsideFormationDir(profileFlag string, force bool, includeDB bool,
 		fmt.Println()
 		fmt.Printf("This will download '%s' from server '%s' to ./%s/\n", formationID, profile, formationID)
 		fmt.Println()
-		
+
 		confirmed, err := wizard.PromptConfirm("Continue?", true)
 		if err != nil || !confirmed {
 			ui.Dimmed("Cancelled")
@@ -228,7 +228,7 @@ func clearFormationDir(dir string, preserveDB bool) error {
 		".git":  true,
 		".muxi": true,
 	}
-	
+
 	if preserveDB {
 		preserve["memory.db"] = true
 	}

@@ -14,8 +14,8 @@ import (
 )
 
 var formationsCmd = &cobra.Command{
-	Use:   "formations",
-	Short: "Manage saved formation configs",
+	Use:     "formations",
+	Short:   "Manage saved formation configs",
 	GroupID: "server",
 	Long: `Add, list, and manage saved formation configurations.
 

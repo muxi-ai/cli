@@ -115,7 +115,7 @@ func (e *UserIDRequiredError) Error() string {
 // ClientFromFlags creates a Formation API client from command flags
 func ClientFromFlags(cmd *cobra.Command) (*Client, error) {
 	flags := GetCommonFlags(cmd)
-	
+
 	profile := ResolveProfile(flags.Profile)
 	formationID, err := ResolveFormationID(flags.FormationID)
 	if err != nil {
@@ -128,7 +128,7 @@ func ClientFromFlags(cmd *cobra.Command) (*Client, error) {
 // ClientAndUserFromFlags creates a client and resolves user ID from flags
 func ClientAndUserFromFlags(cmd *cobra.Command) (*Client, string, error) {
 	flags := GetCommonFlags(cmd)
-	
+
 	client, err := ClientFromFlags(cmd)
 	if err != nil {
 		return nil, "", err

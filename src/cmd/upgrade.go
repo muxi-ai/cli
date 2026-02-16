@@ -33,9 +33,9 @@ func init() {
 func runUpgrade(cmd *cobra.Command, args []string) error {
 	// Force refresh cache to get latest version
 	updates.RefreshCache()
-	
+
 	updateInfo := updates.CheckCachedUpdate()
-	
+
 	if updateInfo == nil {
 		fmt.Println()
 		ui.Success("MUXI CLI is up to date")
@@ -76,15 +76,15 @@ func detectInstallMethod() string {
 	exeLower := strings.ToLower(exe)
 
 	// Check for Homebrew (macOS/Linux)
-	if strings.Contains(exeLower, "homebrew") || 
-	   strings.Contains(exeLower, "cellar") ||
-	   strings.Contains(exeLower, "linuxbrew") {
+	if strings.Contains(exeLower, "homebrew") ||
+		strings.Contains(exeLower, "cellar") ||
+		strings.Contains(exeLower, "linuxbrew") {
 		return "homebrew"
 	}
 
 	// Check for Go install
 	if strings.Contains(exeLower, "go/bin") ||
-	   strings.Contains(exeLower, "gopath") {
+		strings.Contains(exeLower, "gopath") {
 		return "go"
 	}
 
