@@ -584,7 +584,7 @@ type LoggingDestination struct {
 
 // OverlordConfigResponse from GET /overlord
 type OverlordConfigResponse struct {
-	Persona    string `json:"persona,omitempty"`
+	Soul       string `json:"soul,omitempty"`
 	SystemNote string `json:"system_note,omitempty"`
 
 	Clarification struct {
@@ -799,9 +799,9 @@ type FormationInfoResponse struct {
 	Version     string `json:"version"`
 }
 
-// OverlordPersonaResponse from GET /overlord/persona
-type OverlordPersonaResponse struct {
-	Persona string `json:"persona"`
+// OverlordSoulResponse from GET /overlord/soul
+type OverlordSoulResponse struct {
+	Soul string `json:"soul"`
 }
 
 // SecretResponse from GET /secrets/{key}

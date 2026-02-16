@@ -273,7 +273,7 @@ var configOverlordCmd = &cobra.Command{
 	Long: `Configure Overlord settings in formation.yaml.
 
 This command provides an interactive wizard for:
-  - Persona (identity and communication style)
+  - Soul (identity and communication style)
   - Response options (format, streaming, progress)
   - Workflow behavior (routing, decomposition, timeouts)
   - Clarification settings (question style, limits)

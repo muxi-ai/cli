@@ -984,15 +984,15 @@ func (c *Client) GetFormationInfo() (*FormationInfoResponse, error) {
 	return parseResponse[FormationInfoResponse](resp)
 }
 
-// GetOverlordPersona gets the overlord persona text
-func (c *Client) GetOverlordPersona() (*OverlordPersonaResponse, error) {
-	resp, err := c.Get("/overlord/persona")
+// GetOverlordSoul gets the overlord soul text
+func (c *Client) GetOverlordSoul() (*OverlordSoulResponse, error) {
+	resp, err := c.Get("/overlord/soul")
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return parseResponse[OverlordPersonaResponse](resp)
+	return parseResponse[OverlordSoulResponse](resp)
 }
 
 // GetSecret gets a single secret by key (masked)

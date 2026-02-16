@@ -256,6 +256,7 @@ func CreateFormation(name string, noWizard bool) error {
 		".muxi":             muxiTemplate(),
 		formationFileName:   generateFormationYAML(config),
 		"README.md":         readmeTemplate(config.Name, config.Description),
+		"SOUL.md":           soulTemplate(),
 	}
 
 	for filename, content := range files {

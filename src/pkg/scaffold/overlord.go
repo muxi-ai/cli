@@ -35,7 +35,7 @@ func ConfigureOverlord() error {
 
 	// Step 1: What to configure
 	options := []wizard.SelectOption{
-		{Value: "persona", Label: "Persona (identity and communication style)"},
+		{Value: "soul", Label: "Soul (identity and communication style)"},
 		{Value: "response", Label: "Response options (format, streaming, progress)"},
 		{Value: "workflow", Label: "Workflow behavior (routing, decomposition, timeouts)"},
 		{Value: "clarification", Label: "Clarification settings (question style, limits)"},
@@ -47,8 +47,8 @@ func ConfigureOverlord() error {
 	}
 
 	switch choice {
-	case "persona":
-		return configureOverlordPersona(ctx.RootDir)
+	case "soul":
+		return configureOverlordSoul(ctx.RootDir)
 	case "response":
 		return configureOverlordResponse(ctx.RootDir)
 	case "workflow":
@@ -60,57 +60,42 @@ func ConfigureOverlord() error {
 	return nil
 }
 
-// configureOverlordPersona handles Flow 1: Persona
-func configureOverlordPersona(rootDir string) error {
+// configureOverlordSoul handles Flow 1: Soul (identity and communication style)
+func configureOverlordSoul(rootDir string) error {
 	fmt.Println()
-	ui.Bold("Overlord Persona")
+	ui.Bold("Overlord Soul")
 	fmt.Println()
-	ui.Dimmed("  The persona defines how the Overlord communicates with users.")
+	ui.Dimmed("  The soul defines who the Overlord is and how it communicates.")
+	ui.Dimmed("  Edit SOUL.md in your formation directory to customize.")
 	fmt.Println()
 
-	// How to set persona
-	options := []wizard.SelectOption{
-		{Value: "editor", Label: "Enter text directly (opens $EDITOR)"},
-		{Value: "file", Label: "Load from file"},
+	soulPath := fmt.Sprintf("%s/SOUL.md", rootDir)
+
+	// Create SOUL.md if it doesn't exist
+	if _, err := os.Stat(soulPath); os.IsNotExist(err) {
+		if err := os.WriteFile(soulPath, []byte(soulTemplate()), 0644); err != nil {
+			return fmt.Errorf("failed to create SOUL.md: %w", err)
+		}
+		ui.PromptSuccess("  Soul", "created SOUL.md")
 	}
 
-	method, err := wizard.PromptSelect("  How would you like to set the persona?", options, 0)
-	if err != nil {
-		return err
+	// Open in editor
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vi"
 	}
 
-	var persona string
+	cmd := exec.Command(editor, soulPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	if method == "editor" {
-		// Open editor with empty content (like git commit)
-		persona, err = editInEditor("")
-		if err != nil {
-			return fmt.Errorf("failed to open editor: %w", err)
-		}
-
-		if persona == "" {
-			ui.PromptSkipped("  Persona (empty, no changes made)")
-			return nil
-		}
-		ui.PromptSuccess("  Persona", "updated via editor")
-	} else {
-		// Load from file
-		ui.Dimmed("  Path to persona file (markdown or text)")
-		filePath, err := wizard.PromptString("  Path", "", validateFileExists)
-		if err != nil {
-			return err
-		}
-
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to read file: %w", err)
-		}
-		persona = string(content)
-		ui.PromptSuccess("  Persona", fmt.Sprintf("loaded from %s", filePath))
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to open editor: %w", err)
 	}
 
-	// Update formation.yaml
-	return updateOverlordPersonaInFormation(rootDir, persona)
+	ui.PromptSuccess("  Soul", "updated via editor")
+	return nil
 }
 
 // configureOverlordResponse handles Flow 2: Response Options
@@ -440,7 +425,7 @@ func editInEditor(initialContent string) (string, error) {
 	}
 
 	// Create temp file
-	tmpFile, err := os.CreateTemp("", "muxi-persona-*.md")
+	tmpFile, err := os.CreateTemp("", "muxi-soul-*.md")
 	if err != nil {
 		return "", err
 	}
@@ -521,7 +506,7 @@ func getIndexForValue(values []string, current string, defaultIdx int) int {
 	return defaultIdx
 }
 
-func getCurrentOverlordPersona(rootDir string) string {
+func getCurrentOverlordSoul(rootDir string) string {
 	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
@@ -530,10 +515,10 @@ func getCurrentOverlordPersona(rootDir string) string {
 
 	contentStr := string(content)
 
-	// Look for persona under overlord
-	// This is a simple extraction - persona is multi-line
-	personaPattern := regexp.MustCompile(`(?s)overlord:\s*\n\s*persona:\s*\|?\s*\n((?:\s{4,}.*\n?)*)`)
-	matches := personaPattern.FindStringSubmatch(contentStr)
+	// Look for soul under overlord
+	// This is a simple extraction - soul is multi-line
+	soulPattern := regexp.MustCompile(`(?s)overlord:\s*\n\s*soul:\s*\|?\s*\n((?:\s{4,}.*\n?)*)`)
+	matches := soulPattern.FindStringSubmatch(contentStr)
 	if len(matches) > 1 {
 		// Remove leading indentation
 		lines := strings.Split(matches[1], "\n")
@@ -635,26 +620,26 @@ func getCurrentOverlordValue(rootDir, section, key string) string {
 
 // Formation update functions
 
-func updateOverlordPersonaInFormation(rootDir, persona string) error {
+func updateOverlordSoulInFormation(rootDir, soul string) error {
 	formationFile, _ := context.FindFormationFile(rootDir)
 	content, err := os.ReadFile(formationFile)
 	if err != nil {
 		return err
 	}
 
-	// Indent persona lines
-	personaLines := strings.Split(persona, "\n")
-	var indentedPersona strings.Builder
-	for _, line := range personaLines {
-		indentedPersona.WriteString("    " + line + "\n")
+	// Indent soul lines
+	soulLines := strings.Split(soul, "\n")
+	var indentedSoul strings.Builder
+	for _, line := range soulLines {
+		indentedSoul.WriteString("    " + line + "\n")
 	}
 
-	// Build overlord persona YAML
+	// Build overlord soul YAML
 	var overlordYAML strings.Builder
-	overlordYAML.WriteString("  persona: |\n")
-	overlordYAML.WriteString(indentedPersona.String())
+	overlordYAML.WriteString("  soul: |\n")
+	overlordYAML.WriteString(indentedSoul.String())
 
-	return updateOverlordSectionInFormation(formationFile, content, "persona", overlordYAML.String())
+	return updateOverlordSectionInFormation(formationFile, content, "soul", overlordYAML.String())
 }
 
 func updateOverlordResponseInFormation(rootDir, format string, streaming, progress bool) error {
@@ -752,15 +737,15 @@ func updateOverlordSectionInFormation(formationFile string, content []byte, sect
 			continue
 		}
 
-		// Found the specific subsection (e.g., "  persona:", "  response:", etc.)
+		// Found the specific subsection (e.g., "  soul:", "  response:", etc.)
 		if inOverlord && trimmed == section+":" && strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
 			sectionStartIdx = i
 			inSection = true
 			continue
 		}
 
-		// Handle persona which might be multi-line with |
-		if inOverlord && section == "persona" && strings.HasPrefix(trimmed, "persona:") {
+		// Handle soul which might be multi-line with |
+		if inOverlord && section == "soul" && strings.HasPrefix(trimmed, "soul:") {
 			sectionStartIdx = i
 			inSection = true
 			continue

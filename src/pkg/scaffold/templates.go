@@ -66,9 +66,7 @@ server:
     admin_key: "${{ secrets.FORMATION_ADMIN_API_KEY }}"
     client_key: "${{ secrets.FORMATION_CLIENT_API_KEY }}"
 
-overlord:
-  persona: |
-    You are a helpful AI assistant.
+overlord: {}
 `, config.Name, config.DisplayName, description))
 
 	// Streaming (only if enabled)
@@ -270,4 +268,19 @@ Edit ` + "`formation.yaml`" + ` and component files, then:
 muxi deploy --profile localhost  # Test locally
 ` + "```\n" + `
 `, name, description)
+}
+
+func soulTemplate() string {
+	return `You are a helpful AI assistant.
+
+## How you communicate
+- Be clear, concise, and friendly
+- Match the user's level of technical detail
+- Ask clarifying questions rather than guessing
+
+## What you value
+- Accuracy over speed
+- Honesty over comfort
+- The user's time is sacred
+`
 }
