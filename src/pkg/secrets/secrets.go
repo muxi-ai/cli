@@ -493,8 +493,18 @@ func ScanFormationFiles(rootDir string) ([]string, error) {
 				continue
 			}
 
-			// Find all matches
-			matches := re.FindAllStringSubmatch(string(content), -1)
+			// Filter out comment lines before scanning
+			var activeLines []string
+			for _, line := range strings.Split(string(content), "\n") {
+				trimmed := strings.TrimSpace(line)
+				if !strings.HasPrefix(trimmed, "#") {
+					activeLines = append(activeLines, line)
+				}
+			}
+			filteredContent := strings.Join(activeLines, "\n")
+
+			// Find all matches in non-commented content
+			matches := re.FindAllStringSubmatch(filteredContent, -1)
 			for _, match := range matches {
 				if len(match) >= 2 {
 					// Normalize the secret name
