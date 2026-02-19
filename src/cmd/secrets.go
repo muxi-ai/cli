@@ -451,6 +451,19 @@ func runSecretsSetup(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(templateKeys) == 0 {
+		// Check if there are secrets referenced in formation files
+		referencedSecrets, scanErr := secrets.ScanFormationFiles(ctx.RootDir)
+		if scanErr == nil && len(referencedSecrets) > 0 {
+			sort.Strings(referencedSecrets)
+			ui.Warning("Secrets referenced in formation files but not in template:")
+			for _, s := range referencedSecrets {
+				fmt.Printf("  - %s\n", s)
+			}
+			fmt.Println()
+			ui.Dimmed("Run 'muxi secrets sync' to update the template")
+			return nil
+		}
+
 		ui.Dimmed("No secrets in template file")
 		fmt.Println()
 		ui.Dimmed("Add secrets to the 'secrets' file or use:")
@@ -472,6 +485,35 @@ func runSecretsSetup(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(missingKeys) == 0 {
+		// Also check if there are secrets referenced in formation files but not in template
+		referencedSecrets, scanErr := secrets.ScanFormationFiles(ctx.RootDir)
+		if scanErr == nil && len(referencedSecrets) > 0 {
+			// Build set of template keys
+			templateSet := make(map[string]bool)
+			for _, k := range templateKeys {
+				templateSet[k] = true
+			}
+
+			// Find secrets referenced but not in template
+			var notInTemplate []string
+			for _, ref := range referencedSecrets {
+				if !templateSet[ref] {
+					notInTemplate = append(notInTemplate, ref)
+				}
+			}
+
+			if len(notInTemplate) > 0 {
+				sort.Strings(notInTemplate)
+				ui.Warning("Some secrets are referenced but not in template:")
+				for _, s := range notInTemplate {
+					fmt.Printf("  - %s\n", s)
+				}
+				fmt.Println()
+				ui.Dimmed("Run 'muxi secrets sync' to update the template")
+				return nil
+			}
+		}
+
 		ui.Success("All secrets are configured")
 		return nil
 	}
