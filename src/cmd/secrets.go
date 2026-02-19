@@ -706,9 +706,13 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Process deletions (delete from both template and secrets.enc)
+	// Process unreferenced secrets
 	if len(toDelete) > 0 {
-		if interactive && !dryRun {
+		if dryRun {
+			for _, name := range toDelete {
+				fmt.Printf("  %s %s (unreferenced)\n", ui.RedText("-"), name)
+			}
+		} else if interactive {
 			fmt.Println()
 			ui.Bold("The following secrets are no longer referenced:")
 			for _, name := range toDelete {
@@ -718,28 +722,29 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 			fmt.Print("Delete these secrets? (y/N): ")
 			var confirm string
 			fmt.Scanln(&confirm)
-			if strings.ToLower(confirm) != "y" {
-				ui.Dimmed("Skipped deletion")
-				toDelete = nil
-			}
-		}
-
-		for _, name := range toDelete {
-			if dryRun {
-				fmt.Printf("  %s %s (would delete)\n", ui.RedText("-"), name)
-			} else {
-				// Delete from secrets.enc (may not exist there)
-				if currentSet[name] {
-					if _, err := mgr.Delete(name); err != nil {
-						ui.Warning(fmt.Sprintf("  Failed to delete %s: %v", name, err))
+			if strings.ToLower(confirm) == "y" {
+				for _, name := range toDelete {
+					if currentSet[name] {
+						if _, err := mgr.Delete(name); err != nil {
+							ui.Warning(fmt.Sprintf("  Failed to delete %s: %v", name, err))
+						}
 					}
+					if err := mgr.DeleteFromTemplate(name); err != nil {
+						ui.Warning(fmt.Sprintf("  Failed to remove %s from template: %v", name, err))
+					}
+					fmt.Printf("  %s %s (deleted)\n", ui.RedText("-"), name)
 				}
-				// Delete from template
-				if err := mgr.DeleteFromTemplate(name); err != nil {
-					ui.Warning(fmt.Sprintf("  Failed to remove %s from template: %v", name, err))
-				}
-				fmt.Printf("  %s %s (deleted)\n", ui.RedText("-"), name)
+			} else {
+				ui.Dimmed("Skipped deletion")
 			}
+		} else {
+			// Non-interactive: warn only, don't delete
+			ui.Warning(fmt.Sprintf("%d secret(s) no longer referenced in formation files:", len(toDelete)))
+			for _, name := range toDelete {
+				fmt.Printf("  - %s\n", name)
+			}
+			fmt.Println()
+			ui.Dimmed("Run 'muxi secrets sync -i' to review and delete")
 		}
 	}
 
