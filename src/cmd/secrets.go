@@ -679,8 +679,8 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 	}
 	sort.Strings(toDelete)
 
-	// Show changes
-	hasChanges := len(toAdd) > 0 || len(toDelete) > 0
+	// Show changes (unreferenced secrets only count as changes in interactive/dry-run mode)
+	hasChanges := len(toAdd) > 0 || (len(toDelete) > 0 && (dryRun || interactive))
 
 	if !hasChanges {
 		ui.Success("Secrets are in sync")
@@ -706,13 +706,13 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Process unreferenced secrets
-	if len(toDelete) > 0 {
+	// Process unreferenced secrets (only with -i flag)
+	if len(toDelete) > 0 && (dryRun || interactive) {
 		if dryRun {
 			for _, name := range toDelete {
 				fmt.Printf("  %s %s (unreferenced)\n", ui.RedText("-"), name)
 			}
-		} else if interactive {
+		} else {
 			fmt.Println()
 			ui.Bold("The following secrets are no longer referenced:")
 			for _, name := range toDelete {
@@ -737,14 +737,6 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 			} else {
 				ui.Dimmed("Skipped deletion")
 			}
-		} else {
-			// Non-interactive: warn only, don't delete
-			ui.Warning(fmt.Sprintf("%d secret(s) no longer referenced in formation files:", len(toDelete)))
-			for _, name := range toDelete {
-				fmt.Printf("  - %s\n", name)
-			}
-			fmt.Println()
-			ui.Dimmed("Run 'muxi secrets sync -i' to review and delete")
 		}
 	}
 
