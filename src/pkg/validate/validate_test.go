@@ -74,6 +74,21 @@ func TestCollectSecretRefs(t *testing.T) {
 			content: "${{ secrets.MY_API_KEY_123 }}",
 			want:    []string{"MY_API_KEY_123"},
 		},
+		{
+			name:    "commented secret ignored",
+			content: "# api_key: ${{ secrets.COMMENTED_OUT }}\nactive: ${{ secrets.ACTIVE_KEY }}",
+			want:    []string{"ACTIVE_KEY"},
+		},
+		{
+			name:    "all commented",
+			content: "# ${{ secrets.COMMENTED }}\n# key: ${{ secrets.ALSO_COMMENTED }}",
+			want:    []string{},
+		},
+		{
+			name:    "inline comment after value not ignored",
+			content: "api_key: ${{ secrets.KEY }} # this is a comment",
+			want:    []string{"KEY"},
+		},
 	}
 
 	for _, tt := range tests {

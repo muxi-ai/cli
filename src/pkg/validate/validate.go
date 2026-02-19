@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/secrets"
@@ -215,9 +216,20 @@ func validateLLM(formation map[string]interface{}, fileName string, result *Resu
 }
 
 // collectSecretRefs finds all ${{ secrets.* }} references in content
+// It ignores YAML comment lines (lines starting with #)
 func collectSecretRefs(content string) []string {
+	// Filter out comment lines before scanning
+	var activeLines []string
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "#") {
+			activeLines = append(activeLines, line)
+		}
+	}
+	filteredContent := strings.Join(activeLines, "\n")
+
 	pattern := regexp.MustCompile(`\$\{\{\s*secrets\.([A-Z0-9_]+)\s*\}\}`)
-	matches := pattern.FindAllStringSubmatch(content, -1)
+	matches := pattern.FindAllStringSubmatch(filteredContent, -1)
 
 	refs := make([]string, 0, len(matches))
 	seen := make(map[string]bool)
