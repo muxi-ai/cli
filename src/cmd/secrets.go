@@ -444,6 +444,15 @@ func runSecretsSetup(cmd *cobra.Command, args []string) error {
 
 	mgr := secrets.NewManager(ctx.RootDir)
 
+	// Scan formation files for actually referenced secrets
+	referencedSecrets, scanErr := secrets.ScanFormationFiles(ctx.RootDir)
+	referencedSet := make(map[string]bool)
+	if scanErr == nil {
+		for _, s := range referencedSecrets {
+			referencedSet[s] = true
+		}
+	}
+
 	// Get template keys
 	templateKeys, err := mgr.GetTemplateKeys()
 	if err != nil {
@@ -451,9 +460,7 @@ func runSecretsSetup(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(templateKeys) == 0 {
-		// Check if there are secrets referenced in formation files
-		referencedSecrets, scanErr := secrets.ScanFormationFiles(ctx.RootDir)
-		if scanErr == nil && len(referencedSecrets) > 0 {
+		if len(referencedSecrets) > 0 {
 			sort.Strings(referencedSecrets)
 			ui.Warning("Secrets referenced in formation files but not in template:")
 			for _, s := range referencedSecrets {
@@ -471,47 +478,63 @@ func runSecretsSetup(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// Filter template keys to only those actually referenced in formation files
+	// (removes stale entries like commented-out secrets)
+	var activeKeys []string
+	var staleKeys []string
+	for _, key := range templateKeys {
+		if len(referencedSet) == 0 || referencedSet[key] {
+			activeKeys = append(activeKeys, key)
+		} else {
+			staleKeys = append(staleKeys, key)
+		}
+	}
+
+	if len(staleKeys) > 0 {
+		ui.Warning(fmt.Sprintf("%d secret(s) in template but not referenced in formation files:", len(staleKeys)))
+		for _, s := range staleKeys {
+			fmt.Printf("  - %s\n", s)
+		}
+		fmt.Println()
+		ui.Dimmed("Run 'muxi secrets sync' to clean up the template")
+		fmt.Println()
+	}
+
 	// Initialize manager (loads secrets.enc if exists)
 	if err := mgr.Initialize(); err != nil {
 		return fmt.Errorf("failed to initialize secrets: %w", err)
 	}
 
-	// Find keys that need values
+	// Find keys that need values (only active keys)
 	var missingKeys []string
-	for _, key := range templateKeys {
+	for _, key := range activeKeys {
 		if !mgr.Exists(key) {
 			missingKeys = append(missingKeys, key)
 		}
 	}
 
 	if len(missingKeys) == 0 {
-		// Also check if there are secrets referenced in formation files but not in template
-		referencedSecrets, scanErr := secrets.ScanFormationFiles(ctx.RootDir)
-		if scanErr == nil && len(referencedSecrets) > 0 {
-			// Build set of template keys
-			templateSet := make(map[string]bool)
-			for _, k := range templateKeys {
-				templateSet[k] = true
+		// Check for secrets referenced but not in template
+		var notInTemplate []string
+		templateSet := make(map[string]bool)
+		for _, k := range templateKeys {
+			templateSet[k] = true
+		}
+		for _, ref := range referencedSecrets {
+			if !templateSet[ref] {
+				notInTemplate = append(notInTemplate, ref)
 			}
+		}
 
-			// Find secrets referenced but not in template
-			var notInTemplate []string
-			for _, ref := range referencedSecrets {
-				if !templateSet[ref] {
-					notInTemplate = append(notInTemplate, ref)
-				}
+		if len(notInTemplate) > 0 {
+			sort.Strings(notInTemplate)
+			ui.Warning("Some secrets are referenced but not in template:")
+			for _, s := range notInTemplate {
+				fmt.Printf("  - %s\n", s)
 			}
-
-			if len(notInTemplate) > 0 {
-				sort.Strings(notInTemplate)
-				ui.Warning("Some secrets are referenced but not in template:")
-				for _, s := range notInTemplate {
-					fmt.Printf("  - %s\n", s)
-				}
-				fmt.Println()
-				ui.Dimmed("Run 'muxi secrets sync' to update the template")
-				return nil
-			}
+			fmt.Println()
+			ui.Dimmed("Run 'muxi secrets sync' to update the template")
+			return nil
 		}
 
 		ui.Success("All secrets are configured")
@@ -602,10 +625,16 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Found %d secret(s)\n", len(foundSecrets))
 	fmt.Println()
 
-	// Get current secrets
+	// Get current secrets from secrets.enc
 	currentSecrets, err := mgr.List()
 	if err != nil {
 		return fmt.Errorf("failed to list current secrets: %w", err)
+	}
+
+	// Get current template keys
+	templateKeys, err := mgr.GetTemplateKeys()
+	if err != nil {
+		return fmt.Errorf("failed to read secrets template: %w", err)
 	}
 
 	// Build sets for comparison
@@ -619,21 +648,36 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 		currentSet[s] = true
 	}
 
+	templateSet := make(map[string]bool)
+	for _, s := range templateKeys {
+		templateSet[s] = true
+	}
+
 	// Find secrets to add (in formation files but not in template)
 	var toAdd []string
 	for _, s := range foundSecrets {
-		if !currentSet[s] {
+		if !templateSet[s] {
 			toAdd = append(toAdd, s)
 		}
 	}
 
-	// Find secrets to delete (in secrets.enc but not in formation files)
-	var toDelete []string
+	// Find secrets to delete (in secrets.enc or template but not in formation files)
+	deleteSet := make(map[string]bool)
 	for _, s := range currentSecrets {
 		if !foundSet[s] {
-			toDelete = append(toDelete, s)
+			deleteSet[s] = true
 		}
 	}
+	for _, s := range templateKeys {
+		if !foundSet[s] {
+			deleteSet[s] = true
+		}
+	}
+	var toDelete []string
+	for s := range deleteSet {
+		toDelete = append(toDelete, s)
+	}
+	sort.Strings(toDelete)
 
 	// Show changes
 	hasChanges := len(toAdd) > 0 || len(toDelete) > 0
@@ -684,10 +728,11 @@ func runSecretsSync(cmd *cobra.Command, args []string) error {
 			if dryRun {
 				fmt.Printf("  %s %s (would delete)\n", ui.RedText("-"), name)
 			} else {
-				// Delete from secrets.enc
-				if _, err := mgr.Delete(name); err != nil {
-					ui.Warning(fmt.Sprintf("  Failed to delete %s: %v", name, err))
-					continue
+				// Delete from secrets.enc (may not exist there)
+				if currentSet[name] {
+					if _, err := mgr.Delete(name); err != nil {
+						ui.Warning(fmt.Sprintf("  Failed to delete %s: %v", name, err))
+					}
 				}
 				// Delete from template
 				if err := mgr.DeleteFromTemplate(name); err != nil {
