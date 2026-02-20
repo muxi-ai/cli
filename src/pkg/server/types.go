@@ -13,9 +13,10 @@ type APIResponse struct {
 
 // HealthResponse from GET /health (actual server response)
 type HealthResponse struct {
-	Success bool `json:"success"`
+	Success bool   `json:"success"`
+	Status  string `json:"status"` // top-level "ok" when healthy
 	Data    struct {
-		Status     string `json:"status"` // "ok" when healthy
+		Status     string `json:"status"` // nested "ok" when healthy
 		Formations int    `json:"formations"`
 		PortPool   struct {
 			Allocated int `json:"allocated"`
@@ -23,6 +24,14 @@ type HealthResponse struct {
 			Total     int `json:"total"`
 		} `json:"port_pool"`
 	} `json:"data"`
+}
+
+// GetStatus returns the health status from either top-level or nested data field
+func (h *HealthResponse) GetStatus() string {
+	if h.Data.Status != "" {
+		return h.Data.Status
+	}
+	return h.Status
 }
 
 // ServerStatusResponse from GET /rpc/server/status

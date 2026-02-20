@@ -173,8 +173,28 @@ func TestHealth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Health() error: %v", err)
 	}
-	if health.Data.Status != "ok" {
-		t.Errorf("Data.Status = %q, want 'ok'", health.Data.Status)
+	if health.GetStatus() != "ok" {
+		t.Errorf("GetStatus() = %q, want 'ok'", health.GetStatus())
+	}
+}
+
+func TestHealthTopLevelStatus(t *testing.T) {
+	server, client := mockServerClient(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"status":  "ok",
+			"version": "0.1.0",
+		})
+	})
+	defer server.Close()
+
+	health, err := client.Health()
+	if err != nil {
+		t.Fatalf("Health() error: %v", err)
+	}
+	if health.GetStatus() != "ok" {
+		t.Errorf("GetStatus() = %q, want 'ok'", health.GetStatus())
 	}
 }
 

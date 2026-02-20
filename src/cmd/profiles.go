@@ -325,9 +325,9 @@ func runProfilesStatus(cmd *cobra.Command, args []string) error {
 	if healthErr != nil || health == nil {
 		statusIcon = ui.RedText("●")
 		statusText = "unreachable"
-	} else if health.Data.Status != "ok" {
+	} else if health.GetStatus() != "ok" {
 		statusIcon = ui.RedText("●")
-		statusText = health.Data.Status
+		statusText = health.GetStatus()
 	}
 	fmt.Printf("  Status:     %s %s\n", statusIcon, statusText)
 	fmt.Printf("  Version:    %s\n", status.Server.Version)
