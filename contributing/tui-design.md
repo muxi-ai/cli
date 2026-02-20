@@ -423,7 +423,7 @@ Summary:
 ✗ Validation failed
 
   Found 3 errors in formation.yaml:
-    • Line 12: Missing required field 'overlord.persona'
+    • Line 12: Missing required field 'overlord.soul'
     • Line 25: Invalid model format 'gpt4' (use 'openai/gpt-4')
     • Line 40: Undefined secret reference 'DATABASE_URL'
 

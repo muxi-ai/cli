@@ -27,7 +27,7 @@
 
 #### Configuration
 - `muxi config llm` - Configure LLM providers and models
-- `muxi config overlord` - Configure Overlord persona and behavior
+- `muxi config overlord` - Configure Overlord soul and behavior
 - `muxi config memory` - Configure memory settings
 - `muxi config logging` - Configure logging streams
 - `muxi config async` - Configure async response settings

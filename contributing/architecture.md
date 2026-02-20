@@ -133,7 +133,7 @@ Create new components with interactive wizards:
 Configure formation settings:
 - `muxi config llm` - LLM provider settings
 - `muxi config memory` - Memory configuration
-- `muxi config overlord` - Overlord persona
+- `muxi config overlord` - Overlord soul
 - `muxi config security` - Credentials
 - `muxi config logging` - Log streams
 - `muxi config async` - Async responses
