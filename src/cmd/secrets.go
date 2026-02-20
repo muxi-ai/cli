@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/muxi-ai/cli/pkg/secrets"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var secretsCmd = &cobra.Command{
@@ -560,8 +562,13 @@ func runSecretsSetup(cmd *cobra.Command, args []string) error {
 	configured := 0
 	for _, key := range missingKeys {
 		fmt.Printf("  %s: ", key)
-		var value string
-		fmt.Scanln(&value)
+		rawValue, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println() // newline after hidden input
+		if err != nil {
+			ui.Warning(fmt.Sprintf("    Failed to read %s: %v", key, err))
+			continue
+		}
+		value := strings.TrimSpace(string(rawValue))
 
 		if value == "" {
 			ui.Dimmed(fmt.Sprintf("    Skipped %s (empty)", key))
