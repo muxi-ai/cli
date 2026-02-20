@@ -100,6 +100,7 @@ docs/_site
 coverage/
 *.tsbuildinfo
 src/muxi
+/muxi
 
 # dotenv environment variable files
 .env
