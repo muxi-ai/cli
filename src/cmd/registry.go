@@ -81,6 +81,15 @@ var showCmd = &cobra.Command{
 	RunE:    runShow,
 }
 
+// orgsCmd handles muxi orgs
+var orgsCmd = &cobra.Command{
+	Use:     "orgs",
+	Short:   "List your organizations",
+	GroupID: "registry",
+	Long:    "List organizations you belong to and their publish permissions",
+	RunE:    runOrgs,
+}
+
 // registryCmd is the parent command for registry subcommands
 var registryCmd = &cobra.Command{
 	Use:     "registry",
@@ -146,6 +155,11 @@ var (
 		Short: "List my published formations",
 		RunE:  runMine,
 	}
+	registryOrgsCmd = &cobra.Command{
+		Use:   "orgs",
+		Short: "List your organizations",
+		RunE:  runOrgs,
+	}
 )
 
 func init() {
@@ -174,6 +188,9 @@ func init() {
 	showCmd.Flags().Bool("versions", false, "Show all versions")
 	showCmd.Flags().String("registry", "", "Registry to query")
 
+	// Orgs flags
+	orgsCmd.Flags().String("registry", "", "Registry to query")
+
 	// Register top-level commands
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
@@ -181,6 +198,7 @@ func init() {
 	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(showCmd)
+	rootCmd.AddCommand(orgsCmd)
 
 	// Register registry parent command with subcommands as aliases
 	rootCmd.AddCommand(registryCmd)
@@ -213,6 +231,9 @@ func init() {
 	registryCmd.AddCommand(registryAddCmd)
 	registryCmd.AddCommand(registryRemoveCmd)
 	registryCmd.AddCommand(registryMineCmd)
+
+	registryOrgsCmd.Flags().String("registry", "", "Registry to query")
+	registryCmd.AddCommand(registryOrgsCmd)
 }
 
 // runLogin handles the login command
@@ -1101,6 +1122,60 @@ func runRegistryRemove(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	ui.Success(fmt.Sprintf("Removed registry: %s", selected))
+
+	return nil
+}
+
+// runOrgs handles muxi orgs
+func runOrgs(cmd *cobra.Command, args []string) error {
+	registryFlag, _ := cmd.Flags().GetString("registry")
+
+	client, err := registry.NewClient(registryFlag)
+	if err != nil {
+		return err
+	}
+
+	if !client.IsAuthenticated() {
+		return fmt.Errorf("not authenticated - run 'muxi login' first")
+	}
+
+	result, err := client.GetOrgs()
+	if err != nil {
+		return err
+	}
+
+	if result.Count == 0 {
+		fmt.Println()
+		ui.Dimmed("  No organizations found")
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Printf("  Found %d organization(s)\n", result.Count)
+	fmt.Println()
+
+	for _, org := range result.Orgs {
+		if org.CanPublish {
+			fmt.Printf("  %s %s\n", ui.GreenText("●"), ui.BoldText(org.Login))
+		} else {
+			fmt.Printf("  %s %s\n", ui.DimmedText("○"), ui.BoldText(org.Login))
+		}
+
+		if org.Description != "" {
+			desc := org.Description
+			if len(desc) > 60 {
+				desc = desc[:57] + "..."
+			}
+			fmt.Printf("    %s\n", ui.DimmedText(desc))
+		}
+
+		role := org.Role
+		if org.CanPublish {
+			role += " (can publish)"
+		}
+		fmt.Printf("    %s\n", ui.DimmedText(role))
+		fmt.Println()
+	}
 
 	return nil
 }

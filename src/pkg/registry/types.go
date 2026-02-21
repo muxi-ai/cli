@@ -132,5 +132,20 @@ type FormationRef struct {
 	Full    string
 }
 
+// Org represents a user's organization
+type Org struct {
+	Login      string `json:"login"`
+	AvatarURL  string `json:"avatar_url"`
+	Description string `json:"description"`
+	Role       string `json:"role"`
+	CanPublish bool   `json:"can_publish"`
+}
+
+// OrgsResult represents response from /api/user/orgs
+type OrgsResult struct {
+	Orgs  []Org `json:"orgs"`
+	Count int   `json:"count"`
+}
+
 // DefaultRegistryURL is the default registry
 const DefaultRegistryURL = "registry.muxi.org"
