@@ -81,15 +81,6 @@ var showCmd = &cobra.Command{
 	RunE:    runShow,
 }
 
-// orgsCmd handles muxi orgs
-var orgsCmd = &cobra.Command{
-	Use:     "orgs",
-	Short:   "List your organizations",
-	GroupID: "registry",
-	Long:    "List organizations you belong to and their publish permissions",
-	RunE:    runOrgs,
-}
-
 // registryCmd is the parent command for registry subcommands
 var registryCmd = &cobra.Command{
 	Use:     "registry",
@@ -188,9 +179,6 @@ func init() {
 	showCmd.Flags().Bool("versions", false, "Show all versions")
 	showCmd.Flags().String("registry", "", "Registry to query")
 
-	// Orgs flags
-	orgsCmd.Flags().String("registry", "", "Registry to query")
-
 	// Register top-level commands
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
@@ -198,7 +186,6 @@ func init() {
 	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(searchCmd)
 	rootCmd.AddCommand(showCmd)
-	rootCmd.AddCommand(orgsCmd)
 
 	// Register registry parent command with subcommands as aliases
 	rootCmd.AddCommand(registryCmd)
