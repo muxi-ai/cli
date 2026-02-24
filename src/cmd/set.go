@@ -20,6 +20,7 @@ type DotMuxi struct {
 	Profile  string `yaml:"profile,omitempty"`
 	Registry string `yaml:"registry,omitempty"`
 	UserID   string `yaml:"user_id,omitempty"`
+	Draft    bool   `yaml:"draft,omitempty"`
 }
 
 var setCmd = &cobra.Command{

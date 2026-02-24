@@ -16,13 +16,15 @@ type CommonFlags struct {
 	FormationID string
 	Profile     string
 	UserID      string
+	Draft       bool
 }
 
-// AddCommonFlags adds -f, -p, -u flags to a command
+// AddCommonFlags adds -f, -p, -u, --draft flags to a command
 func AddCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("formation", "f", "", "Formation ID (default: from formation.yaml)")
 	cmd.Flags().StringP("profile", "p", "", "Server profile (default: from .muxi or global)")
 	cmd.Flags().StringP("user", "u", "", "User ID for user-scoped operations")
+	cmd.Flags().Bool("draft", false, "Use draft mode (local dev via muxi up)")
 }
 
 // AddFormationFlag adds just the -f flag
@@ -45,11 +47,13 @@ func GetCommonFlags(cmd *cobra.Command) CommonFlags {
 	formationID, _ := cmd.Flags().GetString("formation")
 	profile, _ := cmd.Flags().GetString("profile")
 	userID, _ := cmd.Flags().GetString("user")
+	draft, _ := cmd.Flags().GetBool("draft")
 
 	return CommonFlags{
 		FormationID: formationID,
 		Profile:     profile,
 		UserID:      userID,
+		Draft:       draft,
 	}
 }
 
@@ -122,7 +126,8 @@ func ClientFromFlags(cmd *cobra.Command) (*Client, error) {
 		return nil, err
 	}
 
-	return NewClientFromContext(profile, formationID)
+	draft := ResolveDraftMode(flags.Draft)
+	return NewClientFromContext(profile, formationID, draft)
 }
 
 // ClientAndUserFromFlags creates a client and resolves user ID from flags

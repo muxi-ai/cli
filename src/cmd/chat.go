@@ -144,7 +144,8 @@ func runChat(cmd *cobra.Command, args []string) error {
 	}
 
 	// Start interactive chat - create client
-	client, err := formation.NewClientFromContext(profile, formationID)
+	draft := formation.ResolveDraftMode(flags.Draft)
+	client, err := formation.NewClientFromContext(profile, formationID, draft)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
@@ -172,7 +173,8 @@ func runChat(cmd *cobra.Command, args []string) error {
 }
 
 func runTextChatOneShot(cmd *cobra.Command, message, formationID, profile, userID, sessionID string, noStream bool) error {
-	client, err := formation.NewClientFromContext(profile, formationID)
+	draft, _ := cmd.Flags().GetBool("draft")
+	client, err := formation.NewClientFromContext(profile, formationID, formation.ResolveDraftMode(draft))
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
@@ -250,7 +252,8 @@ func runAudioChat(cmd *cobra.Command, filePath, formationID, profile, userID, se
 	}
 	encoded := base64.StdEncoding.EncodeToString(data)
 
-	client, err := formation.NewClientFromContext(profile, formationID)
+	draftFlag, _ := cmd.Flags().GetBool("draft")
+	client, err := formation.NewClientFromContext(profile, formationID, formation.ResolveDraftMode(draftFlag))
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
@@ -338,7 +341,8 @@ func runChatWithFile(cmd *cobra.Command, filePath, prompt, formationID, profile,
 	}
 	encoded := base64.StdEncoding.EncodeToString(data)
 
-	client, err := formation.NewClientFromContext(profile, formationID)
+	draftFlag, _ := cmd.Flags().GetBool("draft")
+	client, err := formation.NewClientFromContext(profile, formationID, formation.ResolveDraftMode(draftFlag))
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}

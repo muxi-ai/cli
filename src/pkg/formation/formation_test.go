@@ -8,16 +8,18 @@ func TestBuildFormationURL(t *testing.T) {
 	tests := []struct {
 		serverURL   string
 		formationID string
+		draft       bool
 		want        string
 	}{
-		{"http://localhost:7890", "my-formation", "http://localhost:7890/api/my-formation/v1"},
-		{"https://api.muxi.ai", "prod-bot", "https://api.muxi.ai/api/prod-bot/v1"},
+		{"http://localhost:7890", "my-formation", false, "http://localhost:7890/api/my-formation/v1"},
+		{"https://api.muxi.ai", "prod-bot", false, "https://api.muxi.ai/api/prod-bot/v1"},
+		{"http://localhost:7890", "my-formation", true, "http://localhost:7890/draft/my-formation/v1"},
 	}
 
 	for _, tt := range tests {
-		got := BuildFormationURL(tt.serverURL, tt.formationID)
+		got := BuildFormationURL(tt.serverURL, tt.formationID, tt.draft)
 		if got != tt.want {
-			t.Errorf("BuildFormationURL(%q, %q) = %q, want %q", tt.serverURL, tt.formationID, got, tt.want)
+			t.Errorf("BuildFormationURL(%q, %q, %v) = %q, want %q", tt.serverURL, tt.formationID, tt.draft, got, tt.want)
 		}
 	}
 }

@@ -66,6 +66,41 @@ func TestLoadDotMuxi_NotFound(t *testing.T) {
 	}
 }
 
+func TestSaveDotMuxi(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "muxi-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	config := &DotMuxi{Profile: "local", Draft: true}
+	if err := SaveDotMuxi(tmpDir, config); err != nil {
+		t.Fatalf("SaveDotMuxi() error: %v", err)
+	}
+
+	loaded, err := LoadDotMuxi(tmpDir)
+	if err != nil {
+		t.Fatalf("LoadDotMuxi() error: %v", err)
+	}
+	if !loaded.Draft {
+		t.Error("Draft should be true after save")
+	}
+	if loaded.Profile != "local" {
+		t.Errorf("Profile = %q, want 'local'", loaded.Profile)
+	}
+
+	// Clear draft
+	loaded.Draft = false
+	if err := SaveDotMuxi(tmpDir, loaded); err != nil {
+		t.Fatalf("SaveDotMuxi() error: %v", err)
+	}
+
+	reloaded, _ := LoadDotMuxi(tmpDir)
+	if reloaded.Draft {
+		t.Error("Draft should be false after clearing")
+	}
+}
+
 func TestResolveFormationID(t *testing.T) {
 	// With explicit value
 	id, err := ResolveFormationID("explicit-id")

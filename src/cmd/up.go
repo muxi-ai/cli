@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -8,9 +9,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/server"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
@@ -185,6 +188,28 @@ func runUp(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Printf("  To stop:   %s\n", ui.CyanText("muxi down"))
 	fmt.Println()
+
+	// Prompt to enable draft mode if not already set
+	dotMuxi, _ := formation.LoadDotMuxi(absPath)
+	if !dotMuxi.Draft {
+		fmt.Print("  Enable draft mode for this formation? (Y/n): ")
+		reader := bufio.NewReader(os.Stdin)
+		confirm, _ := reader.ReadString('\n')
+		confirm = strings.TrimSpace(strings.ToLower(confirm))
+
+		if confirm == "" || confirm == "y" || confirm == "yes" {
+			dotMuxi.Draft = true
+			if err := formation.SaveDotMuxi(absPath, dotMuxi); err != nil {
+				ui.Warning(fmt.Sprintf("Failed to save .muxi: %v", err))
+			} else {
+				fmt.Println()
+				ui.Success("Draft mode enabled")
+				ui.Dimmed("  All commands (chat, logs, etc.) will use the draft formation.")
+				ui.Dimmed("  To disable: muxi down (or manually edit .muxi)")
+			}
+		}
+		fmt.Println()
+	}
 
 	return nil
 }

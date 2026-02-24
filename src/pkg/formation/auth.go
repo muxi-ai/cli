@@ -72,16 +72,37 @@ func loadKeysFromSecrets(formationDir string) (adminKey, clientKey string, err e
 // BuildFormationURL constructs the Formation API base URL
 // serverURL: e.g., "http://localhost:7890"
 // formationID: e.g., "my-formation"
-// Returns: "http://localhost:7890/api/my-formation/v1"
-func BuildFormationURL(serverURL, formationID string) string {
-	return fmt.Sprintf("%s/api/%s/v1", serverURL, formationID)
+// draft: if true, uses /draft/ prefix instead of /api/
+// Returns: "http://localhost:7890/api/my-formation/v1" or "http://localhost:7890/draft/my-formation/v1"
+func BuildFormationURL(serverURL, formationID string, draft bool) string {
+	prefix := "api"
+	if draft {
+		prefix = "draft"
+	}
+	return fmt.Sprintf("%s/%s/%s/v1", serverURL, prefix, formationID)
+}
+
+// ResolveDraftMode resolves whether to use draft mode
+// Priority: 1. --draft flag, 2. .muxi file
+func ResolveDraftMode(flagValue bool) bool {
+	if flagValue {
+		return true
+	}
+
+	if ctx, err := context.DetectFormation(); err == nil {
+		if dotMuxi, err := LoadDotMuxi(ctx.RootDir); err == nil && dotMuxi.Draft {
+			return true
+		}
+	}
+
+	return false
 }
 
 // NewClientFromContext creates a Formation API client using context detection
-// It resolves: server profile, formation ID, and API keys
+// It resolves: server profile, formation ID, API keys, and draft mode
 // When a formation ID is provided and not in a formation directory, it checks
 // saved formations in ~/.muxi/cli/formations.yaml
-func NewClientFromContext(profile, formationID string) (*Client, error) {
+func NewClientFromContext(profile, formationID string, draft bool) (*Client, error) {
 	// Check if we're in a formation directory
 	ctx, ctxErr := context.DetectFormation()
 	inFormationDir := ctxErr == nil
@@ -96,7 +117,7 @@ func NewClientFromContext(profile, formationID string) (*Client, error) {
 
 	// Try to use saved formation config when not in formation directory
 	if !inFormationDir && formationID != "" {
-		return newClientFromSavedFormation(profile, formationID)
+		return newClientFromSavedFormation(profile, formationID, draft)
 	}
 
 	// In formation directory - use secrets.enc for keys
@@ -110,12 +131,12 @@ func NewClientFromContext(profile, formationID string) (*Client, error) {
 		return nil, err
 	}
 
-	baseURL := BuildFormationURL(profileEntry.URL, formationID)
+	baseURL := BuildFormationURL(profileEntry.URL, formationID, draft)
 	return NewClient(baseURL, adminKey, clientKey), nil
 }
 
 // newClientFromSavedFormation creates a client using saved formation config
-func newClientFromSavedFormation(profileOverride, formationID string) (*Client, error) {
+func newClientFromSavedFormation(profileOverride, formationID string, draft bool) (*Client, error) {
 	// Get saved formation entry
 	entry, err := defaults.GetFormation(formationID)
 	if err != nil {
@@ -137,7 +158,7 @@ func newClientFromSavedFormation(profileOverride, formationID string) (*Client, 
 		return nil, fmt.Errorf("formation '%s' has no client key configured", formationID)
 	}
 
-	baseURL := BuildFormationURL(profileEntry.URL, formationID)
+	baseURL := BuildFormationURL(profileEntry.URL, formationID, draft)
 	return NewClient(baseURL, entry.AdminKey, entry.ClientKey), nil
 }
 
@@ -146,6 +167,7 @@ type DotMuxi struct {
 	Profile  string `yaml:"profile,omitempty"`
 	Registry string `yaml:"registry,omitempty"`
 	UserID   string `yaml:"user_id,omitempty"`
+	Draft    bool   `yaml:"draft,omitempty"`
 }
 
 // LoadDotMuxi loads the .muxi file from a directory
@@ -165,6 +187,16 @@ func LoadDotMuxi(dir string) (*DotMuxi, error) {
 	}
 
 	return &config, nil
+}
+
+// SaveDotMuxi saves the .muxi file to a directory
+func SaveDotMuxi(dir string, config *DotMuxi) error {
+	path := filepath.Join(dir, ".muxi")
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal .muxi: %w", err)
+	}
+	return os.WriteFile(path, data, 0644)
 }
 
 // ResolveProfile resolves the server profile to use

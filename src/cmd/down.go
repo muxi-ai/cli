@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/muxi-ai/cli/pkg/context"
+	"github.com/muxi-ai/cli/pkg/formation"
 	"github.com/muxi-ai/cli/pkg/server"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
@@ -129,6 +130,17 @@ func runDown(cmd *cobra.Command, args []string) error {
 	}
 
 	spinner.StopWithSuccess(fmt.Sprintf("Stopped %s", result.FormationID))
+
+	// Clear draft mode in .muxi if set
+	if ctx, err := context.DetectFormation(); err == nil {
+		dotMuxi, _ := formation.LoadDotMuxi(ctx.RootDir)
+		if dotMuxi.Draft {
+			dotMuxi.Draft = false
+			if err := formation.SaveDotMuxi(ctx.RootDir, dotMuxi); err == nil {
+				ui.Dimmed("  Draft mode disabled")
+			}
+		}
+	}
 
 	// Success message
 	fmt.Println()
