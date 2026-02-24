@@ -121,7 +121,7 @@ func runProfilesAdd(cmd *cobra.Command, args []string) error {
 	url = strings.TrimSuffix(url, "/")
 
 	fmt.Println()
-	ui.Dimmed("  Enter credentials from ~/.muxi-server/credentials.yaml on the server")
+	ui.Dimmed("  Enter credentials from ~/.muxi/server/config.yaml on the server")
 	fmt.Println()
 
 	// Key ID
