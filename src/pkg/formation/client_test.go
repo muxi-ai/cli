@@ -375,8 +375,8 @@ func TestChat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Chat() error: %v", err)
 	}
-	if resp.Response != "Hi there!" {
-		t.Errorf("Response = %q, want 'Hi there!'", resp.Response)
+	if resp.GetResponseText() != "Hi there!" {
+		t.Errorf("Response = %q, want 'Hi there!'", resp.GetResponseText())
 	}
 }
 

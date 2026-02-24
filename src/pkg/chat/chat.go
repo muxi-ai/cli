@@ -83,8 +83,9 @@ type StreamEvent struct {
 	Stage     string // init, tool_call, response_preparation, etc.
 	Content   string
 	ToolName  string
-	SessionID string // Session ID from server
-	RequestID string // Request ID from server (for cancellation)
+	SessionID string               // Session ID from server
+	RequestID string               // Request ID from server (for cancellation)
+	Artifacts []formation.Artifact // File artifacts (on completed events)
 }
 
 // Message represents a chat message
@@ -710,6 +711,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 		cmds = append(cmds, printAssistantMessageAbove(msg.response))
 
+		// Save and display artifacts
+		for _, art := range msg.artifacts {
+			cmds = append(cmds, saveAndPrintArtifact(art, m.config.FormationID))
+		}
+
 		// Clear event history for next request
 		m.eventHistory = nil
 
@@ -739,6 +745,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Timestamp: time.Now(),
 		})
 		cmds = append(cmds, printAssistantMessageAbove(msg.response))
+
+		// Save and display artifacts
+		for _, art := range msg.artifacts {
+			cmds = append(cmds, saveAndPrintArtifact(art, m.config.FormationID))
+		}
+
 		return m, tea.Sequence(cmds...)
 
 	case responseMsg:
@@ -1056,6 +1068,36 @@ func printAssistantMessageAbove(content string) tea.Cmd {
 // printThinkingStepAbove prints a completed thinking step to history (no trailing space)
 func printThinkingStepAbove(text string) tea.Cmd {
 	return tea.Println(" " + completedStyle.Render("⏺  "+text))
+}
+
+// saveAndPrintArtifact saves an artifact to disk and prints info above the TUI
+func saveAndPrintArtifact(art formation.Artifact, formationID string) tea.Cmd {
+	path, err := formation.SaveArtifact(art, formationID)
+
+	var line string
+	if err != nil {
+		line = fmt.Sprintf("  %s  %s (%s)",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#ff5555")).Render("✗"),
+			art.Filename,
+			err.Error(),
+		)
+	} else {
+		size := formation.FormatArtifactSize(art.Metadata.SizeBytes)
+		detail := size
+		if art.Metadata.Pages > 0 {
+			detail += fmt.Sprintf(", %d pages", art.Metadata.Pages)
+		}
+		if detail != "" {
+			detail = " (" + detail + ")"
+		}
+		line = fmt.Sprintf("  %s  %s%s\n     %s",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#50fa7b")).Render("📎"),
+			art.Filename,
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render(detail),
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Render(path),
+		)
+	}
+	return tea.Println(line)
 }
 
 // printStreamEventAbove prints a stream event to history (for verbose mode)
@@ -1633,6 +1675,7 @@ type streamResponseMsg struct {
 	thinking  []string
 	response  string
 	sessionID string
+	artifacts []formation.Artifact
 }
 type streamEventMsg struct {
 	event     StreamEvent
@@ -1641,6 +1684,7 @@ type streamEventMsg struct {
 type streamCompleteMsg struct {
 	response  string
 	sessionID string
+	artifacts []formation.Artifact
 }
 type streamBodyMsg struct {
 	body io.ReadCloser
@@ -1695,6 +1739,7 @@ func waitForEventFromChan(eventChan chan StreamEvent) tea.Msg {
 		return streamCompleteMsg{
 			response:  event.Content,
 			sessionID: event.SessionID,
+			artifacts: event.Artifacts,
 		}
 	}
 
@@ -1713,16 +1758,17 @@ func (m Model) listenForEvents() tea.Cmd {
 // MuxiToken represents the MUXI streaming token format
 type MuxiToken struct {
 	Token struct {
-		RequestID string `json:"request_id"`
-		UserID    string `json:"user_id"`
-		SessionID string `json:"session_id"`
-		Type      string `json:"type"`    // progress, thinking, planning, completed, text, response
-		Content   string `json:"content"` // The actual content/message
-		Stage     string `json:"stage"`
-		AgentName string `json:"agent_name"`
-		AgentUsed string `json:"agent_used"`
-		ToolName  string `json:"tool_name"`
-		Status    string `json:"status"`
+		RequestID string               `json:"request_id"`
+		UserID    string               `json:"user_id"`
+		SessionID string               `json:"session_id"`
+		Type      string               `json:"type"`    // progress, thinking, planning, completed, text, response
+		Content   string               `json:"content"` // The actual content/message
+		Stage     string               `json:"stage"`
+		AgentName string               `json:"agent_name"`
+		AgentUsed string               `json:"agent_used"`
+		ToolName  string               `json:"tool_name"`
+		Status    string               `json:"status"`
+		Artifacts []formation.Artifact `json:"artifacts,omitempty"`
 	} `json:"token"`
 }
 
@@ -1802,13 +1848,14 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 					response = fullResponse.String()
 				}
 				if debug && debugFile != nil {
-					fmt.Fprintf(debugFile, "COMPLETED: response=%q sessionID=%q\n", truncateForDebug(response, 100), sessionID)
+					fmt.Fprintf(debugFile, "COMPLETED: response=%q sessionID=%q artifacts=%d\n", truncateForDebug(response, 100), sessionID, len(token.Artifacts))
 				}
 				eventChan <- StreamEvent{
 					Type:      "completed",
 					Content:   response,
 					SessionID: sessionID,
 					RequestID: requestID,
+					Artifacts: token.Artifacts,
 				}
 				return
 			case "progress", "thinking", "planning":
@@ -1869,6 +1916,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 	var sessionID string
 	var lastContent string
 	var thinkingSteps []string
+	var artifacts []formation.Artifact
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -1910,6 +1958,9 @@ func processStream(body io.ReadCloser) tea.Msg {
 				// Check if content has the actual response
 				if token.Content != "" && token.Content != "done" {
 					lastContent = token.Content
+				}
+				if len(token.Artifacts) > 0 {
+					artifacts = append(artifacts, token.Artifacts...)
 				}
 			case "progress", "thinking", "planning":
 				// Collect thinking/progress steps to display
@@ -1977,6 +2028,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 			thinking:  thinkingSteps,
 			response:  fullResponse.String(),
 			sessionID: sessionID,
+			artifacts: artifacts,
 		}
 	}
 
@@ -1986,6 +2038,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 			thinking:  thinkingSteps,
 			response:  lastContent,
 			sessionID: sessionID,
+			artifacts: artifacts,
 		}
 	}
 

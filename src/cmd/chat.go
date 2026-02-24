@@ -193,7 +193,17 @@ func runTextChatOneShot(cmd *cobra.Command, message, formationID, profile, userI
 		if err != nil {
 			return fmt.Errorf("chat failed: %w", err)
 		}
-		fmt.Printf("  %s %s\n\n", ui.GoldText("𝐌"), resp.Response)
+		fmt.Printf("  %s %s\n\n", ui.GoldText("𝐌"), resp.GetResponseText())
+		// Save and display artifacts
+		for _, art := range resp.GetResponseArtifacts() {
+			path, err := formation.SaveArtifact(art, formationID)
+			if err != nil {
+				ui.Warning(fmt.Sprintf("  Failed to save %s: %v", art.Filename, err))
+			} else {
+				size := formation.FormatArtifactSize(art.Metadata.SizeBytes)
+				fmt.Printf("  📎  %s (%s)\n     %s\n\n", art.Filename, size, ui.DimmedText(path))
+			}
+		}
 		return nil
 	}
 
@@ -282,7 +292,7 @@ func runAudioChat(cmd *cobra.Command, filePath, formationID, profile, userID, se
 		if err != nil {
 			return fmt.Errorf("audiochat failed: %w", err)
 		}
-		fmt.Printf("%s\n", resp.Response)
+		fmt.Printf("%s\n", resp.GetResponseText())
 		return nil
 	}
 
@@ -371,7 +381,7 @@ func runChatWithFile(cmd *cobra.Command, filePath, prompt, formationID, profile,
 		if err != nil {
 			return fmt.Errorf("chat failed: %w", err)
 		}
-		fmt.Printf("%s\n", resp.Response)
+		fmt.Printf("%s\n", resp.GetResponseText())
 		return nil
 	}
 
