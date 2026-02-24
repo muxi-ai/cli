@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -94,8 +95,9 @@ func runUp(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	// Override base URL with local server
+	// Override base URL and increase timeout for dev startup (MCP servers can take a while)
 	client.BaseURL = fmt.Sprintf("http://%s", serverAddr)
+	client.HTTPClient.Timeout = 5 * time.Minute
 
 	// POST to /rpc/dev/run
 	fmt.Println()
@@ -112,12 +114,55 @@ func runUp(cmd *cobra.Command, args []string) error {
 	resp, err := client.Post("/rpc/dev/run", bytes.NewReader(jsonBody), "application/json")
 	if err != nil {
 		spinner.StopWithError("Failed to connect to server")
-		return fmt.Errorf("failed to connect to server: %w", err)
+		fmt.Println()
+		ui.Error(fmt.Sprintf("Could not reach muxi-server at %s", serverAddr))
+		ui.Dimmed("  The server may be busy starting MCP servers or processing another request.")
+		ui.Dimmed("  Check the server logs for details.")
+		fmt.Println()
+		return nil
 	}
 	defer resp.Body.Close()
 
+	// Read raw body for better error handling
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		spinner.StopWithError("Failed to read response")
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Handle non-success HTTP status codes
+	if resp.StatusCode != http.StatusOK {
+		spinner.StopWithError("Failed to start")
+		fmt.Println()
+
+		// Try to parse structured error
+		var errResp struct {
+			Error   string `json:"error"`
+			Message string `json:"message"`
+			Detail  string `json:"detail"`
+		}
+		if json.Unmarshal(rawBody, &errResp) == nil {
+			msg := errResp.Error
+			if msg == "" {
+				msg = errResp.Message
+			}
+			if msg == "" {
+				msg = errResp.Detail
+			}
+			if msg != "" {
+				ui.Error(msg)
+				fmt.Println()
+				return nil
+			}
+		}
+
+		ui.Error(fmt.Sprintf("Server returned %d: %s", resp.StatusCode, string(rawBody)))
+		fmt.Println()
+		return nil
+	}
+
 	var result DevRunResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(rawBody, &result); err != nil {
 		spinner.StopWithError("Failed to parse response")
 		return fmt.Errorf("failed to parse response: %w", err)
 	}
