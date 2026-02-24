@@ -58,32 +58,52 @@ func GetCommonFlags(cmd *cobra.Command) CommonFlags {
 }
 
 // ResolveUserID resolves the effective user ID
-// Priority: 1. Flag value, 2. .muxi file, 3. Global default
+// Priority: 1. Flag value, 2. .muxi file, 3. Global default, 4. Draft → "tester", 5. No postgres → "default"
 func ResolveUserID(flagValue string) string {
 	if flagValue != "" {
 		return flagValue
 	}
 
 	// Check .muxi in formation directory
-	var formationUserID string
-	if ctx, err := context.DetectFormation(); err == nil {
+	ctx, ctxErr := context.DetectFormation()
+	if ctxErr == nil {
 		if dotMuxi, err := LoadDotMuxi(ctx.RootDir); err == nil {
-			formationUserID = dotMuxi.UserID
+			if dotMuxi.UserID != "" {
+				return dotMuxi.UserID
+			}
 		}
 	}
 
-	return defaults.GetEffectiveUserID(formationUserID)
+	// Check global default
+	if globalUID := defaults.GetUserID(); globalUID != "" {
+		return globalUID
+	}
+
+	// Auto-default for draft mode
+	if ctxErr == nil {
+		if dotMuxi, err := LoadDotMuxi(ctx.RootDir); err == nil && dotMuxi.Draft {
+			return "tester"
+		}
+	}
+
+	// Auto-default for single-user formations (no postgres)
+	if ctxErr == nil && !UsesPostgres(ctx.RootDir) {
+		return "default"
+	}
+
+	return ""
 }
 
 // ResolveUserIDWithFormation resolves user ID considering saved formation config
-// Priority: 1. Flag value, 2. .muxi file, 3. Saved formation default, 4. Global default
+// Priority: 1. Flag value, 2. .muxi file, 3. Saved formation default, 4. Global default, 5. Draft → "tester", 6. No postgres → "default"
 func ResolveUserIDWithFormation(flagValue, formationID string) string {
 	if flagValue != "" {
 		return flagValue
 	}
 
 	// Check .muxi in formation directory
-	if ctx, err := context.DetectFormation(); err == nil {
+	ctx, ctxErr := context.DetectFormation()
+	if ctxErr == nil {
 		if dotMuxi, err := LoadDotMuxi(ctx.RootDir); err == nil && dotMuxi.UserID != "" {
 			return dotMuxi.UserID
 		}
@@ -96,8 +116,24 @@ func ResolveUserIDWithFormation(flagValue, formationID string) string {
 		}
 	}
 
-	// Fall back to global default
-	return defaults.GetUserID()
+	// Check global default
+	if globalUID := defaults.GetUserID(); globalUID != "" {
+		return globalUID
+	}
+
+	// Auto-default for draft mode
+	if ctxErr == nil {
+		if dotMuxi, err := LoadDotMuxi(ctx.RootDir); err == nil && dotMuxi.Draft {
+			return "tester"
+		}
+	}
+
+	// Auto-default for single-user formations (no postgres)
+	if ctxErr == nil && !UsesPostgres(ctx.RootDir) {
+		return "default"
+	}
+
+	return ""
 }
 
 // MustResolveUserID resolves user ID or returns error if not set

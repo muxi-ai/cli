@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/defaults"
@@ -160,6 +161,36 @@ func newClientFromSavedFormation(profileOverride, formationID string, draft bool
 
 	baseURL := BuildFormationURL(profileEntry.URL, formationID, draft)
 	return NewClient(baseURL, entry.AdminKey, entry.ClientKey), nil
+}
+
+// UsesPostgres checks if the formation uses PostgreSQL for persistent storage
+func UsesPostgres(formationDir string) bool {
+	formationFile, found := context.FindFormationFile(formationDir)
+	if !found {
+		return false
+	}
+	data, err := os.ReadFile(formationFile)
+	if err != nil {
+		return false
+	}
+	content := string(data)
+
+	// Look for postgres in connection_string under persistent: section
+	inPersistent := false
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "persistent:" {
+			inPersistent = true
+			continue
+		}
+		if inPersistent && len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			break
+		}
+		if inPersistent && strings.HasPrefix(trimmed, "connection_string:") {
+			return strings.Contains(trimmed, "postgres")
+		}
+	}
+	return false
 }
 
 // DotMuxi represents the .muxi file for formation-level settings
