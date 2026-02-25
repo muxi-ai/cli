@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// SaveArtifact saves an artifact to ~/.muxi/cli/outputs/{formationID}/
+// SaveArtifact saves an artifact to ~/.muxi/cli/artifacts/{formationID}/
 // Returns the saved file path
 func SaveArtifact(artifact Artifact, formationID string) (string, error) {
 	home, err := os.UserHomeDir()
@@ -16,7 +16,7 @@ func SaveArtifact(artifact Artifact, formationID string) (string, error) {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	outputDir := filepath.Join(home, ".muxi", "cli", "outputs", formationID)
+	outputDir := filepath.Join(home, ".muxi", "cli", "artifacts", formationID)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create output directory: %w", err)
 	}

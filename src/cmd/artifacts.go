@@ -67,7 +67,7 @@ func getOutputsDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".muxi", "cli", "outputs"), nil
+	return filepath.Join(home, ".muxi", "cli", "artifacts"), nil
 }
 
 func runArtifactsList(cmd *cobra.Command, args []string) error {

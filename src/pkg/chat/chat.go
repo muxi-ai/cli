@@ -198,10 +198,12 @@ var (
 
 	// Logo gradient colors (light to dark gold)
 	logoStyle1 = lipgloss.NewStyle().Foreground(lipgloss.Color("#d9aa54"))
-	logoStyle2 = lipgloss.NewStyle().Foreground(lipgloss.Color("#da9e4b"))
-	logoStyle3 = lipgloss.NewStyle().Foreground(lipgloss.Color("#db9647"))
-	logoStyle4 = lipgloss.NewStyle().Foreground(lipgloss.Color("#dc8f42"))
-	logoStyle5 = lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e"))
+	logoStyle2 = lipgloss.NewStyle().Foreground(lipgloss.Color("#daa34f"))
+	logoStyle3 = lipgloss.NewStyle().Foreground(lipgloss.Color("#da9e4b"))
+	logoStyle4 = lipgloss.NewStyle().Foreground(lipgloss.Color("#db9647"))
+	logoStyle5 = lipgloss.NewStyle().Foreground(lipgloss.Color("#dc8f42"))
+	logoStyle6 = lipgloss.NewStyle().Foreground(lipgloss.Color("#dc8b40"))
+	logoStyle7 = lipgloss.NewStyle().Foreground(lipgloss.Color("#d8893e"))
 )
 
 // chatStyle is a minimal glamour style without horizontal rules or header decorations
@@ -281,6 +283,11 @@ func (m Model) Init() tea.Cmd {
 
 // printHeaderAbove prints the header above the TUI (persists in scrollback)
 func (m Model) printHeaderAbove() tea.Cmd {
+	return tea.Println(m.buildBanner())
+}
+
+// buildBanner creates the chat banner with MUXI logo and formation info
+func (m Model) buildBanner() string {
 	gold := goldStyle.Render
 	dim := dimmedStyle.Render
 	l1 := logoStyle1.Render
@@ -288,19 +295,64 @@ func (m Model) printHeaderAbove() tea.Cmd {
 	l3 := logoStyle3.Render
 	l4 := logoStyle4.Render
 	l5 := logoStyle5.Render
+	l6 := logoStyle6.Render
+	l7 := logoStyle7.Render
 
-	header := "\n" +
-		dim("╭── ") + gold("MUXI Chat") + dim(" ─────────────────────────────────────────────────╮") + "\n" +
-		dim("│") + "               " + dim("│") + "                                              " + dim("│") + "\n" +
-		dim("│") + "  " + l1("███╗   ███╗") + "  " + dim("│") + "  " + dim("Chatting with:") + "                              " + dim("│") + "\n" +
-		dim("│") + "  " + l2("████╗ ████║") + "  " + dim("│") + "   " + gold("⌬") + "  " + dim("Formation:") + " " + m.config.FormationID + strings.Repeat(" ", max(0, 29-len(m.config.FormationID))) + dim("│") + "\n" +
-		dim("│") + "  " + l3("██║╚██╔╝██║") + "  " + dim("│") + "   " + gold("⚙︎") + "  " + dim("Server:") + " " + m.config.ServerID + strings.Repeat(" ", max(0, 32-len(m.config.ServerID))) + dim("│") + "\n" +
-		dim("│") + "  " + l4("██║ ╚═╝ ██║") + "  " + dim("│") + "   " + gold("♛") + "  " + dim("User:") + " " + m.config.UserID + strings.Repeat(" ", max(0, 34-len(m.config.UserID))) + dim("│") + "\n" +
-		dim("│") + "  " + l5("╚═╝     ╚═╝") + "  " + dim("│") + "                                              " + dim("│") + "\n" +
-		dim("╰──────────────────────────────────────────────────────────────╯") + "\n\n" +
-		dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit") + "\n\n\n\n\n"
+	// Box is 66 chars wide total
+	// Left panel: │ + 17 chars + │ = 19
+	// Right panel: 46 chars + │ = 47
+	// Total: 19 + 46 + 1 = 66
+	rightWidth := 46
+	empty := strings.Repeat(" ", rightWidth)
 
-	return tea.Println(header)
+	// Pad styled text using raw visual width
+	padRight := func(raw, styled string) string {
+		vLen := len([]rune(raw))
+		gap := max(0, rightWidth-vLen)
+		return styled + strings.Repeat(" ", gap)
+	}
+
+	// Logo lines (each 16 visual chars, + 1 space prefix in row = 17)
+	logoLines := []string{
+		l1("    ██████      "),
+		l2(" ████████████   "),
+		l3("██████████████╗ "),
+		l4("██████████████║ "),
+		l5(" ██╔╝████╔╝██╔╝ "),
+		l6(" ╚═╝  ██╔╝ ╚═╝  "),
+		l7("      ╚═╝       "),
+	}
+
+	// Right panel content aligned with logo lines
+	fmtID := "  ⌬  Formation: " + m.config.FormationID
+	fmtSrv := "  ⚙  Server: " + m.config.ServerID
+	fmtUsr := "  ♛  User: " + m.config.UserID
+
+	rightLines := []string{
+		empty,
+		padRight(" Chatting with:", " Chatting with:"),
+		padRight(fmtID, "  "+gold("⌬")+"  "+dim("Formation:")+" "+m.config.FormationID),
+		padRight(fmtSrv, "  "+gold("⚙︎")+"  "+dim("Server:")+" "+m.config.ServerID),
+		padRight(fmtUsr, "  "+gold("♛")+"  "+dim("User:")+" "+m.config.UserID),
+		empty,
+		empty,
+	}
+
+	var b strings.Builder
+	b.WriteString("\n")
+	b.WriteString(dim("╭─── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", 50) + "╮") + "\n")
+	b.WriteString(dim("│") + strings.Repeat(" ", 17) + dim("│") + empty + dim("│") + "\n")
+
+	for i, logo := range logoLines {
+		b.WriteString(dim("│") + " " + logo + dim("│") + rightLines[i] + dim("│") + "\n")
+	}
+
+	b.WriteString(dim("╰" + strings.Repeat("─", 64) + "╯") + "\n")
+	b.WriteString("\n")
+	b.WriteString(dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"))
+	b.WriteString("\n\n\n\n\n")
+
+	return b.String()
 }
 
 func max(a, b int) int {
@@ -1262,82 +1314,7 @@ func clearThinkingLine() tea.Cmd {
 }
 
 func (m Model) renderHeader() string {
-	gold := goldStyle.Render
-	dim := dimmedStyle.Render
-
-	// Fixed 64-char box
-	// Left: │ + 2 + logo(11) + 2 + │ = 17 chars
-	// Right: 64 - 17 - 1 = 46 chars
-	rightWidth := 46
-
-	// M logo lines (11 chars each)
-	l1 := logoStyle1.Render
-	l2 := logoStyle2.Render
-	l3 := logoStyle3.Render
-	l4 := logoStyle4.Render
-	l5 := logoStyle5.Render
-
-	mLine1 := l1("███╗   ███╗")
-	mLine2 := l2("████╗ ████║")
-	mLine3 := l3("██║╚██╔╝██║")
-	mLine4 := l4("██║ ╚═╝ ██║")
-	mLine5 := l5("╚═╝     ╚═╝")
-
-	var b strings.Builder
-
-	// Top border: ╭─── MUXI Chat ─────...─╮ (64 chars)
-	b.WriteString(dim("╭─── ") + gold("MUXI Chat") + dim(" "+strings.Repeat("─", 48)+"╮"))
-	b.WriteString("\n")
-
-	// Line 1: empty (64 chars)
-	b.WriteString(dim("│") + "               " + dim("│") + strings.Repeat(" ", 46) + dim("│") + "\n")
-
-	// Lines 2-6: logo + content
-	// Build right content with explicit padding (46 chars each)
-	// Use rune count for visual width (Unicode symbols are 1 visual char)
-	runeLen := func(s string) int {
-		return len([]rune(s))
-	}
-	fmtLine := func(prefix, label, value string, totalWidth int) string {
-		content := prefix + label + value
-		visualLen := runeLen(content)
-		if visualLen < totalWidth {
-			return content + strings.Repeat(" ", totalWidth-visualLen)
-		}
-		return string([]rune(content)[:totalWidth])
-	}
-
-	mLines := []string{mLine1, mLine2, mLine3, mLine4, mLine5}
-	rightContents := []string{
-		fmtLine("  ", "Chatting with:", "", rightWidth),
-		fmtLine("    ", "⌬ Formation: ", m.config.FormationID, rightWidth),
-		fmtLine("    ", "⏍ Server: ", m.config.ServerID, rightWidth),
-		fmtLine("    ", "♛ User: ", m.config.UserID, rightWidth),
-		strings.Repeat(" ", rightWidth),
-	}
-
-	for i, mLine := range mLines {
-		b.WriteString(dim("│") + "  ")
-		b.WriteString(mLine)
-		b.WriteString("  " + dim("│"))
-		if i == 0 {
-			b.WriteString(dim(rightContents[i]))
-		} else {
-			b.WriteString(rightContents[i])
-		}
-		b.WriteString(dim("│") + "\n")
-	}
-
-	// Bottom border (64 chars)
-	b.WriteString(dim("╰" + strings.Repeat("─", 62) + "╯"))
-	b.WriteString("\n")
-
-	// Hint text (left-aligned)
-	hint := "ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"
-	b.WriteString("\n")
-	b.WriteString(dim("   " + hint))
-
-	return b.String()
+	return m.buildBanner()
 }
 
 func (m Model) renderMessages() string {
@@ -1778,6 +1755,7 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 	defer close(eventChan)
 
 	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), 100*1024*1024) // 100MB max for large artifacts
 	var fullResponse strings.Builder
 	var sessionID string
 	var requestID string
@@ -1912,6 +1890,7 @@ func processStream(body io.ReadCloser) tea.Msg {
 	defer body.Close()
 
 	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), 100*1024*1024) // 100MB max for large artifacts
 	var fullResponse strings.Builder
 	var sessionID string
 	var lastContent string
