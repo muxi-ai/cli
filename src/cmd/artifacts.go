@@ -9,9 +9,22 @@ import (
 	"sort"
 	"time"
 
+	"github.com/muxi-ai/cli/pkg/context"
 	"github.com/muxi-ai/cli/pkg/ui"
 	"github.com/spf13/cobra"
 )
+
+// resolveFormationFilter returns the formation filter: explicit flag > auto-detect from formation dir
+func resolveFormationFilter(cmd *cobra.Command) string {
+	f, _ := cmd.Flags().GetString("formation")
+	if f != "" {
+		return f
+	}
+	if ctx, err := context.DetectFormation(); err == nil && ctx.ID != "" {
+		return ctx.ID
+	}
+	return ""
+}
 
 var artifactsCmd = &cobra.Command{
 	Use:   "artifacts",
@@ -63,7 +76,7 @@ func runArtifactsList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	formationFilter, _ := cmd.Flags().GetString("formation")
+	formationFilter := resolveFormationFilter(cmd)
 
 	if _, err := os.Stat(outputsDir); os.IsNotExist(err) {
 		fmt.Println()
@@ -156,6 +169,11 @@ func runArtifactsOpen(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Scope to formation if inside a formation dir
+	if ctx, ctxErr := context.DetectFormation(); ctxErr == nil && ctx.ID != "" {
+		outputsDir = filepath.Join(outputsDir, ctx.ID)
+	}
+
 	if err := os.MkdirAll(outputsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create outputs directory: %w", err)
 	}
@@ -195,7 +213,7 @@ func runArtifactsCleanup(cmd *cobra.Command, args []string) error {
 	}
 
 	days, _ := cmd.Flags().GetInt("days")
-	formationFilter, _ := cmd.Flags().GetString("formation")
+	formationFilter := resolveFormationFilter(cmd)
 
 	var cutoff time.Time
 	if days > 0 {
