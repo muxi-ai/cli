@@ -135,3 +135,102 @@ func HasConfigExtension(name string) bool {
 func ConfigExtensions() []string {
 	return []string{".afs", ".yaml"}
 }
+
+// DeclaredComponents holds the explicitly declared component IDs from a formation manifest
+type DeclaredComponents struct {
+	Agents      map[string]bool
+	MCPServers  map[string]bool
+	A2AServices map[string]bool
+}
+
+// GetDeclaredComponents parses a formation file and returns declared component IDs
+func GetDeclaredComponents(rootDir string) *DeclaredComponents {
+	dc := &DeclaredComponents{
+		Agents:      make(map[string]bool),
+		MCPServers:  make(map[string]bool),
+		A2AServices: make(map[string]bool),
+	}
+
+	formationPath, found := FindFormationFile(rootDir)
+	if !found {
+		return dc
+	}
+
+	data, err := os.ReadFile(formationPath)
+	if err != nil {
+		return dc
+	}
+
+	var formation map[string]interface{}
+	if err := yaml.Unmarshal(data, &formation); err != nil {
+		return dc
+	}
+
+	// Extract agents
+	if agents, ok := formation["agents"].([]interface{}); ok {
+		for _, a := range agents {
+			if id, ok := a.(string); ok {
+				dc.Agents[id] = true
+			}
+		}
+	}
+
+	// Extract mcp.servers
+	if mcp, ok := formation["mcp"].(map[string]interface{}); ok {
+		if servers, ok := mcp["servers"].([]interface{}); ok {
+			for _, s := range servers {
+				if id, ok := s.(string); ok {
+					dc.MCPServers[id] = true
+				}
+			}
+		}
+	}
+
+	// Extract a2a.outbound.services
+	if a2a, ok := formation["a2a"].(map[string]interface{}); ok {
+		if outbound, ok := a2a["outbound"].(map[string]interface{}); ok {
+			if services, ok := outbound["services"].([]interface{}); ok {
+				for _, s := range services {
+					if id, ok := s.(string); ok {
+						dc.A2AServices[id] = true
+					}
+				}
+			}
+		}
+	}
+
+	return dc
+}
+
+// IsComponentDeclared checks if a file in a component directory is declared.
+// Returns true if the component dir has no declarations (backward compat) or if the file is declared.
+func (dc *DeclaredComponents) IsComponentDeclared(relPath string) bool {
+	parts := strings.SplitN(filepath.ToSlash(relPath), "/", 2)
+	if len(parts) != 2 {
+		return true
+	}
+
+	dir := parts[0]
+	filename := parts[1]
+	stem := strings.TrimSuffix(filename, filepath.Ext(filename))
+
+	switch dir {
+	case "agents":
+		if len(dc.Agents) == 0 {
+			return true // no declarations = include all (backward compat)
+		}
+		return dc.Agents[stem]
+	case "mcps":
+		if len(dc.MCPServers) == 0 {
+			return true
+		}
+		return dc.MCPServers[stem]
+	case "a2a":
+		if len(dc.A2AServices) == 0 {
+			return true
+		}
+		return dc.A2AServices[stem]
+	default:
+		return true // non-component dirs always included
+	}
+}

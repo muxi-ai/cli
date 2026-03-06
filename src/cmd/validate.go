@@ -89,15 +89,17 @@ func displayValidationResults(formationID string, result *validate.Result) {
 		fmt.Println()
 
 		for _, issue := range result.Errors {
-			// Print first line of message with error symbol
 			lines := strings.Split(issue.Message, "\n")
-			fmt.Printf("  %s %s\n", ui.RedText("✗"), lines[0])
-			// Print remaining lines (hints) dimmed
+			prefix := ""
+			if issue.File != "" {
+				prefix = ui.DimmedText(issue.File+": ")
+			}
+			fmt.Printf("  %s %s%s\n", ui.RedText("✗"), prefix, lines[0])
 			for _, line := range lines[1:] {
 				fmt.Printf("    %s\n", ui.DimmedText(strings.TrimPrefix(line, " ")))
 			}
-			fmt.Println()
 		}
+		fmt.Println()
 	}
 
 	// Show warnings
@@ -106,15 +108,17 @@ func displayValidationResults(formationID string, result *validate.Result) {
 		fmt.Println()
 
 		for _, issue := range result.Warnings {
-			// Print first line of message with warning symbol
 			lines := strings.Split(issue.Message, "\n")
-			fmt.Printf("  %s %s\n", ui.YellowText("⚠"), lines[0])
-			// Print remaining lines (hints) dimmed
+			prefix := ""
+			if issue.File != "" {
+				prefix = ui.DimmedText(issue.File+": ")
+			}
+			fmt.Printf("  %s %s%s\n", ui.YellowText("⚠"), prefix, lines[0])
 			for _, line := range lines[1:] {
 				fmt.Printf("    %s\n", ui.DimmedText(strings.TrimPrefix(line, " ")))
 			}
-			fmt.Println()
 		}
+		fmt.Println()
 	}
 
 	// Summary

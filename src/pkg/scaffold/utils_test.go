@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"os"
 	"testing"
 )
 
@@ -441,5 +442,157 @@ func TestGenerateFormationYAML_WithLocalProvider(t *testing.T) {
 	result := generateFormationYAML(config)
 	if result == "" {
 		t.Error("generateFormationYAML returned empty string")
+	}
+}
+
+func TestAgentTemplateNoActiveField(t *testing.T) {
+	result := agentTemplate("test-agent", "Test Agent", "You are helpful", "generalist", nil, false)
+	if containsStr(result, "active:") {
+		t.Error("agent template should not contain 'active:' field")
+	}
+}
+
+func TestMCPTemplateNoActiveField(t *testing.T) {
+	result := mcpTemplateNew("test-mcp", "Test MCP", "http", "https://example.com/mcp", "", "", "", "", "none", "", nil)
+	if containsStr(result, "active:") {
+		t.Error("MCP template should not contain 'active:' field")
+	}
+}
+
+func TestAppendMCPToAgent_NewList(t *testing.T) {
+	tmpDir := t.TempDir()
+	agentsDir := tmpDir + "/agents"
+	os.MkdirAll(agentsDir, 0755)
+	agentContent := `id: "test-agent"
+role: "generalist"
+`
+	os.WriteFile(agentsDir+"/test-agent.yaml", []byte(agentContent), 0644)
+
+	err := appendMCPToAgent(tmpDir, "test-agent", "my-mcp")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, _ := os.ReadFile(agentsDir + "/test-agent.yaml")
+	result := string(data)
+	if !containsStr(result, "mcp_servers:") {
+		t.Error("should have added mcp_servers section")
+	}
+	if !containsStr(result, "- my-mcp") {
+		t.Error("should have added my-mcp reference")
+	}
+	if containsStr(result, "active:") {
+		t.Error("should not contain active: field")
+	}
+}
+
+func TestAppendMCPToAgent_ExistingList(t *testing.T) {
+	tmpDir := t.TempDir()
+	agentsDir := tmpDir + "/agents"
+	os.MkdirAll(agentsDir, 0755)
+	agentContent := `id: "test-agent"
+mcp_servers:
+  - existing-mcp
+`
+	os.WriteFile(agentsDir+"/test-agent.yaml", []byte(agentContent), 0644)
+
+	err := appendMCPToAgent(tmpDir, "test-agent", "new-mcp")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, _ := os.ReadFile(agentsDir + "/test-agent.yaml")
+	result := string(data)
+	if !containsStr(result, "- existing-mcp") {
+		t.Error("should preserve existing-mcp")
+	}
+	if !containsStr(result, "- new-mcp") {
+		t.Error("should add new-mcp")
+	}
+}
+
+func TestAppendMCPToAgent_EmptyArray(t *testing.T) {
+	tmpDir := t.TempDir()
+	agentsDir := tmpDir + "/agents"
+	os.MkdirAll(agentsDir, 0755)
+	agentContent := `id: "test-agent"
+mcp_servers: []
+`
+	os.WriteFile(agentsDir+"/test-agent.yaml", []byte(agentContent), 0644)
+
+	err := appendMCPToAgent(tmpDir, "test-agent", "my-mcp")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, _ := os.ReadFile(agentsDir + "/test-agent.yaml")
+	result := string(data)
+	if containsStr(result, "[]") {
+		t.Error("should have replaced empty array")
+	}
+	if !containsStr(result, "- my-mcp") {
+		t.Error("should have added my-mcp")
+	}
+}
+
+func TestAppendMCPToAgent_CommentedSection(t *testing.T) {
+	tmpDir := t.TempDir()
+	agentsDir := tmpDir + "/agents"
+	os.MkdirAll(agentsDir, 0755)
+	agentContent := `id: "test-agent"
+# MCP servers (reference formation-level MCPs by ID)
+# mcp_servers:
+#   - weather-service
+#   - web-search
+
+a2a:
+  internal: true
+`
+	os.WriteFile(agentsDir+"/test-agent.yaml", []byte(agentContent), 0644)
+
+	err := appendMCPToAgent(tmpDir, "test-agent", "my-mcp")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, _ := os.ReadFile(agentsDir + "/test-agent.yaml")
+	result := string(data)
+	if !containsStr(result, "mcp_servers:\n  - my-mcp") {
+		t.Errorf("should have uncommented and added mcp_servers, got:\n%s", result)
+	}
+	if containsStr(result, "# mcp_servers:") {
+		t.Error("should have replaced commented mcp_servers")
+	}
+}
+
+func TestA2AServiceTemplateNoActiveField(t *testing.T) {
+	result := a2aServiceTemplate("test-svc", "Test Service", "A test service", "https://example.com", "bearer", "", "token", "", "", false, 0, 30)
+	if containsStr(result, "active:") {
+		t.Error("A2A service template should not contain 'active:' field")
+	}
+}
+
+func TestA2ATemplateNoActiveField(t *testing.T) {
+	result := a2aTemplate("test-a2a", "A test integration", "outbound", "https://example.com")
+	if containsStr(result, "active:") {
+		t.Error("A2A template should not contain 'active:' field")
+	}
+}
+
+func TestFormationYAMLContainsComponentDeclarations(t *testing.T) {
+	config := &FormationConfig{
+		Name:        "test-formation",
+		DisplayName: "Test Formation",
+	}
+	result := generateFormationYAML(config)
+
+	if !containsStr(result, "# agents:") {
+		t.Error("formation YAML should contain commented agents section")
+	}
+	if !containsStr(result, "# mcp:") {
+		t.Error("formation YAML should contain commented mcp section")
+	}
+	if !containsStr(result, "#   servers:") {
+		t.Error("formation YAML should contain commented servers sub-section")
 	}
 }

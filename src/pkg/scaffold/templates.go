@@ -134,6 +134,22 @@ server:
 
 `)
 
+	// Component declarations
+	b.WriteString(`# ─────────────────────────────────────────────────────────────
+# Components (only declared components are loaded)
+# ─────────────────────────────────────────────────────────────
+
+# Agents: list agent IDs from agents/ directory
+# agents:
+#   - my-agent
+
+# MCP servers: list MCP IDs from mcps/ directory
+# mcp:
+#   servers:
+#     - my-mcp
+
+`)
+
 	// Additional configuration section
 	b.WriteString(`# ─────────────────────────────────────────────────────────────
 # Additional configuration (uncomment/edit as needed)

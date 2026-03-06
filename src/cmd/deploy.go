@@ -514,6 +514,9 @@ func createTarGzBundle(formationDir, formationID string, includeDB bool) (string
 	gzWriter := gzip.NewWriter(tmpFile)
 	tarWriter := tar.NewWriter(gzWriter)
 
+	// Get declared components to filter undeclared files
+	declared := context.GetDeclaredComponents(formationDir)
+
 	fileCount := 0
 
 	// Walk the directory
@@ -538,6 +541,11 @@ func createTarGzBundle(formationDir, formationID string, includeDB bool) (string
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
+			return nil
+		}
+
+		// Skip undeclared component files
+		if !info.IsDir() && !declared.IsComponentDeclared(relPath) {
 			return nil
 		}
 

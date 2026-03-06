@@ -278,7 +278,7 @@ func TestA2ATemplate(t *testing.T) {
 	}
 
 	// Check required fields exist
-	requiredFields := []string{"schema", "id", "name", "description", "url", "active", "auth"}
+	requiredFields := []string{"schema", "id", "name", "description", "url", "auth"}
 	for _, field := range requiredFields {
 		if _, ok := a2a[field]; !ok {
 			t.Errorf("Missing required field: %s", field)

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.20260306.0 - 2026-03-06
+
+### Breaking Changes
+- **Explicit component declaration** - Components must now be listed in `formation.yaml` / `formation.afs` to be loaded. Files in `agents/`, `mcps/`, `a2a/` are definitions only -- the `active` field is removed.
+
+### Added
+- `muxi new agent` now auto-registers the agent in the formation manifest (`agents:` list)
+- `muxi new mcp` (formation-level) now auto-registers in the formation manifest (`mcp.servers:` list)
+- `muxi new a2a-service` now auto-registers in the formation manifest (`a2a.outbound.services:` list)
+- `muxi validate` warns when component files exist but are not declared (won't be loaded), and errors when declared IDs have no matching file
+- Formation scaffold includes commented `agents:` and `mcp:` sections showing declaration syntax
+- `muxi artifacts list` - List saved artifacts grouped by formation
+- `muxi artifacts open` - Open artifacts directory in file manager
+- `muxi artifacts cleanup` - Remove old artifacts with `--days` and `--formation` filters
+- Artifacts commands auto-scope to current formation when inside a formation directory
+- File artifacts in chat: streaming and non-streaming responses save binary/text artifacts to `~/.muxi/cli/artifacts/`
+
+### Changed
+- Chat banner redesigned with new MUXI logo (gradient) and formation info panel
+- Scanner buffer increased to 100MB (fixes "disconnected by peer" with large artifact responses)
+- Artifacts directory changed from `~/.muxi/cli/outputs/` to `~/.muxi/cli/artifacts/`
+- `ChatResponse.Response` now handles string, object, and array response formats
+
+### Removed
+- `active: true` field from all component templates (agent, MCP, A2A)
+
 ## Unreleased
 
 ### Added

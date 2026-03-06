@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/muxi-ai/cli/pkg/context"
 )
 
 // BundleInfo contains information about a created bundle
@@ -64,6 +66,9 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 
 	zipWriter := zip.NewWriter(tmpFile)
 
+	// Get declared components to filter undeclared files
+	declared := context.GetDeclaredComponents(formationDir)
+
 	info := &BundleInfo{
 		Path: tmpPath,
 	}
@@ -102,6 +107,11 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 
 		// Check if should be included
 		if !shouldInclude(relPath) {
+			return nil
+		}
+
+		// Skip undeclared component files
+		if !declared.IsComponentDeclared(relPath) {
 			return nil
 		}
 

@@ -63,7 +63,7 @@ func Formation(rootDir string) (*Result, error) {
 	if err := yaml.Unmarshal(data, &root); err != nil {
 		result.Errors = append(result.Errors, Issue{
 			File:    formationFileName,
-			Message: fmt.Sprintf("invalid YAML syntax: %v", err),
+			Message: fmt.Sprintf("invalid syntax: %v", cleanYAMLError(err)),
 		})
 		return result, nil
 	}
@@ -76,7 +76,7 @@ func Formation(rootDir string) (*Result, error) {
 	if err := yaml.Unmarshal(data, &formation); err != nil {
 		result.Errors = append(result.Errors, Issue{
 			File:    formationFileName,
-			Message: fmt.Sprintf("invalid YAML: %v", err),
+			Message: fmt.Sprintf("parse error: %v", cleanYAMLError(err)),
 		})
 		return result, nil
 	}
@@ -99,6 +99,9 @@ func Formation(rootDir string) (*Result, error) {
 
 	// Validate MCP files
 	validateMCPs(rootDir, result)
+
+	// Validate component declarations vs files
+	validateDeclarations(rootDir, formation, result)
 
 	return result, nil
 }
@@ -309,10 +312,12 @@ func validateAgents(rootDir string, result *Result) {
 
 		var agent map[string]interface{}
 		if err := yaml.Unmarshal(data, &agent); err != nil {
-			result.Errors = append(result.Errors, Issue{
-				File:    filepath.Join("agents", entry.Name()),
-				Message: fmt.Sprintf("invalid YAML: %v", err),
-			})
+			for _, e := range splitYAMLErrors(err) {
+				result.Errors = append(result.Errors, Issue{
+					File:    filepath.Join("agents", entry.Name()),
+					Message: e,
+				})
+			}
 			continue
 		}
 
@@ -368,10 +373,12 @@ func validateMCPs(rootDir string, result *Result) {
 
 		var mcp map[string]interface{}
 		if err := yaml.Unmarshal(data, &mcp); err != nil {
-			result.Errors = append(result.Errors, Issue{
-				File:    filepath.Join("mcps", entry.Name()),
-				Message: fmt.Sprintf("invalid YAML: %v", err),
-			})
+			for _, e := range splitYAMLErrors(err) {
+				result.Errors = append(result.Errors, Issue{
+					File:    filepath.Join("mcps", entry.Name()),
+					Message: e,
+				})
+			}
 			continue
 		}
 
@@ -484,4 +491,142 @@ func isExpectedMapping(key string) bool {
 		"outbound":      true,
 	}
 	return expectedMappings[key]
+}
+
+// validateDeclarations checks that declared component IDs match files and vice versa
+func validateDeclarations(rootDir string, formation map[string]interface{}, result *Result) {
+	formationFileName := "formation"
+
+	// Validate agents
+	declaredAgents := extractStringList(formation, "agents")
+	fileAgents := getComponentIDs(rootDir, "agents")
+	validateComponentDeclarations(declaredAgents, fileAgents, "agent", "agents", formationFileName, result)
+
+	// Validate MCP servers
+	var declaredMCPs []string
+	if mcp, ok := formation["mcp"].(map[string]interface{}); ok {
+		declaredMCPs = extractStringList(mcp, "servers")
+	}
+	fileMCPs := getComponentIDs(rootDir, "mcps")
+	validateComponentDeclarations(declaredMCPs, fileMCPs, "MCP server", "mcp.servers", formationFileName, result)
+
+	// Validate A2A services
+	var declaredA2A []string
+	if a2a, ok := formation["a2a"].(map[string]interface{}); ok {
+		if outbound, ok := a2a["outbound"].(map[string]interface{}); ok {
+			declaredA2A = extractStringList(outbound, "services")
+		}
+	}
+	fileA2A := getComponentIDs(rootDir, "a2a")
+	validateComponentDeclarations(declaredA2A, fileA2A, "A2A service", "a2a.outbound.services", formationFileName, result)
+}
+
+// extractStringList extracts string entries from a list field (ignoring dict entries)
+func extractStringList(m map[string]interface{}, key string) []string {
+	list, ok := m[key].([]interface{})
+	if !ok {
+		return nil
+	}
+	var result []string
+	for _, item := range list {
+		if s, ok := item.(string); ok {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+// getComponentIDs reads component files from a directory and returns their IDs
+func getComponentIDs(rootDir, dirName string) map[string]bool {
+	dir := filepath.Join(rootDir, dirName)
+	ids := make(map[string]bool)
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ids
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !context.HasConfigExtension(entry.Name()) {
+			continue
+		}
+
+		// Try to read the id field from the file
+		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			continue
+		}
+
+		var config map[string]interface{}
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			continue
+		}
+
+		if id, ok := config["id"].(string); ok {
+			ids[id] = true
+		} else {
+			// Fallback to filename stem
+			name := entry.Name()
+			ext := filepath.Ext(name)
+			ids[name[:len(name)-len(ext)]] = true
+		}
+	}
+
+	return ids
+}
+
+// validateComponentDeclarations checks declared IDs against file IDs
+func validateComponentDeclarations(declared []string, fileIDs map[string]bool, componentType, section, formationFile string, result *Result) {
+	declaredSet := make(map[string]bool)
+	for _, id := range declared {
+		declaredSet[id] = true
+	}
+
+	// Warn about declared IDs that have no matching file
+	for _, id := range declared {
+		if !fileIDs[id] {
+			result.Errors = append(result.Errors, Issue{
+				File:    formationFile,
+				Field:   section,
+				Message: fmt.Sprintf("%s '%s' is declared but no matching file was found", componentType, id),
+			})
+		}
+	}
+
+	// Warn about files that are not declared
+	for id := range fileIDs {
+		if !declaredSet[id] {
+			result.Warnings = append(result.Warnings, Issue{
+				Field:   section,
+				Message: fmt.Sprintf("%s '%s' exists as a file but is not declared in %s (it will not be loaded)", componentType, id, section),
+			})
+		}
+	}
+}
+
+// cleanYAMLError strips the "yaml: " prefix from error messages
+func cleanYAMLError(err error) string {
+	msg := err.Error()
+	msg = strings.TrimPrefix(msg, "yaml: ")
+	return msg
+}
+
+// splitYAMLErrors splits a multi-line yaml unmarshal error into individual error strings
+func splitYAMLErrors(err error) []string {
+	msg := err.Error()
+	if strings.Contains(msg, "unmarshal errors:") {
+		parts := strings.Split(msg, "\n")
+		var errors []string
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p == "" || p == "yaml: unmarshal errors:" {
+				continue
+			}
+			errors = append(errors, p)
+		}
+		if len(errors) > 0 {
+			return errors
+		}
+	}
+	return []string{cleanYAMLError(err)}
 }

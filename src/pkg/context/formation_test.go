@@ -280,3 +280,73 @@ func containsAt(s, substr string, start int) bool {
 	}
 	return false
 }
+
+func TestGetDeclaredComponents(t *testing.T) {
+	tmpDir := t.TempDir()
+	formation := `id: test-formation
+agents:
+  - bot-a
+  - bot-b
+mcp:
+  servers:
+    - tool-x
+a2a:
+  outbound:
+    services:
+      - svc-1
+`
+	os.WriteFile(filepath.Join(tmpDir, "formation.yaml"), []byte(formation), 0644)
+
+	dc := GetDeclaredComponents(tmpDir)
+	if !dc.Agents["bot-a"] || !dc.Agents["bot-b"] {
+		t.Error("should have both agents declared")
+	}
+	if !dc.MCPServers["tool-x"] {
+		t.Error("should have tool-x MCP declared")
+	}
+	if !dc.A2AServices["svc-1"] {
+		t.Error("should have svc-1 A2A declared")
+	}
+}
+
+func TestGetDeclaredComponents_Empty(t *testing.T) {
+	tmpDir := t.TempDir()
+	formation := `id: test-formation
+`
+	os.WriteFile(filepath.Join(tmpDir, "formation.yaml"), []byte(formation), 0644)
+
+	dc := GetDeclaredComponents(tmpDir)
+	if len(dc.Agents) != 0 || len(dc.MCPServers) != 0 || len(dc.A2AServices) != 0 {
+		t.Error("should have empty declarations")
+	}
+}
+
+func TestIsComponentDeclared(t *testing.T) {
+	dc := &DeclaredComponents{
+		Agents:      map[string]bool{"bot-a": true},
+		MCPServers:  map[string]bool{"tool-x": true},
+		A2AServices: map[string]bool{},
+	}
+
+	tests := []struct {
+		path string
+		want bool
+	}{
+		{"agents/bot-a.afs", true},
+		{"agents/bot-a.yaml", true},
+		{"agents/bot-z.afs", false},
+		{"mcps/tool-x.afs", true},
+		{"mcps/tool-y.afs", false},
+		{"a2a/svc-1.afs", true},      // empty set = include all (backward compat)
+		{"knowledge/stuff.md", true},  // non-component dir
+		{"formation.yaml", true},      // root file
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			if got := dc.IsComponentDeclared(tt.path); got != tt.want {
+				t.Errorf("IsComponentDeclared(%q) = %v, want %v", tt.path, got, tt.want)
+			}
+		})
+	}
+}
