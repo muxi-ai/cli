@@ -368,9 +368,18 @@ func (c *Client) Publish(zipPath string, org string) (*PublishResult, error) {
 		}
 	}
 
+	// Check for error response (registry may return 200 with error:true)
+	var errCheck struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	if json.Unmarshal(respBody, &errCheck) == nil && errCheck.Error && errCheck.Message != "" {
+		return nil, fmt.Errorf("%s", errCheck.Message)
+	}
+
 	var result PublishResult
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("unexpected response from registry")
+		return nil, fmt.Errorf("unexpected response from registry (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	return &result, nil
