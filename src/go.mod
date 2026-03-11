@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
-	github.com/charmbracelet/glamour v0.10.0
+	github.com/charmbracelet/glamour v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/chzyer/readline v1.5.1
 	github.com/fatih/color v1.18.0
@@ -48,8 +48,8 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/yuin/goldmark v1.7.8 // indirect
-	github.com/yuin/goldmark-emoji v1.0.5 // indirect
+	github.com/yuin/goldmark v1.7.13 // indirect
+	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
