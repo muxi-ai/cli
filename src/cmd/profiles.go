@@ -18,7 +18,7 @@ var profilesCmd = &cobra.Command{
 	Use:     "profiles",
 	Aliases: []string{"profile"},
 	Short:   "Manage server profiles",
-	GroupID: "server",
+	GroupID: "remote",
 	Long: `Add, list, and manage MUXI Server profiles.
 
 Profiles are saved to ~/.muxi/cli/profiles.yaml and can be referenced by name
@@ -206,7 +206,7 @@ func runProfilesList(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		ui.Dimmed("  No profiles configured")
 		fmt.Println()
-		fmt.Printf("  Add a profile: %s\n", ui.Command("muxi server add"))
+		fmt.Printf("  Add a profile: %s\n", ui.Command("muxi profiles add"))
 		fmt.Println()
 		return nil
 	}

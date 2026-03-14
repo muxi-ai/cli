@@ -19,9 +19,9 @@ import (
 )
 
 var serverCmd = &cobra.Command{
-	Use:     "server",
+	Use:     "remote",
 	Short:   "Manage deployed formations on server",
-	GroupID: "server",
+	GroupID: "remote",
 	Long: `List, inspect, and manage formations deployed to a MUXI server.
 
 Use -p (--profile) to specify which server to connect to.`,
@@ -68,7 +68,7 @@ var serverStopCmd = &cobra.Command{
 	Long: `Stop a running formation.
 
 The formation process is stopped but the formation remains registered
-on the server. Use 'muxi server start' to restart it.`,
+on the server. Use 'muxi remote start' to restart it.`,
 	Args: RequireArgs(1),
 	RunE: runServerStop,
 }
@@ -137,7 +137,7 @@ func init() {
 	serverLogsCmd.Flags().Bool("follow", false, "Stream new logs (like tail -f)")
 }
 
-// runServerList handles muxi server list
+// runServerList handles muxi remote list
 func runServerList(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 
@@ -196,7 +196,7 @@ func runServerList(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runServerGet handles muxi server get <id>
+// runServerGet handles muxi remote get <id>
 func runServerGet(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	verbose, _ := cmd.Flags().GetBool("verbose")
@@ -213,7 +213,7 @@ func runServerGet(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi server list"),
+				ui.Command("muxi remote list"),
 			)
 			os.Exit(1)
 		}
@@ -296,7 +296,7 @@ func runServerGet(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runServerDelete handles muxi server delete <id>
+// runServerDelete handles muxi remote delete <id>
 func runServerDelete(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
@@ -316,7 +316,7 @@ func runServerDelete(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi server list"),
+				ui.Command("muxi remote list"),
 			)
 			os.Exit(1)
 		}
@@ -387,7 +387,7 @@ func formatTimestamp(ts string) string {
 	return t.Format("2006-01-02 15:04:05")
 }
 
-// runServerStop handles muxi server stop <id>
+// runServerStop handles muxi remote stop <id>
 func runServerStop(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
@@ -405,7 +405,7 @@ func runServerStop(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi server list"),
+				ui.Command("muxi remote list"),
 			)
 			os.Exit(1)
 		}
@@ -444,7 +444,7 @@ func runServerStop(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// runServerStart handles muxi server start <id>
+// runServerStart handles muxi remote start <id>
 func runServerStart(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	formationID := args[0]
@@ -466,7 +466,7 @@ func runServerStartWithID(formationID, profile string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi server list"),
+				ui.Command("muxi remote list"),
 			)
 			os.Exit(1)
 		}
@@ -620,7 +620,7 @@ func playStartNotificationSound(success bool) {
 	}
 }
 
-// runServerRestart handles muxi server restart <id>
+// runServerRestart handles muxi remote restart <id>
 func runServerRestart(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
@@ -649,7 +649,7 @@ func runServerRestartWithID(formationID, profile string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi server list"),
+				ui.Command("muxi remote list"),
 			)
 			os.Exit(1)
 		}
@@ -808,7 +808,7 @@ func playRestartNotificationSound(success bool) {
 	}
 }
 
-// runServerRollback handles muxi server rollback <id>
+// runServerRollback handles muxi remote rollback <id>
 func runServerRollback(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	force, _ := cmd.Flags().GetBool("force")
@@ -837,7 +837,7 @@ func runServerRollbackWithID(formationID, profile string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi server list"),
+				ui.Command("muxi remote list"),
 			)
 			os.Exit(1)
 		}
@@ -991,7 +991,7 @@ func playRollbackNotificationSound(success bool) {
 	}
 }
 
-// runServerLogs handles muxi server logs <id>
+// runServerLogs handles muxi remote logs <id>
 func runServerLogs(cmd *cobra.Command, args []string) error {
 	profile, _ := cmd.Flags().GetString("profile")
 	lines, _ := cmd.Flags().GetInt("lines")
@@ -1016,7 +1016,7 @@ func runServerLogs(cmd *cobra.Command, args []string) error {
 			ui.ErrorBlock(
 				"Formation not found",
 				fmt.Sprintf("Formation '%s' does not exist on this server.", formationID),
-				ui.Command("muxi server list"),
+				ui.Command("muxi remote list"),
 			)
 			os.Exit(1)
 		}

@@ -63,7 +63,7 @@ src/
 │   ├── deploy.go          # muxi deploy
 │   ├── up.go              # muxi up (local dev)
 │   ├── down.go            # muxi down (stop local dev)
-│   ├── server.go          # muxi server subcommands
+│   ├── formation.go       # muxi remote subcommands
 │   ├── secrets.go         # muxi secrets subcommands
 │   ├── chat.go            # muxi chat
 │   ├── logs.go            # muxi logs

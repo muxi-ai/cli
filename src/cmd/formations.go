@@ -16,7 +16,7 @@ import (
 var formationsCmd = &cobra.Command{
 	Use:     "formations",
 	Short:   "Manage saved formation configs",
-	GroupID: "server",
+	GroupID: "remote",
 	Long: `Add, list, and manage saved formation configurations.
 
 Formations are saved to ~/.muxi/cli/formations.yaml and can be referenced

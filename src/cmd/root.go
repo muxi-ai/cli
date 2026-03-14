@@ -55,7 +55,7 @@ func init() {
 	// Define command groups (used internally for organization)
 	rootCmd.AddGroup(&cobra.Group{ID: "formation", Title: "Formation Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "registry", Title: "Registry Commands"})
-	rootCmd.AddGroup(&cobra.Group{ID: "server", Title: "Server Commands"})
+	rootCmd.AddGroup(&cobra.Group{ID: "remote", Title: "Remote Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "config", Title: "Setup Commands"})
 
 	// Override the help function with custom formatting and telemetry
@@ -95,7 +95,7 @@ func customHelp(cmd *cobra.Command, args []string) {
 
 	// Formation Commands
 	printBoxWithSubtitle("Formation Commands", "MUXI")
-	printColoredCommand("$ muxi server [command]")
+	printColoredCommand("$ muxi remote [command]")
 	printBoxLineDimmed("  or (from formation dir):")
 	printColoredCommand("$ muxi [command]")
 	printBoxBottom()
@@ -111,9 +111,9 @@ func customHelp(cmd *cobra.Command, args []string) {
 
 	// Server Commands
 	printBoxWithSubtitle("Server Commands", "MUXI")
-	printColoredCommand("$ muxi server [command]")
+	printColoredCommand("$ muxi remote [command]")
 	printBoxBottom()
-	printCommandGroup(cmd, "server")
+	printCommandGroup(cmd, "remote")
 	fmt.Println()
 
 	// Setup Commands
