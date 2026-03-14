@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.20260314.0 - 2026-03-14
+
+### Breaking Changes
+- **`muxi server` renamed to `muxi remote`** - All deployed formation management commands moved from `muxi server <action>` to `muxi remote <action>` to avoid confusion with `muxi-server` (the server daemon).
+
+### Added
+- `muxi server` now proxies to `muxi-server` binary -- forwards all args, signals, and exit codes
+
+### Changed
+- Deploy and registry bundles now skip undeclared component files (backward compat: no declarations = include all)
+- `muxi validate` shows file names in errors/warnings, splits multi-line parse errors into individual entries
+- Registry publish error handling: detect `{"error":true}` responses returned with 200 status
+
 ## 0.20260306.0 - 2026-03-06
 
 ### Breaking Changes
@@ -72,7 +85,7 @@
 
 #### Deployment
 - `muxi deploy` - Deploy formation to server
-- `muxi server list/get/stop/start/restart/delete/rollback` - Manage deployed formations
+- `muxi remote list/get/stop/start/restart/delete/rollback` - Manage deployed formations
 - `muxi logs` - Stream formation logs with filtering
 
 #### Formation API
