@@ -87,8 +87,8 @@ func runDown(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		ui.ErrorBlock(
 			"No server profile configured",
-			"Run 'muxi server add' to configure a server profile.",
-			"muxi server add",
+			"Run 'muxi profiles add' to configure a server profile.",
+			"muxi profiles add",
 		)
 		os.Exit(1)
 	}

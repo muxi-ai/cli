@@ -14,7 +14,7 @@ func TestCommandsNoPanic(t *testing.T) {
 	// Test that various commands don't panic
 	commands := [][]string{
 		{"--help"},
-		{"server", "--help"},
+		{"remote", "--help"},
 		{"secrets", "--help"},
 		{"config", "--help"},
 		{"new", "--help"},
