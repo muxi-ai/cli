@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20260323.0 - 2026-03-23
+
+### Changed
+- Use CDN-based release download URLs (`https://releases.muxi.org/...`) instead of direct GitHub release URLs in CLI upgrade flow and release workflow examples.
+
 ## 0.20260314.0 - 2026-03-14
 
 ### Breaking Changes

@@ -126,7 +126,7 @@ func upgradeBinary(latestVersion string) error {
 	}
 
 	downloadURL := fmt.Sprintf(
-		"https://github.com/muxi-ai/cli/releases/download/v%s/%s",
+		"https://releases.muxi.org/cli/releases/download/v%s/%s",
 		latestVersion,
 		binaryName,
 	)

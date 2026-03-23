@@ -179,12 +179,12 @@ jobs:
             
             # Or download binary directly
             # macOS Apple Silicon
-            curl -L https://github.com/muxi-ai/cli/releases/download/v${{ steps.version.outputs.VERSION }}/muxi-darwin-arm64 -o muxi
+            curl -L https://releases.muxi.org/cli/releases/download/v${{ steps.version.outputs.VERSION }}/muxi-darwin-arm64 -o muxi
             chmod +x muxi
             sudo mv muxi /usr/local/bin/
             
             # Linux x86_64
-            curl -L https://github.com/muxi-ai/cli/releases/download/v${{ steps.version.outputs.VERSION }}/muxi-linux-amd64 -o muxi
+            curl -L https://releases.muxi.org/cli/releases/download/v${{ steps.version.outputs.VERSION }}/muxi-linux-amd64 -o muxi
             chmod +x muxi
             sudo mv muxi /usr/local/bin/
             ```
