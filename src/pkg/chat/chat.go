@@ -668,6 +668,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.thinking = []ThinkingStep{}
 		return m, printServerError(msg.err.Error())
 
+	case streamTimeoutMsg:
+		m.isThinking = false
+		m.currentEvent = nil
+		m.thinking = []ThinkingStep{}
+		return m, printServerError("Request timed out while waiting for server events")
+
 	case streamDoneMsg:
 		// Update session ID if provided
 		if msg.sessionID != "" {
@@ -1648,6 +1654,7 @@ type tickMsg struct{}
 type streamTokenMsg string
 type streamDoneMsg struct{ sessionID string }
 type streamErrorMsg struct{ err error }
+type streamTimeoutMsg struct{}
 type streamResponseMsg struct {
 	thinking  []string
 	response  string
@@ -1706,22 +1713,26 @@ func (m Model) sendChatMessage(message string) tea.Cmd {
 
 // waitForEventFromChan waits for the next stream event from a channel
 func waitForEventFromChan(eventChan chan StreamEvent) tea.Msg {
-	event, ok := <-eventChan
-	if !ok {
-		// Channel closed, stream complete
-		return streamDoneMsg{}
-	}
-
-	if event.Type == "completed" {
-		return streamCompleteMsg{
-			response:  event.Content,
-			sessionID: event.SessionID,
-			artifacts: event.Artifacts,
+	select {
+	case event, ok := <-eventChan:
+		if !ok {
+			// Channel closed, stream complete
+			return streamDoneMsg{}
 		}
-	}
 
-	// Return event message for model to process
-	return streamEventMsg{event: event}
+		if event.Type == "completed" {
+			return streamCompleteMsg{
+				response:  event.Content,
+				sessionID: event.SessionID,
+				artifacts: event.Artifacts,
+			}
+		}
+
+		// Return event message for model to process
+		return streamEventMsg{event: event}
+	case <-time.After(60 * time.Second):
+		return streamTimeoutMsg{}
+	}
 }
 
 // listenForEvents returns a command to continue listening for events

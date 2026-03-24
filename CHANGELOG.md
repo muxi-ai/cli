@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20260324.0 - 2026-03-24
+
+### Fixed
+- Prevent CLI chat from hanging indefinitely while waiting for streaming events by adding a 60s timeout with a user-facing error.
+
 ## 0.20260323.0 - 2026-03-23
 
 ### Changed
