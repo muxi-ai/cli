@@ -3,8 +3,8 @@ package cmd
 import (
 	"bufio"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"os"
@@ -420,7 +420,6 @@ func isAVFile(path string) bool {
 }
 
 func streamSSEResponse(resp *http.Response) error {
-	scanner := bufio.NewScanner(resp.Body)
 	var fullResponse strings.Builder
 
 	// Spinner frames
@@ -440,64 +439,49 @@ func streamSSEResponse(resp *http.Response) error {
 		spinnerIdx = (spinnerIdx + 1) % len(spinnerFrames)
 	}
 
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Skip event type lines
-		if strings.HasPrefix(line, "event:") {
-			eventType := strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-			if eventType == "done" {
-				break
+	err := chat.StreamChatEvents(resp.Body, func(event chat.StreamEvent) error {
+		switch event.Type {
+		case "heartbeat":
+			return nil
+		case "thinking", "progress", "planning":
+			if event.Stage == "tool_call" && event.ToolName != "" {
+				startSpinner("Using " + event.ToolName + " tool...")
+				return nil
 			}
-			continue
-		}
-
-		if !strings.HasPrefix(line, "data:") {
-			continue
-		}
-
-		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-		if data == "" || data == "[DONE]" {
-			continue
-		}
-
-		// Parse MUXI token format: {"token": {...}}
-		var muxiToken struct {
-			Token struct {
-				Type    string `json:"type"`
-				Stage   string `json:"stage"`
-				Content string `json:"content"`
-			} `json:"token"`
-		}
-
-		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
-			token := muxiToken.Token
-
-			switch token.Type {
-			case "thinking", "progress", "planning":
-				startSpinner(token.Content)
-
-			case "content", "text", "response":
-				fullResponse.WriteString(token.Content)
-
-			case "completed":
-				// Use completed content if we didn't accumulate any
-				if fullResponse.Len() == 0 && token.Content != "" && token.Content != "done" {
-					fullResponse.WriteString(token.Content)
-				}
-
-			case "error":
-				fmt.Print("\r\033[K")
-				return fmt.Errorf("%s", token.Content)
+			if event.Content != "" {
+				startSpinner(event.Content)
+			}
+		case "content", "text", "response":
+			fullResponse.WriteString(event.Content)
+		case "completed":
+			if fullResponse.Len() == 0 && event.Content != "" && event.Content != "done" {
+				fullResponse.WriteString(event.Content)
+			}
+			return io.EOF
+		case "error":
+			fmt.Print("\r\033[K")
+			if event.Content == "" {
+				return fmt.Errorf("request failed")
+			}
+			return fmt.Errorf("%s", event.Content)
+		default:
+			if event.Stage == "tool_call" && event.ToolName != "" {
+				startSpinner("Using " + event.ToolName + " tool...")
+			} else if event.Content != "" {
+				startSpinner(event.Content)
 			}
 		}
-	}
+		return nil
+	})
 
 	// Clear spinner line and print response
 	fmt.Print("\r\033[K")
+	if err != nil {
+		return err
+	}
 	if fullResponse.Len() > 0 {
 		fmt.Printf("%s\n", fullResponse.String())
 	}
 
-	return scanner.Err()
+	return err
 }

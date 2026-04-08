@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20260408.0 - 2026-04-08
+
+### Fixed
+- Prevent `muxi chat` from timing out on long-running streamed requests that only emit SSE keepalive comment frames during slow setup or between token gaps.
+- Parse chat SSE streams using proper event-block handling so route-level `event: error` frames surface correctly and newer runtime progress/tool activity no longer gets dropped by the CLI.
+
 ## 0.20260324.0 - 2026-03-24
 
 ### Fixed

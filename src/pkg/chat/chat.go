@@ -340,14 +340,14 @@ func (m Model) buildBanner() string {
 
 	var b strings.Builder
 	b.WriteString("\n")
-	b.WriteString(dim("╭─── ") + gold("MUXI Chat") + dim(" " + strings.Repeat("─", 50) + "╮") + "\n")
+	b.WriteString(dim("╭─── ") + gold("MUXI Chat") + dim(" "+strings.Repeat("─", 50)+"╮") + "\n")
 	b.WriteString(dim("│") + strings.Repeat(" ", 17) + dim("│") + empty + dim("│") + "\n")
 
 	for i, logo := range logoLines {
 		b.WriteString(dim("│") + " " + logo + dim("│") + rightLines[i] + dim("│") + "\n")
 	}
 
-	b.WriteString(dim("╰" + strings.Repeat("─", 64) + "╯") + "\n")
+	b.WriteString(dim("╰"+strings.Repeat("─", 64)+"╯") + "\n")
 	b.WriteString("\n")
 	b.WriteString(dim("   ENTER to send • \\ + ENTER for a new line • Ctrl+C to exit"))
 	b.WriteString("\n\n\n\n\n")
@@ -704,6 +704,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case streamEventMsg:
 		event := msg.event
+
+		if event.Type == "heartbeat" {
+			return m, m.listenForEvents()
+		}
 
 		// Always capture request ID (even if aborted, for cancellation)
 		if event.RequestID != "" && m.currentRequestID == "" {
@@ -1730,7 +1734,7 @@ func waitForEventFromChan(eventChan chan StreamEvent) tea.Msg {
 
 		// Return event message for model to process
 		return streamEventMsg{event: event}
-	case <-time.After(60 * time.Second):
+	case <-time.After(streamEventTimeout):
 		return streamTimeoutMsg{}
 	}
 }
@@ -1765,11 +1769,10 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 	defer body.Close()
 	defer close(eventChan)
 
-	scanner := bufio.NewScanner(body)
-	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), 100*1024*1024) // 100MB max for large artifacts
 	var fullResponse strings.Builder
 	var sessionID string
 	var requestID string
+	terminalEventSent := false
 
 	// Debug file for reliable logging (bypasses TUI buffering)
 	var debugFile *os.File
@@ -1781,117 +1784,84 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 		}
 	}
 
-	for scanner.Scan() {
-		line := scanner.Text()
-
+	rawObserver := func(line string) {
 		if debug && debugFile != nil {
 			fmt.Fprintf(debugFile, "RAW: %s\n", line)
 		}
+	}
 
-		// Handle event type lines
-		if strings.HasPrefix(line, "event:") {
-			eventType := strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-			if eventType == "done" {
-				break
-			}
-			continue
+	err := streamChatEvents(body, rawObserver, func(event StreamEvent) error {
+		if event.SessionID != "" {
+			sessionID = event.SessionID
+		}
+		if event.RequestID != "" {
+			requestID = event.RequestID
 		}
 
-		// Handle data lines
-		if !strings.HasPrefix(line, "data:") {
-			continue
+		if debug && debugFile != nil {
+			fmt.Fprintf(
+				debugFile,
+				"PARSED: type=%s stage=%s content=%q requestID=%s\n",
+				event.Type,
+				event.Stage,
+				event.Content,
+				event.RequestID,
+			)
 		}
 
-		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-		if data == "" || data == "[DONE]" {
-			continue
-		}
-
-		// Try parsing as MUXI token format: {"token": {...}}
-		var muxiToken MuxiToken
-		if err := json.Unmarshal([]byte(data), &muxiToken); err == nil && muxiToken.Token.Type != "" {
-			token := muxiToken.Token
-
-			// Capture session ID and request ID if provided
-			if token.SessionID != "" {
-				sessionID = token.SessionID
+		switch event.Type {
+		case "content", "text", "response":
+			if event.Content != "" {
+				fullResponse.WriteString(event.Content)
 			}
-			if token.RequestID != "" {
-				requestID = token.RequestID
+		case "completed":
+			if event.Content == "" || event.Content == "done" {
+				event.Content = fullResponse.String()
 			}
-
+			event.SessionID = sessionID
+			event.RequestID = requestID
+			terminalEventSent = true
 			if debug && debugFile != nil {
-				fmt.Fprintf(debugFile, "PARSED: type=%s stage=%s content=%q requestID=%s\n", token.Type, token.Stage, token.Content, token.RequestID)
+				fmt.Fprintf(
+					debugFile,
+					"COMPLETED: response=%q sessionID=%q artifacts=%d\n",
+					truncateForDebug(event.Content, 100),
+					sessionID,
+					len(event.Artifacts),
+				)
 			}
-
-			switch token.Type {
-			case "content", "text", "response":
-				// Actual response text - accumulate
-				if token.Content != "" {
-					fullResponse.WriteString(token.Content)
-				}
-			case "completed":
-				// Final response
-				response := token.Content
-				if response == "" || response == "done" {
-					response = fullResponse.String()
-				}
-				if debug && debugFile != nil {
-					fmt.Fprintf(debugFile, "COMPLETED: response=%q sessionID=%q artifacts=%d\n", truncateForDebug(response, 100), sessionID, len(token.Artifacts))
-				}
-				eventChan <- StreamEvent{
-					Type:      "completed",
-					Content:   response,
-					SessionID: sessionID,
-					RequestID: requestID,
-					Artifacts: token.Artifacts,
-				}
-				return
-			case "progress", "thinking", "planning":
-				// Send as event
-				if token.Content != "" {
-					eventChan <- StreamEvent{
-						Type:      token.Type,
-						Stage:     token.Stage,
-						Content:   token.Content,
-						ToolName:  token.ToolName,
-						SessionID: sessionID,
-						RequestID: requestID,
-					}
-				}
-			case "error":
-				eventChan <- StreamEvent{
-					Type:      "error",
-					Stage:     token.Stage,
-					Content:   token.Content,
-					RequestID: requestID,
-				}
-				return
-			}
-			continue
+			eventChan <- event
+			return io.EOF
+		case "error":
+			event.SessionID = sessionID
+			event.RequestID = requestID
+			terminalEventSent = true
+			eventChan <- event
+			return io.EOF
+		default:
+			event.SessionID = sessionID
+			event.RequestID = requestID
+			eventChan <- event
 		}
-
-		// Try parsing as finished marker
-		var finished struct {
-			Finished bool `json:"finished"`
+		return nil
+	})
+	if err != nil {
+		eventChan <- StreamEvent{
+			Type:      "error",
+			Content:   err.Error(),
+			SessionID: sessionID,
+			RequestID: requestID,
 		}
-		if err := json.Unmarshal([]byte(data), &finished); err == nil && finished.Finished {
-			// Send accumulated response if any
-			if fullResponse.Len() > 0 {
-				eventChan <- StreamEvent{
-					Type:    "completed",
-					Content: fullResponse.String(),
-				}
-			}
-			return
-		}
+		return
 	}
 
 	// Stream ended, send any accumulated response
-	if fullResponse.Len() > 0 {
+	if !terminalEventSent && fullResponse.Len() > 0 {
 		eventChan <- StreamEvent{
-			Type:    "completed",
-			Content: fullResponse.String(),
+			Type:      "completed",
+			Content:   fullResponse.String(),
+			SessionID: sessionID,
+			RequestID: requestID,
 		}
 	}
 }
