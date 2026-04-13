@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20260413.0 - 2026-04-13
+
+### Fixed
+- Align `muxi validate` with the updated MCP declaration spec by recognizing `mcps.servers` while remaining compatible with legacy `mcp.servers` manifests.
+- Match MCP config files from both `mcps/` and legacy `mcp/` directories so declaration checks and required-field validation report the correct results during migration.
+
 ## 0.20260408.0 - 2026-04-08
 
 ### Fixed

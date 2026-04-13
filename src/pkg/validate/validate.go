@@ -344,14 +344,14 @@ func validateAgents(rootDir string, result *Result) {
 	}
 }
 
-// validateMCPs checks MCP files in mcps/ directory
+// validateMCPs checks MCP files in mcps/ or mcp/ directory
 func validateMCPs(rootDir string, result *Result) {
-	mcpsDir := filepath.Join(rootDir, "mcps")
-	if _, err := os.Stat(mcpsDir); os.IsNotExist(err) {
-		return // No MCPs directory is OK
+	dirName, mcpDir, found := findPreferredComponentDir(rootDir, "mcps", "mcp")
+	if !found {
+		return // No MCP directory is OK
 	}
 
-	entries, err := os.ReadDir(mcpsDir)
+	entries, err := os.ReadDir(mcpDir)
 	if err != nil {
 		return
 	}
@@ -361,11 +361,12 @@ func validateMCPs(rootDir string, result *Result) {
 			continue
 		}
 
-		mcpPath := filepath.Join(mcpsDir, entry.Name())
+		mcpPath := filepath.Join(mcpDir, entry.Name())
+		relPath := filepath.Join(dirName, entry.Name())
 		data, err := os.ReadFile(mcpPath)
 		if err != nil {
 			result.Errors = append(result.Errors, Issue{
-				File:    filepath.Join("mcps", entry.Name()),
+				File:    relPath,
 				Message: fmt.Sprintf("failed to read: %v", err),
 			})
 			continue
@@ -375,7 +376,7 @@ func validateMCPs(rootDir string, result *Result) {
 		if err := yaml.Unmarshal(data, &mcp); err != nil {
 			for _, e := range splitYAMLErrors(err) {
 				result.Errors = append(result.Errors, Issue{
-					File:    filepath.Join("mcps", entry.Name()),
+					File:    relPath,
 					Message: e,
 				})
 			}
@@ -385,7 +386,7 @@ func validateMCPs(rootDir string, result *Result) {
 		// Check required MCP fields
 		if _, ok := mcp["id"]; !ok {
 			result.Errors = append(result.Errors, Issue{
-				File:    filepath.Join("mcps", entry.Name()),
+				File:    relPath,
 				Field:   "id",
 				Message: "required field 'id' is missing",
 			})
@@ -393,7 +394,7 @@ func validateMCPs(rootDir string, result *Result) {
 
 		if _, ok := mcp["type"]; !ok {
 			result.Errors = append(result.Errors, Issue{
-				File:    filepath.Join("mcps", entry.Name()),
+				File:    relPath,
 				Field:   "type",
 				Message: "required field 'type' is missing",
 			})
@@ -473,6 +474,7 @@ func isExpectedMapping(key string) bool {
 		"overlord":      true,
 		"a2a":           true,
 		"mcp":           true,
+		"mcps":          true,
 		"working":       true,
 		"buffer":        true,
 		"persistent":    true,
@@ -503,12 +505,9 @@ func validateDeclarations(rootDir string, formation map[string]interface{}, resu
 	validateComponentDeclarations(declaredAgents, fileAgents, "agent", "agents", formationFileName, result)
 
 	// Validate MCP servers
-	var declaredMCPs []string
-	if mcp, ok := formation["mcp"].(map[string]interface{}); ok {
-		declaredMCPs = extractStringList(mcp, "servers")
-	}
-	fileMCPs := getComponentIDs(rootDir, "mcps")
-	validateComponentDeclarations(declaredMCPs, fileMCPs, "MCP server", "mcp.servers", formationFileName, result)
+	declaredMCPs, mcpSection := extractMCPDeclarations(formation)
+	fileMCPs := getComponentIDsFromPreferredDir(rootDir, "mcps", "mcp")
+	validateComponentDeclarations(declaredMCPs, fileMCPs, "MCP server", mcpSection, formationFileName, result)
 
 	// Validate A2A services
 	var declaredA2A []string
@@ -519,6 +518,34 @@ func validateDeclarations(rootDir string, formation map[string]interface{}, resu
 	}
 	fileA2A := getComponentIDs(rootDir, "a2a")
 	validateComponentDeclarations(declaredA2A, fileA2A, "A2A service", "a2a.outbound.services", formationFileName, result)
+}
+
+func extractMCPDeclarations(formation map[string]interface{}) ([]string, string) {
+	declared := make([]string, 0)
+	seen := make(map[string]bool)
+	section := "mcps.servers"
+
+	if mcp, ok := formation["mcp"].(map[string]interface{}); ok {
+		section = "mcp.servers"
+		for _, id := range extractStringList(mcp, "servers") {
+			if !seen[id] {
+				declared = append(declared, id)
+				seen[id] = true
+			}
+		}
+	}
+
+	if mcps, ok := formation["mcps"].(map[string]interface{}); ok {
+		section = "mcps.servers"
+		for _, id := range extractStringList(mcps, "servers") {
+			if !seen[id] {
+				declared = append(declared, id)
+				seen[id] = true
+			}
+		}
+	}
+
+	return declared, section
 }
 
 // extractStringList extracts string entries from a list field (ignoring dict entries)
@@ -534,6 +561,26 @@ func extractStringList(m map[string]interface{}, key string) []string {
 		}
 	}
 	return result
+}
+
+func getComponentIDsFromPreferredDir(rootDir string, dirNames ...string) map[string]bool {
+	dirName, _, found := findPreferredComponentDir(rootDir, dirNames...)
+	if !found {
+		return map[string]bool{}
+	}
+	return getComponentIDs(rootDir, dirName)
+}
+
+func findPreferredComponentDir(rootDir string, dirNames ...string) (string, string, bool) {
+	for _, dirName := range dirNames {
+		dirPath := filepath.Join(rootDir, dirName)
+		info, err := os.Stat(dirPath)
+		if err != nil || !info.IsDir() {
+			continue
+		}
+		return dirName, dirPath, true
+	}
+	return "", "", false
 }
 
 // getComponentIDs reads component files from a directory and returns their IDs

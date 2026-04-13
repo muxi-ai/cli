@@ -394,6 +394,46 @@ id: "my-formation"
 			t.Error("expected error for mcp missing type")
 		}
 	})
+
+	t.Run("mcp directory alias missing required fields", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		formationPath := filepath.Join(tmpDir, "formation.yaml")
+		content := `schema: "1.0.0"
+id: "my-formation"
+`
+		os.WriteFile(formationPath, []byte(content), 0644)
+
+		mcpDir := filepath.Join(tmpDir, "mcp")
+		os.Mkdir(mcpDir, 0755)
+		mcpPath := filepath.Join(mcpDir, "test-mcp.yaml")
+		os.WriteFile(mcpPath, []byte("name: test\n"), 0644)
+
+		result, err := Formation(tmpDir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		hasMCPIDError := false
+		hasMCPTypeError := false
+		expectedFile := filepath.Join("mcp", "test-mcp.yaml")
+		for _, e := range result.Errors {
+			if e.File == expectedFile {
+				if e.Field == "id" {
+					hasMCPIDError = true
+				}
+				if e.Field == "type" {
+					hasMCPTypeError = true
+				}
+			}
+		}
+		if !hasMCPIDError {
+			t.Error("expected error for mcp missing id in mcp/ directory")
+		}
+		if !hasMCPTypeError {
+			t.Error("expected error for mcp missing type in mcp/ directory")
+		}
+	})
 }
 
 func TestValidateRequiredFields(t *testing.T) {

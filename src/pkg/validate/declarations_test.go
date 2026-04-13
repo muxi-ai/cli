@@ -193,12 +193,155 @@ type: "command"
 
 	found := false
 	for _, w := range result.Warnings {
-		if w.Field == "mcp.servers" && contains(w.Message, "orphan-mcp") && contains(w.Message, "not declared") {
+		if w.Field == "mcps.servers" && contains(w.Message, "orphan-mcp") && contains(w.Message, "not declared") {
 			found = true
 		}
 	}
 	if !found {
 		t.Error("expected warning for MCP file that is not declared")
+	}
+}
+
+func TestValidateDeclarations_MCPDeclaredAndExistsInLegacyMCPDir(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	formationPath := filepath.Join(tmpDir, "formation.afs")
+	content := `schema: "1.0.0"
+id: "my-formation"
+mcp:
+  servers:
+    - my-mcp
+`
+	os.WriteFile(formationPath, []byte(content), 0644)
+
+	mcpDir := filepath.Join(tmpDir, "mcp")
+	os.Mkdir(mcpDir, 0755)
+	mcpContent := `id: "my-mcp"
+type: "http"
+endpoint: "https://example.com"
+`
+	os.WriteFile(filepath.Join(mcpDir, "my-mcp.afs"), []byte(mcpContent), 0644)
+
+	result, err := Formation(tmpDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, e := range result.Errors {
+		if e.Field == "mcp.servers" || e.Field == "mcps.servers" {
+			t.Errorf("unexpected MCP declaration error: %s", e.Message)
+		}
+	}
+	for _, w := range result.Warnings {
+		if w.Field == "mcp.servers" || w.Field == "mcps.servers" {
+			t.Errorf("unexpected MCP declaration warning: %s", w.Message)
+		}
+	}
+}
+
+func TestValidateDeclarations_MCPsDeclaredAndExists(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	formationPath := filepath.Join(tmpDir, "formation.afs")
+	content := `schema: "1.0.0"
+id: "my-formation"
+mcps:
+  servers:
+    - my-mcp
+`
+	os.WriteFile(formationPath, []byte(content), 0644)
+
+	mcpsDir := filepath.Join(tmpDir, "mcps")
+	os.Mkdir(mcpsDir, 0755)
+	mcpContent := `id: "my-mcp"
+type: "http"
+endpoint: "https://example.com"
+`
+	os.WriteFile(filepath.Join(mcpsDir, "my-mcp.afs"), []byte(mcpContent), 0644)
+
+	result, err := Formation(tmpDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, e := range result.Errors {
+		if e.Field == "mcps.servers" || e.Field == "mcp.servers" {
+			t.Errorf("unexpected MCP declaration error: %s", e.Message)
+		}
+	}
+	for _, w := range result.Warnings {
+		if w.Field == "mcps.servers" || w.Field == "mcp.servers" {
+			t.Errorf("unexpected MCP declaration warning: %s", w.Message)
+		}
+	}
+}
+
+func TestValidateDeclarations_MCPsDeclaredButMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	formationPath := filepath.Join(tmpDir, "formation.afs")
+	content := `schema: "1.0.0"
+id: "my-formation"
+mcps:
+  servers:
+    - ghost-mcp
+`
+	os.WriteFile(formationPath, []byte(content), 0644)
+
+	result, err := Formation(tmpDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, e := range result.Errors {
+		if e.Field == "mcps.servers" && contains(e.Message, "ghost-mcp") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected error for declared MCP in mcps.servers with no matching file")
+	}
+}
+
+func TestValidateDeclarations_MCPFileNotDeclaredInMCPsSection(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	formationPath := filepath.Join(tmpDir, "formation.afs")
+	content := `schema: "1.0.0"
+id: "my-formation"
+mcps:
+  servers:
+    - declared-mcp
+`
+	os.WriteFile(formationPath, []byte(content), 0644)
+
+	mcpsDir := filepath.Join(tmpDir, "mcps")
+	os.Mkdir(mcpsDir, 0755)
+	declaredMCPContent := `id: "declared-mcp"
+type: "http"
+endpoint: "https://example.com"
+`
+	os.WriteFile(filepath.Join(mcpsDir, "declared-mcp.afs"), []byte(declaredMCPContent), 0644)
+
+	orphanMCPContent := `id: "orphan-mcp"
+type: "command"
+`
+	os.WriteFile(filepath.Join(mcpsDir, "orphan-mcp.afs"), []byte(orphanMCPContent), 0644)
+
+	result, err := Formation(tmpDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, w := range result.Warnings {
+		if w.Field == "mcps.servers" && contains(w.Message, "orphan-mcp") && contains(w.Message, "not declared") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected warning for MCP file not declared in mcps.servers")
 	}
 }
 
