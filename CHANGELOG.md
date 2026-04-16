@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20260416.0 - 2026-04-16
+
+### Fixed
+- Map `muxi scheduler list` and `muxi scheduler show` to the runtime scheduler job fields (`status`, `is_recurring`, `cron_expression`, `scheduled_for`, `original_prompt`, `last_run_at`, `total_failures`) so active jobs render correctly instead of appearing disabled with empty columns.
+- Compute scheduler next-run values client-side for recurring cron jobs and reuse `scheduled_for` for one-time jobs when the runtime does not provide a precomputed `next_run`.
+
 ## 0.20260413.0 - 2026-04-13
 
 ### Fixed

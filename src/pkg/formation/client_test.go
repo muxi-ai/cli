@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 // mockServer creates a test server with the given handler
@@ -827,6 +828,110 @@ func TestGetSchedulerJobs(t *testing.T) {
 	}
 }
 
+func TestGetSchedulerJobs_RuntimeFieldMapping(t *testing.T) {
+	scheduledFor := "2026-04-16T15:00:00Z"
+	lastRunAt := "2026-04-16T14:00:00Z"
+
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"jobs": []interface{}{
+					map[string]interface{}{
+						"id":              "job-recurring",
+						"status":          "ACTIVE",
+						"is_recurring":    true,
+						"cron_expression": "0 * * * *",
+						"scheduled_for":   nil,
+						"original_prompt": "Hourly check-in",
+						"last_run_at":     lastRunAt,
+						"total_failures":  1,
+					},
+					map[string]interface{}{
+						"id":              "job-once",
+						"status":          "PAUSED",
+						"is_recurring":    false,
+						"cron_expression": nil,
+						"scheduled_for":   scheduledFor,
+						"original_prompt": "Follow up tomorrow",
+					},
+				},
+				"count": 2,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetSchedulerJobs("")
+	if err != nil {
+		t.Fatalf("GetSchedulerJobs() error: %v", err)
+	}
+
+	if result.Count != 2 {
+		t.Fatalf("Count = %d, want 2", result.Count)
+	}
+
+	recurring := result.Jobs[0]
+	if recurring.Type != "recurring" {
+		t.Errorf("Type = %q, want recurring", recurring.Type)
+	}
+	if recurring.Schedule != "0 * * * *" {
+		t.Errorf("Schedule = %q, want cron expression", recurring.Schedule)
+	}
+	if recurring.Status != "ACTIVE" {
+		t.Errorf("Status = %q, want ACTIVE", recurring.Status)
+	}
+	if !recurring.Enabled {
+		t.Error("Enabled = false, want true for ACTIVE job")
+	}
+	if recurring.Message != "Hourly check-in" {
+		t.Errorf("Message = %q, want original_prompt", recurring.Message)
+	}
+	if recurring.FailureCount != 1 {
+		t.Errorf("FailureCount = %d, want 1", recurring.FailureCount)
+	}
+	if recurring.NextRun.IsZero() {
+		t.Error("NextRun should be computed for recurring jobs")
+	}
+
+	expectedLastRun, err := time.Parse(time.RFC3339, lastRunAt)
+	if err != nil {
+		t.Fatalf("time.Parse() error: %v", err)
+	}
+	if !recurring.LastRun.Equal(expectedLastRun) {
+		t.Errorf("LastRun = %v, want %v", recurring.LastRun, expectedLastRun)
+	}
+
+	oneTime := result.Jobs[1]
+	if oneTime.Type != "one_time" {
+		t.Errorf("Type = %q, want one_time", oneTime.Type)
+	}
+	if oneTime.Schedule != scheduledFor {
+		t.Errorf("Schedule = %q, want scheduled_for", oneTime.Schedule)
+	}
+	if oneTime.Status != "PAUSED" {
+		t.Errorf("Status = %q, want PAUSED", oneTime.Status)
+	}
+	if oneTime.Enabled {
+		t.Error("Enabled = true, want false for PAUSED job")
+	}
+
+	expectedRunAt, err := time.Parse(time.RFC3339, scheduledFor)
+	if err != nil {
+		t.Fatalf("time.Parse() error: %v", err)
+	}
+	if !oneTime.RunAt.Equal(expectedRunAt) {
+		t.Errorf("RunAt = %v, want %v", oneTime.RunAt, expectedRunAt)
+	}
+	if !oneTime.NextRun.Equal(expectedRunAt) {
+		t.Errorf("NextRun = %v, want %v", oneTime.NextRun, expectedRunAt)
+	}
+	if oneTime.Message != "Follow up tomorrow" {
+		t.Errorf("Message = %q, want original_prompt", oneTime.Message)
+	}
+}
+
 func TestClearUserBuffer(t *testing.T) {
 	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "DELETE" {
@@ -1264,6 +1369,75 @@ func TestGetSchedulerJob(t *testing.T) {
 	}
 	if result.ID != "job-123" {
 		t.Errorf("ID = %q, want 'job-123'", result.ID)
+	}
+}
+
+func TestGetSchedulerJob_RuntimeFieldMapping(t *testing.T) {
+	scheduledFor := "2026-04-17T09:30:00Z"
+	lastRunAt := "2026-04-16T09:30:00Z"
+
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"id":              "job-456",
+				"status":          "COMPLETED",
+				"is_recurring":    false,
+				"cron_expression": nil,
+				"scheduled_for":   scheduledFor,
+				"original_prompt": "Send wrap-up",
+				"last_run_at":     lastRunAt,
+				"total_failures":  2,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetSchedulerJob("job-456")
+	if err != nil {
+		t.Fatalf("GetSchedulerJob() error: %v", err)
+	}
+
+	if result.ID != "job-456" {
+		t.Errorf("ID = %q, want job-456", result.ID)
+	}
+	if result.Type != "one_time" {
+		t.Errorf("Type = %q, want one_time", result.Type)
+	}
+	if result.Schedule != scheduledFor {
+		t.Errorf("Schedule = %q, want scheduled_for", result.Schedule)
+	}
+	if result.Status != "COMPLETED" {
+		t.Errorf("Status = %q, want COMPLETED", result.Status)
+	}
+	if result.Enabled {
+		t.Error("Enabled = true, want false for COMPLETED job")
+	}
+	if result.Message != "Send wrap-up" {
+		t.Errorf("Message = %q, want original_prompt", result.Message)
+	}
+	if result.FailureCount != 2 {
+		t.Errorf("FailureCount = %d, want 2", result.FailureCount)
+	}
+
+	expectedRunAt, err := time.Parse(time.RFC3339, scheduledFor)
+	if err != nil {
+		t.Fatalf("time.Parse() error: %v", err)
+	}
+	if !result.RunAt.Equal(expectedRunAt) {
+		t.Errorf("RunAt = %v, want %v", result.RunAt, expectedRunAt)
+	}
+	if !result.NextRun.Equal(expectedRunAt) {
+		t.Errorf("NextRun = %v, want %v", result.NextRun, expectedRunAt)
+	}
+
+	expectedLastRun, err := time.Parse(time.RFC3339, lastRunAt)
+	if err != nil {
+		t.Fatalf("time.Parse() error: %v", err)
+	}
+	if !result.LastRun.Equal(expectedLastRun) {
+		t.Errorf("LastRun = %v, want %v", result.LastRun, expectedLastRun)
 	}
 }
 

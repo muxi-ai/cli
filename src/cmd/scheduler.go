@@ -176,17 +176,12 @@ func runSchedulerList(cmd *cobra.Command, args []string) error {
 			nextRun = job.NextRun.Format("Jan 2 3:04pm")
 		}
 
-		status := ui.RedText("● disabled")
-		if job.Enabled {
-			status = ui.GreenText("● enabled")
-		}
-
 		fmt.Printf("  %-20s %-12s %-15s %-20s %s\n",
 			truncate(job.ID, 20),
 			job.Type,
 			truncate(schedule, 15),
 			nextRun,
-			status)
+			schedulerStatusDisplay(job.Status))
 	}
 	fmt.Println()
 
@@ -336,13 +331,8 @@ func runSchedulerShow(cmd *cobra.Command, args []string) error {
 	ui.Bold(fmt.Sprintf("Job: %s", job.ID))
 	fmt.Println()
 
-	status := ui.RedText("● disabled")
-	if job.Enabled {
-		status = ui.GreenText("● enabled")
-	}
-
 	fmt.Printf("  Type:     %s\n", job.Type)
-	fmt.Printf("  Status:   %s\n", status)
+	fmt.Printf("  Status:   %s\n", schedulerStatusDisplay(job.Status))
 	if job.Schedule != "" {
 		fmt.Printf("  Schedule: %s\n", job.Schedule)
 	}
@@ -362,6 +352,30 @@ func runSchedulerShow(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	return nil
+}
+
+func schedulerStatusDisplay(status string) string {
+	icon, label := schedulerStatusParts(status)
+	return fmt.Sprintf("%s %s", icon, label)
+}
+
+func schedulerStatusParts(status string) (string, string) {
+	normalized := strings.ToUpper(strings.TrimSpace(status))
+
+	switch normalized {
+	case "ACTIVE":
+		return ui.GreenText("●"), "active"
+	case "PAUSED":
+		return ui.YellowText("●"), "paused"
+	case "COMPLETED":
+		return ui.DimmedText("○"), "completed"
+	case "DISABLED":
+		return ui.DimmedText("○"), "disabled"
+	case "":
+		return ui.DimmedText("○"), "unknown"
+	default:
+		return ui.DimmedText("○"), strings.ToLower(normalized)
+	}
 }
 
 func runSchedulerRemove(cmd *cobra.Command, args []string) error {

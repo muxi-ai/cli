@@ -11,6 +11,7 @@ require (
 	github.com/chzyer/readline v1.5.1
 	github.com/fatih/color v1.18.0
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.2
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/term v0.40.0
