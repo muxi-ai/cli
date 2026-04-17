@@ -1,7 +1,9 @@
 package formation
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
 )
 
 func TestUserIDRequiredError(t *testing.T) {
@@ -64,6 +66,42 @@ func TestAudioChatRequest(t *testing.T) {
 	}
 	if req.UserID != "alice" {
 		t.Errorf("UserID = %q, want 'alice'", req.UserID)
+	}
+}
+
+func TestFlexTimeUnmarshalJSON_ParsesFractionalOffsetTimestamp(t *testing.T) {
+	var ft FlexTime
+	raw := []byte(`"2026-04-16T09:00:00.123456+00:00"`)
+
+	if err := json.Unmarshal(raw, &ft); err != nil {
+		t.Fatalf("json.Unmarshal() error: %v", err)
+	}
+
+	expected, err := time.Parse(time.RFC3339Nano, "2026-04-16T09:00:00.123456+00:00")
+	if err != nil {
+		t.Fatalf("time.Parse() error: %v", err)
+	}
+
+	if !ft.Equal(expected) {
+		t.Errorf("FlexTime = %v, want %v", ft.Time, expected)
+	}
+}
+
+func TestFlexTimeUnmarshalJSON_ParsesFractionalTimestampWithoutColonOffset(t *testing.T) {
+	var ft FlexTime
+	raw := []byte(`"2026-04-16T09:00:00.123456+0000"`)
+
+	if err := json.Unmarshal(raw, &ft); err != nil {
+		t.Fatalf("json.Unmarshal() error: %v", err)
+	}
+
+	expected, err := time.Parse("2006-01-02T15:04:05.999999999Z0700", "2026-04-16T09:00:00.123456+0000")
+	if err != nil {
+		t.Fatalf("time.Parse() error: %v", err)
+	}
+
+	if !ft.Equal(expected) {
+		t.Errorf("FlexTime = %v, want %v", ft.Time, expected)
 	}
 }
 

@@ -14,6 +14,15 @@ type FlexTime struct {
 	time.Time
 }
 
+var apiTimeLayouts = []string{
+	time.RFC3339Nano,
+	time.RFC3339,
+	"2006-01-02T15:04:05.999999999Z0700",
+	"2006-01-02T15:04:05Z0700",
+	"2006-01-02T15:04:05.999999999Z",
+	"2006-01-02T15:04:05Z",
+}
+
 func (ft *FlexTime) UnmarshalJSON(data []byte) error {
 	// Try string first (ISO 8601)
 	var s string
@@ -22,11 +31,7 @@ func (ft *FlexTime) UnmarshalJSON(data []byte) error {
 			ft.Time = time.Time{}
 			return nil
 		}
-		t, err := time.Parse(time.RFC3339, s)
-		if err != nil {
-			// Try other formats
-			t, err = time.Parse("2006-01-02T15:04:05Z", s)
-		}
+		t, err := parseAPITimeString(s)
 		if err != nil {
 			return fmt.Errorf("cannot parse time string: %s", s)
 		}
@@ -55,6 +60,18 @@ func (ft *FlexTime) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("cannot unmarshal time from: %s", string(data))
+}
+
+func parseAPITimeString(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+
+	for _, layout := range apiTimeLayouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("cannot parse time string: %s", s)
 }
 
 // APIResponse is the standard envelope for all Formation API responses
@@ -968,12 +985,12 @@ func parseSchedulerJobFields(data []byte) (schedulerJobFields, error) {
 		case wire.CronExpression != "":
 			schedule = wire.CronExpression
 		case !runAt.IsZero():
-			schedule = runAt.Format(time.RFC3339)
+			schedule = runAt.Format(time.RFC3339Nano)
 		}
 	}
 
 	if runAt.IsZero() && jobType == "one_time" && schedule != "" {
-		if parsed, err := time.Parse(time.RFC3339, schedule); err == nil {
+		if parsed, err := parseAPITimeString(schedule); err == nil {
 			runAt = parsed
 		}
 	}

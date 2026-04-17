@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20260417.0 - 2026-04-17
+
+### Fixed
+- Prevent `muxi scheduler` job listing and detail views from crashing when the runtime returns timestamps with fractional seconds and timezone offsets, such as `2026-04-16T09:00:00.123456+00:00`.
+- Preserve fractional timestamp precision when normalizing one-time scheduler `scheduled_for` values for CLI display and parsing.
+
 ## 0.20260416.0 - 2026-04-16
 
 ### Fixed

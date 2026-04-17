@@ -829,8 +829,8 @@ func TestGetSchedulerJobs(t *testing.T) {
 }
 
 func TestGetSchedulerJobs_RuntimeFieldMapping(t *testing.T) {
-	scheduledFor := "2026-04-16T15:00:00Z"
-	lastRunAt := "2026-04-16T14:00:00Z"
+	scheduledFor := "2026-04-16T15:00:00.123456+00:00"
+	lastRunAt := "2026-04-16T14:00:00.654321+00:00"
 
 	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -895,7 +895,7 @@ func TestGetSchedulerJobs_RuntimeFieldMapping(t *testing.T) {
 		t.Error("NextRun should be computed for recurring jobs")
 	}
 
-	expectedLastRun, err := time.Parse(time.RFC3339, lastRunAt)
+	expectedLastRun, err := time.Parse(time.RFC3339Nano, lastRunAt)
 	if err != nil {
 		t.Fatalf("time.Parse() error: %v", err)
 	}
@@ -907,9 +907,6 @@ func TestGetSchedulerJobs_RuntimeFieldMapping(t *testing.T) {
 	if oneTime.Type != "one_time" {
 		t.Errorf("Type = %q, want one_time", oneTime.Type)
 	}
-	if oneTime.Schedule != scheduledFor {
-		t.Errorf("Schedule = %q, want scheduled_for", oneTime.Schedule)
-	}
 	if oneTime.Status != "PAUSED" {
 		t.Errorf("Status = %q, want PAUSED", oneTime.Status)
 	}
@@ -917,9 +914,12 @@ func TestGetSchedulerJobs_RuntimeFieldMapping(t *testing.T) {
 		t.Error("Enabled = true, want false for PAUSED job")
 	}
 
-	expectedRunAt, err := time.Parse(time.RFC3339, scheduledFor)
+	expectedRunAt, err := time.Parse(time.RFC3339Nano, scheduledFor)
 	if err != nil {
 		t.Fatalf("time.Parse() error: %v", err)
+	}
+	if oneTime.Schedule != expectedRunAt.Format(time.RFC3339Nano) {
+		t.Errorf("Schedule = %q, want normalized scheduled_for", oneTime.Schedule)
 	}
 	if !oneTime.RunAt.Equal(expectedRunAt) {
 		t.Errorf("RunAt = %v, want %v", oneTime.RunAt, expectedRunAt)
@@ -1373,8 +1373,8 @@ func TestGetSchedulerJob(t *testing.T) {
 }
 
 func TestGetSchedulerJob_RuntimeFieldMapping(t *testing.T) {
-	scheduledFor := "2026-04-17T09:30:00Z"
-	lastRunAt := "2026-04-16T09:30:00Z"
+	scheduledFor := "2026-04-17T09:30:00.123456+00:00"
+	lastRunAt := "2026-04-16T09:30:00.654321+00:00"
 
 	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -1405,9 +1405,6 @@ func TestGetSchedulerJob_RuntimeFieldMapping(t *testing.T) {
 	if result.Type != "one_time" {
 		t.Errorf("Type = %q, want one_time", result.Type)
 	}
-	if result.Schedule != scheduledFor {
-		t.Errorf("Schedule = %q, want scheduled_for", result.Schedule)
-	}
 	if result.Status != "COMPLETED" {
 		t.Errorf("Status = %q, want COMPLETED", result.Status)
 	}
@@ -1421,9 +1418,12 @@ func TestGetSchedulerJob_RuntimeFieldMapping(t *testing.T) {
 		t.Errorf("FailureCount = %d, want 2", result.FailureCount)
 	}
 
-	expectedRunAt, err := time.Parse(time.RFC3339, scheduledFor)
+	expectedRunAt, err := time.Parse(time.RFC3339Nano, scheduledFor)
 	if err != nil {
 		t.Fatalf("time.Parse() error: %v", err)
+	}
+	if result.Schedule != expectedRunAt.Format(time.RFC3339Nano) {
+		t.Errorf("Schedule = %q, want normalized scheduled_for", result.Schedule)
 	}
 	if !result.RunAt.Equal(expectedRunAt) {
 		t.Errorf("RunAt = %v, want %v", result.RunAt, expectedRunAt)
@@ -1432,7 +1432,7 @@ func TestGetSchedulerJob_RuntimeFieldMapping(t *testing.T) {
 		t.Errorf("NextRun = %v, want %v", result.NextRun, expectedRunAt)
 	}
 
-	expectedLastRun, err := time.Parse(time.RFC3339, lastRunAt)
+	expectedLastRun, err := time.Parse(time.RFC3339Nano, lastRunAt)
 	if err != nil {
 		t.Fatalf("time.Parse() error: %v", err)
 	}
