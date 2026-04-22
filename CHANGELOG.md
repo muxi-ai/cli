@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20260422.0 - 2026-04-22
+
+### Fixed
+- Prevent `muxi scheduler list` and `muxi scheduler show` from failing when the runtime returns scheduler timestamps without timezone suffixes, such as `2026-04-20T11:30:35.935869`.
+- Treat timezone-less scheduler `scheduled_for` and `last_run_at` values as UTC so one-time jobs still normalize correctly in CLI output.
+
 ## 0.20260417.0 - 2026-04-17
 
 ### Fixed
