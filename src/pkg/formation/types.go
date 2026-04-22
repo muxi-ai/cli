@@ -21,6 +21,8 @@ var apiTimeLayouts = []string{
 	"2006-01-02T15:04:05Z0700",
 	"2006-01-02T15:04:05.999999999Z",
 	"2006-01-02T15:04:05Z",
+	"2006-01-02T15:04:05.999999999",
+	"2006-01-02T15:04:05",
 }
 
 func (ft *FlexTime) UnmarshalJSON(data []byte) error {

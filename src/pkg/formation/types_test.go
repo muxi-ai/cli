@@ -105,6 +105,34 @@ func TestFlexTimeUnmarshalJSON_ParsesFractionalTimestampWithoutColonOffset(t *te
 	}
 }
 
+func TestFlexTimeUnmarshalJSON_ParsesFractionalTimestampWithoutTimezone(t *testing.T) {
+	var ft FlexTime
+	raw := []byte(`"2026-04-16T09:00:00.123456"`)
+
+	if err := json.Unmarshal(raw, &ft); err != nil {
+		t.Fatalf("json.Unmarshal() error: %v", err)
+	}
+
+	expected := time.Date(2026, time.April, 16, 9, 0, 0, 123456000, time.UTC)
+	if !ft.Equal(expected) {
+		t.Errorf("FlexTime = %v, want %v", ft.Time, expected)
+	}
+}
+
+func TestFlexTimeUnmarshalJSON_ParsesTimestampWithoutTimezone(t *testing.T) {
+	var ft FlexTime
+	raw := []byte(`"2026-04-16T09:00:00"`)
+
+	if err := json.Unmarshal(raw, &ft); err != nil {
+		t.Fatalf("json.Unmarshal() error: %v", err)
+	}
+
+	expected := time.Date(2026, time.April, 16, 9, 0, 0, 0, time.UTC)
+	if !ft.Equal(expected) {
+		t.Errorf("FlexTime = %v, want %v", ft.Time, expected)
+	}
+}
+
 func containsSubstring(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {

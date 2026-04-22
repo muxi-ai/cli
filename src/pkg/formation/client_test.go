@@ -932,6 +932,61 @@ func TestGetSchedulerJobs_RuntimeFieldMapping(t *testing.T) {
 	}
 }
 
+func TestGetSchedulerJobs_RuntimeFieldMapping_NaiveTimestamps(t *testing.T) {
+	scheduledFor := "2026-04-16T15:00:00.123456"
+	lastRunAt := "2026-04-16T14:00:00.654321"
+
+	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"jobs": []interface{}{
+					map[string]interface{}{
+						"id":              "job-recurring",
+						"status":          "ACTIVE",
+						"is_recurring":    true,
+						"cron_expression": "0 * * * *",
+						"scheduled_for":   nil,
+						"original_prompt": "Hourly check-in",
+						"last_run_at":     lastRunAt,
+					},
+					map[string]interface{}{
+						"id":              "job-once",
+						"status":          "PAUSED",
+						"is_recurring":    false,
+						"cron_expression": nil,
+						"scheduled_for":   scheduledFor,
+						"original_prompt": "Follow up tomorrow",
+					},
+				},
+				"count": 2,
+			},
+		})
+	})
+	defer server.Close()
+
+	result, err := client.GetSchedulerJobs("")
+	if err != nil {
+		t.Fatalf("GetSchedulerJobs() error: %v", err)
+	}
+
+	recurring := result.Jobs[0]
+	expectedLastRun := time.Date(2026, time.April, 16, 14, 0, 0, 654321000, time.UTC)
+	if !recurring.LastRun.Equal(expectedLastRun) {
+		t.Errorf("LastRun = %v, want %v", recurring.LastRun, expectedLastRun)
+	}
+
+	oneTime := result.Jobs[1]
+	expectedRunAt := time.Date(2026, time.April, 16, 15, 0, 0, 123456000, time.UTC)
+	if !oneTime.RunAt.Equal(expectedRunAt) {
+		t.Errorf("RunAt = %v, want %v", oneTime.RunAt, expectedRunAt)
+	}
+	if oneTime.Schedule != expectedRunAt.Format(time.RFC3339Nano) {
+		t.Errorf("Schedule = %q, want normalized scheduled_for", oneTime.Schedule)
+	}
+}
+
 func TestClearUserBuffer(t *testing.T) {
 	server, client := mockServer(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "DELETE" {
