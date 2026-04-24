@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.20260424.0 - 2026-04-24
+
+### Added
+- Upload CLI release binaries to S3 (`s3://BUCKET/cli/VERSION/*`) with public-read ACL during the release workflow, mirroring the runtime's S3 distribution pattern.
+
+### Changed
+- Update CLI download URLs from `releases.muxi.org` to `pkg.muxi.org/cli/vVERSION/BINARY` across upgrade command and release workflow.
+
 ## 0.20260422.0 - 2026-04-22
 
 ### Fixed

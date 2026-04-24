@@ -7,9 +7,10 @@
 #   1. Calculate version
 #   2. Commit .version + CHANGELOG → push to main
 #   3. Build 6 release binaries (linux/darwin/windows × amd64/arm64)
-#   4. Create + push git tag
-#   5. Create GitHub Release with binaries (attaches to existing tag)
-#   6. Merge main back to develop
+#   4. Upload binaries to S3 (s3://BUCKET/cli/VERSION/*)
+#   5. Create + push git tag
+#   6. Create GitHub Release with binaries (attaches to existing tag)
+#   7. Merge main back to develop
 #
 # Tag is pushed AFTER binaries build but BEFORE GitHub Release,
 # so binaries must succeed before a tag exists.
@@ -149,6 +150,19 @@ jobs:
           echo "✓ All binaries built (version embedded from src/.version)"
           ls -lh dist/
       
+      - name: Upload binaries to S3
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          pip install awscli
+          for f in dist/muxi-*; do
+            aws s3 cp "$f" "s3://${{ secrets.MUXI_S3_BUCKET }}/cli/${VERSION}/$(basename $f)" --acl public-read
+          done
+          echo "✓ All binaries uploaded to S3 cli/${VERSION}/"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.MUXI_S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.MUXI_S3_SECRET_KEY }}
+          AWS_ENDPOINT_URL: ${{ secrets.MUXI_S3_ENDPOINT }}
+
       - name: Create and push git tag
         run: |
           TAG="v${{ steps.version.outputs.VERSION }}"
@@ -179,12 +193,12 @@ jobs:
             
             # Or download binary directly
             # macOS Apple Silicon
-            curl -L https://releases.muxi.org/cli/releases/download/v${{ steps.version.outputs.VERSION }}/muxi-darwin-arm64 -o muxi
+            curl -L https://pkg.muxi.org/cli/v${{ steps.version.outputs.VERSION }}/muxi-darwin-arm64 -o muxi
             chmod +x muxi
             sudo mv muxi /usr/local/bin/
             
             # Linux x86_64
-            curl -L https://releases.muxi.org/cli/releases/download/v${{ steps.version.outputs.VERSION }}/muxi-linux-amd64 -o muxi
+            curl -L https://pkg.muxi.org/cli/v${{ steps.version.outputs.VERSION }}/muxi-linux-amd64 -o muxi
             chmod +x muxi
             sudo mv muxi /usr/local/bin/
             ```
