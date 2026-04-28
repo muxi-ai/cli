@@ -217,6 +217,7 @@ var chatStyle = []byte(`{
 	"emph": { "italic": true },
 	"list": { "level_indent": 2 },
 	"item": { "block_prefix": "• " },
+	"enumeration": { "block_prefix": ". " },
 	"code": {},
 	"code_block": { "margin": 2 },
 	"horizontal_rule": { "format": "" },

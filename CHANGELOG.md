@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20260428.0 - 2026-04-28
+
+### Fixed
+- Render ordered list markers correctly in `muxi chat` assistant messages by adding the `enumeration` element to the custom glamour style, so numbered lists display as `1. Item` instead of squishing the number into the content (`1Item`).
+
 ## 0.20260424.0 - 2026-04-24
 
 ### Added
