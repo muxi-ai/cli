@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20260501.1 - 2026-05-01
+
+### Fixed
+- Append `?pull=true` to the registry pull-info request in `muxi pull` so the registry records each download in the `downloads` table and refreshes the formation's `total_downloads` and weekly activity charts.
+
 ## 0.20260501.0 - 2026-05-01
 
 ### Fixed

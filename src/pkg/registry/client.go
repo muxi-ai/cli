@@ -220,7 +220,9 @@ func (c *Client) GetPullInfo(ref string) (*PullInfo, error) {
 
 	endpoint := fmt.Sprintf("/api/formations/@%s/%s", parsed.Owner, parsed.Name)
 	if parsed.Version != "" {
-		endpoint += "?version=" + parsed.Version
+		endpoint += "?version=" + parsed.Version + "&pull=true"
+	} else {
+		endpoint += "?pull=true"
 	}
 
 	req, err := http.NewRequest("GET", c.BaseURL+endpoint, nil)
