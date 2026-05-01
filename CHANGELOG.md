@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.20260501.0 - 2026-05-01
+
+### Fixed
+- Include `SOUL.md` and the legacy `mcp/` component directory in `muxi push` bundles so they are no longer dropped during registry round-trips.
+- Recognize both `mcp/` and `mcps/` directory names when matching MCP server declarations from `formation.afs` during bundling.
+
+### Added
+- Treat new MCP spec keys `parameters` (default tool-call parameters) and `tools.whitelist`/`tools.blacklist` (catalog filtering) as valid in `muxi validate`, including a mutual-exclusivity check that reports an error when both `whitelist` and `blacklist` are declared on the same MCP server.
+
 ## 0.20260428.0 - 2026-04-28
 
 ### Fixed

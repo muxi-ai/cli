@@ -44,8 +44,11 @@ var IncludedPatterns = []string{
 	"README.md",
 	"README",
 	"LICENSE",
+	"SOUL.md",
 	"agents/*.afs",
 	"agents/*.yaml",
+	"mcp/*.afs",
+	"mcp/*.yaml",
 	"mcps/*.afs",
 	"mcps/*.yaml",
 	"a2a/*.afs",
@@ -256,7 +259,7 @@ func shouldInclude(path string) bool {
 	name := filepath.Base(path)
 
 	// Root files
-	rootIncludes := []string{"formation.afs", "formation.yaml", "README.md", "README", "LICENSE", "secrets"}
+	rootIncludes := []string{"formation.afs", "formation.yaml", "README.md", "README", "LICENSE", "SOUL.md", "secrets"}
 	for _, include := range rootIncludes {
 		if path == include || name == include {
 			return true
@@ -266,6 +269,7 @@ func shouldInclude(path string) bool {
 	// Directory patterns - include all afs/yaml/md files in these dirs
 	dirPatterns := map[string][]string{
 		"agents/":    {"*.afs", "*.yaml", "*.yml"},
+		"mcp/":       {"*.afs", "*.yaml", "*.yml"},
 		"mcps/":      {"*.afs", "*.yaml", "*.yml"},
 		"a2a/":       {"*.afs", "*.yaml", "*.yml"},
 		"sops/":      {"*.md", "*.yaml", "*.yml"},

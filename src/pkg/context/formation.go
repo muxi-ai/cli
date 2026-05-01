@@ -220,7 +220,7 @@ func (dc *DeclaredComponents) IsComponentDeclared(relPath string) bool {
 			return true // no declarations = include all (backward compat)
 		}
 		return dc.Agents[stem]
-	case "mcps":
+	case "mcp", "mcps":
 		if len(dc.MCPServers) == 0 {
 			return true
 		}

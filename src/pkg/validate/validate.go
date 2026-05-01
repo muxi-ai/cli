@@ -400,6 +400,19 @@ func validateMCPs(rootDir string, result *Result) {
 			})
 		}
 
+		// Tool filtering: whitelist and blacklist are mutually exclusive
+		if tools, ok := mcp["tools"].(map[string]interface{}); ok {
+			_, hasWhitelist := tools["whitelist"]
+			_, hasBlacklist := tools["blacklist"]
+			if hasWhitelist && hasBlacklist {
+				result.Errors = append(result.Errors, Issue{
+					File:    relPath,
+					Field:   "tools",
+					Message: "'tools.whitelist' and 'tools.blacklist' are mutually exclusive - declare only one",
+				})
+			}
+		}
+
 		// Collect secret refs from MCP file
 		secretRefs := collectSecretRefs(string(data))
 		validateSecretRefs(rootDir, secretRefs, result)
@@ -491,6 +504,8 @@ func isExpectedMapping(key string) bool {
 		"encryption":    true,
 		"inbound":       true,
 		"outbound":      true,
+		"parameters":    true,
+		"tools":         true,
 	}
 	return expectedMappings[key]
 }
