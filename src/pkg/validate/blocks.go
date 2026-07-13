@@ -134,6 +134,129 @@ func isPositiveNumber(value interface{}) bool {
 	}
 }
 
+// Knowledge source validation. URL schemes mirror the runtime's
+// REMOTE_KNOWLEDGE_SUPPORTED_SCHEMES and agent_tree.regenerate mirrors its
+// _AGENT_TREE_REGENERATE_MODES. Per-source 'retrieval' mode is deliberately
+// NOT validated here until the retrieval-mode consolidation decision lands.
+
+var remoteKnowledgeSchemes = map[string]bool{
+	"http": true, "https": true, "s3": true, "gs": true, "az": true,
+	"rsync": true, "rsync+ssh": true, "ftp": true, "sftp": true, "file": true,
+}
+
+var agentTreeRegenerateModes = []string{"manual", "on-source-change", "on-formation-load"}
+
+// validateKnowledgeSources checks an agent's knowledge.sources entries:
+// path XOR url, supported remote URL schemes, and the agent_tree block
+// (regenerate enum; local sources only).
+func validateKnowledgeSources(agent map[string]interface{}, relPath string, result *Result) {
+	knowledge, ok := agent["knowledge"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	sources, ok := knowledge["sources"].([]interface{})
+	if !ok {
+		return
+	}
+
+	for i, raw := range sources {
+		field := fmt.Sprintf("knowledge.sources[%d]", i)
+		source, ok := raw.(map[string]interface{})
+		if !ok {
+			result.Errors = append(result.Errors, Issue{
+				File:    relPath,
+				Field:   field,
+				Message: "knowledge source must be a mapping",
+			})
+			continue
+		}
+
+		_, hasPath := source["path"]
+		url, hasURL := source["url"].(string)
+		if hasPath && hasURL {
+			result.Errors = append(result.Errors, Issue{
+				File:    relPath,
+				Field:   field,
+				Message: "knowledge source must declare either 'path' or 'url', not both",
+			})
+			continue
+		}
+		if !hasPath && !hasURL {
+			result.Errors = append(result.Errors, Issue{
+				File:    relPath,
+				Field:   field,
+				Message: "knowledge source missing required field: 'path' or 'url'",
+			})
+			continue
+		}
+
+		if hasURL {
+			scheme := ""
+			if idx := strings.Index(url, "://"); idx > 0 {
+				scheme = strings.ToLower(url[:idx])
+			}
+			if !remoteKnowledgeSchemes[scheme] {
+				supported := make([]string, 0, len(remoteKnowledgeSchemes))
+				for s := range remoteKnowledgeSchemes {
+					supported = append(supported, s)
+				}
+				sort.Strings(supported)
+				result.Errors = append(result.Errors, Issue{
+					File:    relPath,
+					Field:   field + ".url",
+					Message: fmt.Sprintf("unsupported URL scheme '%s' - supported schemes: %s", scheme, strings.Join(supported, ", ")),
+				})
+			}
+			if _, hasTree := source["agent_tree"]; hasTree {
+				result.Errors = append(result.Errors, Issue{
+					File:    relPath,
+					Field:   field + ".agent_tree",
+					Message: "'agent_tree' is not supported on remote (url) sources - sync the source locally first",
+				})
+			}
+			continue
+		}
+
+		if rawTree, hasTree := source["agent_tree"]; hasTree {
+			tree, ok := rawTree.(map[string]interface{})
+			if !ok {
+				result.Errors = append(result.Errors, Issue{
+					File:    relPath,
+					Field:   field + ".agent_tree",
+					Message: "'agent_tree' must be a mapping",
+				})
+				continue
+			}
+			for key := range tree {
+				if key != "regenerate" {
+					result.Errors = append(result.Errors, Issue{
+						File:    relPath,
+						Field:   field + ".agent_tree",
+						Message: fmt.Sprintf("agent_tree setting '%s' is not recognized (allowed: regenerate)", key),
+					})
+				}
+			}
+			if regenerate, ok := tree["regenerate"]; ok {
+				mode, isString := regenerate.(string)
+				valid := false
+				for _, m := range agentTreeRegenerateModes {
+					if isString && mode == m {
+						valid = true
+						break
+					}
+				}
+				if !valid {
+					result.Errors = append(result.Errors, Issue{
+						File:    relPath,
+						Field:   field + ".agent_tree.regenerate",
+						Message: fmt.Sprintf("agent_tree 'regenerate' must be one of: %s", strings.Join(agentTreeRegenerateModes, ", ")),
+					})
+				}
+			}
+		}
+	}
+}
+
 // A2A auth validation. Types and per-type required fields mirror the
 // runtime's inbound/outbound checks; 'openid' is inbound-only (JWT/JWKS
 // validation) and 'oauth2' is outbound-only (client_credentials).

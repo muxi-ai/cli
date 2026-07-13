@@ -347,6 +347,9 @@ func validateAgents(rootDir string, result *Result) {
 			})
 		}
 
+		// Knowledge sources: path/url, remote URL schemes, agent_tree
+		validateKnowledgeSources(agent, filepath.Join("agents", entry.Name()), result)
+
 		// Collect secret refs from agent file
 		secretRefs := collectSecretRefs(string(data))
 		validateSecretRefs(rootDir, secretRefs, result)

@@ -23,6 +23,86 @@ func hasErrorContaining(result *Result, substr string) bool {
 	return false
 }
 
+func TestValidateKnowledgeSources(t *testing.T) {
+	writeAgent := func(t *testing.T, knowledgeBlock string) *Result {
+		tmpDir := t.TempDir()
+		writeFormation(t, tmpDir, "")
+		agentsDir := filepath.Join(tmpDir, "agents")
+		os.Mkdir(agentsDir, 0755)
+		content := "id: \"my-agent\"\nrole: \"helper\"\nknowledge:\n" + knowledgeBlock
+		os.WriteFile(filepath.Join(agentsDir, "my-agent.yaml"), []byte(content), 0644)
+
+		result, err := Formation(tmpDir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		return result
+	}
+
+	t.Run("local path source is valid", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - path: \"docs/\"\n")
+		if hasErrorContaining(result, "knowledge") {
+			t.Errorf("unexpected knowledge error: %+v", result.Errors)
+		}
+	})
+
+	t.Run("supported remote scheme is valid", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - url: \"s3://bucket/docs\"\n")
+		if hasErrorContaining(result, "scheme") {
+			t.Errorf("unexpected scheme error: %+v", result.Errors)
+		}
+	})
+
+	t.Run("unsupported remote scheme is flagged", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - url: \"gopher://host/docs\"\n")
+		if !hasErrorContaining(result, "unsupported URL scheme") {
+			t.Errorf("expected scheme error, got: %+v", result.Errors)
+		}
+	})
+
+	t.Run("path and url together are flagged", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - path: \"docs/\"\n      url: \"https://example.com/docs.zip\"\n")
+		if !hasErrorContaining(result, "not both") {
+			t.Errorf("expected path/url error, got: %+v", result.Errors)
+		}
+	})
+
+	t.Run("source without path or url is flagged", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - description: \"orphan\"\n")
+		if !hasErrorContaining(result, "'path' or 'url'") {
+			t.Errorf("expected missing-field error, got: %+v", result.Errors)
+		}
+	})
+
+	t.Run("agent_tree regenerate enum is enforced", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - path: \"docs/\"\n      agent_tree:\n        regenerate: \"hourly\"\n")
+		if !hasErrorContaining(result, "must be one of: manual, on-source-change, on-formation-load") {
+			t.Errorf("expected regenerate enum error, got: %+v", result.Errors)
+		}
+	})
+
+	t.Run("valid agent_tree regenerate passes", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - path: \"docs/\"\n      agent_tree:\n        regenerate: \"on-source-change\"\n")
+		if hasErrorContaining(result, "agent_tree") {
+			t.Errorf("unexpected agent_tree error: %+v", result.Errors)
+		}
+	})
+
+	t.Run("agent_tree on remote source is flagged", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - url: \"s3://bucket/docs\"\n      agent_tree:\n        regenerate: \"manual\"\n")
+		if !hasErrorContaining(result, "not supported on remote") {
+			t.Errorf("expected remote agent_tree error, got: %+v", result.Errors)
+		}
+	})
+
+	t.Run("unknown agent_tree key is flagged", func(t *testing.T) {
+		result := writeAgent(t, "  sources:\n    - path: \"docs/\"\n      agent_tree:\n        depth: 3\n")
+		if !hasErrorContaining(result, "not recognized") {
+			t.Errorf("expected unknown-key error, got: %+v", result.Errors)
+		}
+	})
+}
+
 func TestValidateToolFilters(t *testing.T) {
 	writeMCP := func(t *testing.T, toolsBlock string) *Result {
 		tmpDir := t.TempDir()
