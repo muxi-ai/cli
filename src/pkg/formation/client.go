@@ -211,6 +211,19 @@ func (c *Client) Put(path string, body interface{}) (*http.Response, error) {
 	return c.Do("PUT", path, reader, true)
 }
 
+// Patch performs an authenticated PATCH request (admin key)
+func (c *Client) Patch(path string, body interface{}) (*http.Response, error) {
+	var reader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		reader = bytes.NewReader(data)
+	}
+	return c.Do("PATCH", path, reader, true)
+}
+
 // Delete performs an authenticated DELETE request (admin key)
 func (c *Client) Delete(path string) (*http.Response, error) {
 	return c.Do("DELETE", path, nil, true)
@@ -1225,6 +1238,64 @@ func (c *Client) DeleteCredential(credentialID, userID string) (*DeleteCredentia
 	defer resp.Body.Close()
 
 	return parseResponse[DeleteCredentialResponse](resp)
+}
+
+// GetTuning gets the live MUXI.md content (admin)
+func (c *Client) GetTuning() (*TuningContent, error) {
+	resp, err := c.Get("/tuning")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[TuningContent](resp)
+}
+
+// GetTuningPending gets the pending MUXI.md suggestion (admin)
+func (c *Client) GetTuningPending() (*TuningContent, error) {
+	resp, err := c.Get("/tuning/pending")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[TuningContent](resp)
+}
+
+// ApplyTuningPending promotes the pending suggestion to the live MUXI.md (admin)
+func (c *Client) ApplyTuningPending() (*TuningApplyResult, error) {
+	resp, err := c.Patch("/tuning/pending", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[TuningApplyResult](resp)
+}
+
+// DismissTuningPending discards the pending suggestion (admin)
+func (c *Client) DismissTuningPending() (*TuningDismissResult, error) {
+	resp, err := c.Delete("/tuning/pending")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[TuningDismissResult](resp)
+}
+
+// RebuildKnowledge force-rebuilds per-agent knowledge trees (admin)
+func (c *Client) RebuildKnowledge(agentID, sourceID string) (*KnowledgeRebuildResponse, error) {
+	resp, err := c.Post("/knowledge/rebuild", KnowledgeRebuildRequest{
+		AgentID:  agentID,
+		SourceID: sourceID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseResponse[KnowledgeRebuildResponse](resp)
 }
 
 // parseResponse parses an API response into the target type

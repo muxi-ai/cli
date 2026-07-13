@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `muxi tuning` command group for the formation self-improvement review flow: `show` (live MUXI.md), `pending` (suggested revision awaiting review), `apply` (promote PENDING-MUXI.md to live, opening its watch windows), and `dismiss` (discard; dismissed learnings are never re-proposed). Uses the runtime tuning admin API.
+- `muxi knowledge rebuild [--agent <id>] [--source <slug>]` to force-rebuild persistent per-agent knowledge trees via POST `/knowledge/rebuild`, reporting rebuilt/failed/skipped sources per agent.
+- Response envelope UI rendering in `muxi chat`: the runtime's `event: ui` SSE frame (options, action_link, and mcp_resource widgets) now renders as markdown after the response text in both the TUI and one-shot modes. Unknown widget types are skipped by design.
+- `muxi validate` now understands the config surface shipped since May: the canonical `tools.allow`/`tools.deny` vocabulary (`whitelist`/`blacklist` accepted as aliases; declaring both spellings of one list, an allow-list plus a deny-list, or unknown keys inside `tools` are errors), the `tuning` block (boolean shorthand or `active`/`interval_hours`/`auto_apply` mapping), A2A extended auth types (formation-level `a2a.inbound.auth` and per-service `auth` blocks in `a2a/`: `hmac`/`openid` inbound, `hmac`/`oauth2` outbound, per-type required fields, directional hints), and structural checks for the new `tuning`, `coding`, `links`, `watch`, `proactive`, `ingestion`, `replanning`, `rbac`, `middleware`, and `aliases` blocks.
+- Include `MUXI.md` in registry push bundles (operators may seed the formation's instruction file, mirroring `SOUL.md` handling) and bundle the `skills/`, `groups/`, and `transformers/` component directories in `muxi push`.
+
+### Changed
+- Exclude `PENDING-MUXI.md` from `muxi deploy` bundles: it is runtime-written tuning state, never operator-authored. The live `MUXI.md` stays bundled for first deploys; on updates the server preserves its own newer copy over the bundled one.
+
 ## 0.20260501.1 - 2026-05-01
 
 ### Fixed

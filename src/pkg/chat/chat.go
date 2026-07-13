@@ -86,6 +86,52 @@ type StreamEvent struct {
 	SessionID string               // Session ID from server
 	RequestID string               // Request ID from server (for cancellation)
 	Artifacts []formation.Artifact // File artifacts (on completed events)
+	Widgets   []formation.UIWidget // Envelope UI widgets (on ui events)
+}
+
+// RenderUIWidgets renders envelope UI widgets as a markdown block so they
+// flow through the same markdown rendering as the response text. Unknown
+// widget types are skipped (progressive enhancement).
+func RenderUIWidgets(widgets []formation.UIWidget) string {
+	var b strings.Builder
+	for _, w := range widgets {
+		switch w.Type {
+		case "options":
+			if len(w.Options) == 0 {
+				continue
+			}
+			b.WriteString("\n\n")
+			if w.Prompt != "" {
+				b.WriteString("**" + w.Prompt + "**\n\n")
+			}
+			for i, opt := range w.Options {
+				label := opt.Label
+				if label == "" {
+					label = fmt.Sprintf("%v", opt.Value)
+				}
+				b.WriteString(fmt.Sprintf("%d. %s\n", i+1, label))
+			}
+		case "action_link":
+			if w.URL == "" {
+				continue
+			}
+			label := w.Label
+			if label == "" {
+				label = w.URL
+			}
+			b.WriteString(fmt.Sprintf("\n\n→ [%s](%s)\n", label, w.URL))
+		case "mcp_resource":
+			if w.Resource == "" {
+				continue
+			}
+			label := w.Label
+			if label == "" {
+				label = "MCP resource"
+			}
+			b.WriteString(fmt.Sprintf("\n\n%s: `%s`\n", label, w.Resource))
+		}
+	}
+	return b.String()
 }
 
 // Message represents a chat message
@@ -1815,6 +1861,8 @@ func processStreamWithEvents(body io.ReadCloser, eventChan chan StreamEvent, deb
 			if event.Content != "" {
 				fullResponse.WriteString(event.Content)
 			}
+		case "ui":
+			fullResponse.WriteString(RenderUIWidgets(event.Widgets))
 		case "completed":
 			if event.Content == "" || event.Content == "done" {
 				event.Content = fullResponse.String()

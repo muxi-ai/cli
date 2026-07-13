@@ -53,6 +53,10 @@ var deployExcludedPatterns = []string{
 	".git",
 	".muxi",
 	"secrets", // Exclude secrets template, but NOT secrets.enc or .key
+	// Runtime-written tuning suggestion; never operator-authored. The live
+	// MUXI.md stays bundled (operators may seed it; on updates the server
+	// preserves its own newer copy over the bundled one).
+	"PENDING-MUXI.md",
 	".env",
 	".env.*",
 	"node_modules",

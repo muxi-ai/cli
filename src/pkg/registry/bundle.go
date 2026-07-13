@@ -45,6 +45,7 @@ var IncludedPatterns = []string{
 	"README",
 	"LICENSE",
 	"SOUL.md",
+	"MUXI.md",
 	"agents/*.afs",
 	"agents/*.yaml",
 	"mcp/*.afs",
@@ -56,6 +57,9 @@ var IncludedPatterns = []string{
 	"sops/*.md",
 	"triggers/*.yaml",
 	"knowledge/*.md",
+	"skills/**",
+	"groups/*.yaml",
+	"transformers/*.yaml",
 }
 
 // CreateBundle creates a ZIP bundle of a formation
@@ -259,22 +263,30 @@ func shouldInclude(path string) bool {
 	name := filepath.Base(path)
 
 	// Root files
-	rootIncludes := []string{"formation.afs", "formation.yaml", "README.md", "README", "LICENSE", "SOUL.md", "secrets"}
+	rootIncludes := []string{"formation.afs", "formation.yaml", "README.md", "README", "LICENSE", "SOUL.md", "MUXI.md", "secrets"}
 	for _, include := range rootIncludes {
 		if path == include || name == include {
 			return true
 		}
 	}
 
+	// Skills bundle whole directories: SKILL.md plus arbitrary scripts and
+	// assets, per the Agent Skills spec.
+	if strings.HasPrefix(path, "skills/") {
+		return true
+	}
+
 	// Directory patterns - include all afs/yaml/md files in these dirs
 	dirPatterns := map[string][]string{
-		"agents/":    {"*.afs", "*.yaml", "*.yml"},
-		"mcp/":       {"*.afs", "*.yaml", "*.yml"},
-		"mcps/":      {"*.afs", "*.yaml", "*.yml"},
-		"a2a/":       {"*.afs", "*.yaml", "*.yml"},
-		"sops/":      {"*.md", "*.yaml", "*.yml"},
-		"triggers/":  {"*.yaml", "*.yml"},
-		"knowledge/": {"*.md", "*.txt", "*.yaml", "*.yml"},
+		"agents/":       {"*.afs", "*.yaml", "*.yml"},
+		"mcp/":          {"*.afs", "*.yaml", "*.yml"},
+		"mcps/":         {"*.afs", "*.yaml", "*.yml"},
+		"a2a/":          {"*.afs", "*.yaml", "*.yml"},
+		"sops/":         {"*.md", "*.yaml", "*.yml"},
+		"triggers/":     {"*.yaml", "*.yml"},
+		"knowledge/":    {"*.md", "*.txt", "*.yaml", "*.yml"},
+		"groups/":       {"*.yaml", "*.yml"},
+		"transformers/": {"*.yaml", "*.yml"},
 	}
 
 	for dirPrefix, patterns := range dirPatterns {

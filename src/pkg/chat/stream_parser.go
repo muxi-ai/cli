@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"github.com/muxi-ai/cli/pkg/formation"
 )
 
 var streamEventTimeout = 60 * time.Second
@@ -49,6 +51,14 @@ func streamChatEvents(
 				Type:    "error",
 				Content: extractRouteErrorMessage(frame.Data),
 			})
+		case frame.Event == "ui":
+			if widgets := parseUIWidgets(frame.Data); len(widgets) > 0 {
+				return callback(StreamEvent{
+					Type:    "ui",
+					Widgets: widgets,
+				})
+			}
+			return nil
 		}
 
 		if frame.Data == "" {
@@ -170,6 +180,16 @@ func parseMuxiTokenEvent(data string) (StreamEvent, bool) {
 		RequestID: muxiToken.Token.RequestID,
 		Artifacts: muxiToken.Token.Artifacts,
 	}, true
+}
+
+func parseUIWidgets(data string) []formation.UIWidget {
+	var payload struct {
+		UI []formation.UIWidget `json:"ui"`
+	}
+	if err := json.Unmarshal([]byte(data), &payload); err != nil {
+		return nil
+	}
+	return payload.UI
 }
 
 func isFinishedFrame(data string) bool {

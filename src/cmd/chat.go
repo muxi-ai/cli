@@ -453,6 +453,8 @@ func streamSSEResponse(resp *http.Response) error {
 			}
 		case "content", "text", "response":
 			fullResponse.WriteString(event.Content)
+		case "ui":
+			fullResponse.WriteString(chat.RenderUIWidgets(event.Widgets))
 		case "completed":
 			if fullResponse.Len() == 0 && event.Content != "" && event.Content != "done" {
 				fullResponse.WriteString(event.Content)

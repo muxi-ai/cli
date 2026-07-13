@@ -1219,3 +1219,66 @@ type DeleteCredentialResponse struct {
 	CredentialID string `json:"credential_id"`
 	Deleted      bool   `json:"deleted"`
 }
+
+// UIOption is one selectable option of an options widget
+type UIOption struct {
+	Value interface{} `json:"value"`
+	Label string      `json:"label"`
+}
+
+// UIWidget is one entry of the response envelope's optional 'ui' array.
+// Type is one of "options", "action_link", "mcp_resource"; unknown types
+// are ignored by design (progressive enhancement).
+type UIWidget struct {
+	Type     string     `json:"type"`
+	ID       string     `json:"id"`
+	Prompt   string     `json:"prompt,omitempty"`
+	Options  []UIOption `json:"options,omitempty"`
+	Label    string     `json:"label,omitempty"`
+	URL      string     `json:"url,omitempty"`
+	Resource string     `json:"resource,omitempty"`
+	MimeType string     `json:"mime_type,omitempty"`
+}
+
+// TuningContent from GET /tuning and GET /tuning/pending
+// Content is null when the file does not exist.
+type TuningContent struct {
+	Content *string `json:"content"`
+	Path    string  `json:"path"`
+}
+
+// TuningApplyResult from PATCH /tuning/pending
+type TuningApplyResult struct {
+	Path               string `json:"path"`
+	LearningsActivated int    `json:"learnings_activated"`
+}
+
+// TuningDismissResult from DELETE /tuning/pending
+type TuningDismissResult struct {
+	LearningsDismissed int `json:"learnings_dismissed"`
+}
+
+// KnowledgeRebuildRequest for POST /knowledge/rebuild
+type KnowledgeRebuildRequest struct {
+	AgentID  string `json:"agent_id,omitempty"`
+	SourceID string `json:"source_id,omitempty"`
+}
+
+// KnowledgeRebuiltSource is one rebuilt entry in a rebuild report
+type KnowledgeRebuiltSource struct {
+	SourceID  string `json:"source_id"`
+	NodeCount int    `json:"node_count"`
+}
+
+// KnowledgeRebuildReport is the per-agent result of a rebuild
+type KnowledgeRebuildReport struct {
+	Rebuilt []KnowledgeRebuiltSource `json:"rebuilt"`
+	Failed  []string                 `json:"failed"`
+	Skipped []string                 `json:"skipped"`
+}
+
+// KnowledgeRebuildResponse from POST /knowledge/rebuild
+type KnowledgeRebuildResponse struct {
+	Agents   map[string]KnowledgeRebuildReport `json:"agents"`
+	SourceID *string                           `json:"source_id"`
+}

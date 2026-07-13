@@ -90,6 +90,12 @@ func Formation(rootDir string) (*Result, error) {
 	// Validate LLM config
 	validateLLM(formation, formationFileName, result)
 
+	// Validate tuning block (self-improvement)
+	validateTuning(formation, formationFileName, result)
+
+	// Validate formation-level A2A inbound auth
+	validateA2A(formation, formationFileName, result)
+
 	// Collect and validate secret references
 	secretRefs := collectSecretRefs(string(data))
 	validateSecretRefs(rootDir, secretRefs, result)
@@ -99,6 +105,9 @@ func Formation(rootDir string) (*Result, error) {
 
 	// Validate MCP files
 	validateMCPs(rootDir, result)
+
+	// Validate A2A service files (outbound auth blocks)
+	validateA2AServiceFiles(rootDir, result)
 
 	// Validate component declarations vs files
 	validateDeclarations(rootDir, formation, result)
@@ -400,17 +409,9 @@ func validateMCPs(rootDir string, result *Result) {
 			})
 		}
 
-		// Tool filtering: whitelist and blacklist are mutually exclusive
+		// Tool filtering: allow/deny (whitelist/blacklist aliases)
 		if tools, ok := mcp["tools"].(map[string]interface{}); ok {
-			_, hasWhitelist := tools["whitelist"]
-			_, hasBlacklist := tools["blacklist"]
-			if hasWhitelist && hasBlacklist {
-				result.Errors = append(result.Errors, Issue{
-					File:    relPath,
-					Field:   "tools",
-					Message: "'tools.whitelist' and 'tools.blacklist' are mutually exclusive - declare only one",
-				})
-			}
+			validateToolFilters(tools, relPath, result)
 		}
 
 		// Collect secret refs from MCP file
@@ -506,6 +507,16 @@ func isExpectedMapping(key string) bool {
 		"outbound":      true,
 		"parameters":    true,
 		"tools":         true,
+		"tuning":        true,
+		"coding":        true,
+		"links":         true,
+		"watch":         true,
+		"proactive":     true,
+		"ingestion":     true,
+		"replanning":    true,
+		"rbac":          true,
+		"middleware":    true,
+		"aliases":       true,
 	}
 	return expectedMappings[key]
 }
