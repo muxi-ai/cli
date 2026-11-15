@@ -1,7 +1,7 @@
 # Mental Model: MUXI CLI
 
 **Generated:** 2026-04-08  
-**Last Updated:** 2026-04-08
+**Last Updated:** 2026-11-15
 
 ## Overview
 
@@ -90,6 +90,7 @@ cmd/chat.go -> pkg/chat.Run()
 
 ## Gotchas & Quirks
 
+- Windows does not support Unix executable permission bits. Registry bundle tests must check file inclusion on every platform but only assert filesystem executable bits on Unix.
 - The CLI has separate SSE implementations:
   - `pkg/server/client.go` for deploy/start/restart flows
   - chat-specific parsing in `pkg/chat/` / `cmd/chat.go`

@@ -3,6 +3,7 @@ package registry
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -53,7 +54,8 @@ func TestCreateBundleIncludesTriggersAndAuthScripts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stat.Mode().Perm()&0100 == 0 {
+	// Windows does not support Unix executable permission bits.
+	if runtime.GOOS != "windows" && stat.Mode().Perm()&0100 == 0 {
 		t.Errorf("auth/stripe.py lost its executable bit: %v", stat.Mode())
 	}
 }
