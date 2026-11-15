@@ -13,6 +13,10 @@
 ### Changed
 - Exclude `PENDING-MUXI.md` from `muxi deploy` bundles: it is runtime-written tuning state, never operator-authored. The live `MUXI.md` stays bundled for first deploys; on updates the server preserves its own newer copy over the bundled one.
 
+### Fixed
+- Include trigger files (`triggers/*.md`) in `muxi push` bundles. The bundle matched only `triggers/*.yaml`, but triggers are markdown, so every trigger was dropped on a registry round-trip.
+- Bundle the scripts named by a trigger's `auth:` frontmatter (runtime per-trigger auth, muxi-ai/runtime#382) in `muxi push`, and keep each file's Unix mode in the bundle so the script is still executable after `muxi pull`. The runtime refuses to load a formation whose `auth` script is missing or not executable. URLs, absolute paths and paths outside the formation directory are not bundled.
+
 ## 0.20260501.1 - 2026-05-01
 
 ### Fixed
