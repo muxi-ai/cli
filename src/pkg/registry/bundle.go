@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/muxi-ai/cli/pkg/context"
 )
 
@@ -55,6 +57,7 @@ var IncludedPatterns = []string{
 	"a2a/*.afs",
 	"a2a/*.yaml",
 	"sops/*.md",
+	"triggers/*.md",
 	"triggers/*.yaml",
 	"knowledge/*.md",
 	"skills/**",
@@ -75,6 +78,10 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 
 	// Get declared components to filter undeclared files
 	declared := context.GetDeclaredComponents(formationDir)
+
+	// Scripts named by a trigger's `auth:` frontmatter live outside the
+	// component directories; the runtime refuses to load without them.
+	authScripts := triggerAuthScripts(formationDir)
 
 	info := &BundleInfo{
 		Path: tmpPath,
@@ -113,7 +120,7 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 		}
 
 		// Check if should be included
-		if !shouldInclude(relPath) {
+		if !shouldInclude(relPath) && !authScripts[filepath.ToSlash(relPath)] {
 			return nil
 		}
 
@@ -129,7 +136,16 @@ func CreateBundle(formationDir string) (*BundleInfo, error) {
 		}
 		defer file.Close()
 
-		writer, err := zipWriter.Create(relPath)
+		// FileInfoHeader keeps the Unix mode, so an executable auth script
+		// is still executable after `muxi pull`.
+		header, err := zip.FileInfoHeader(fileInfo)
+		if err != nil {
+			return fmt.Errorf("failed to add %s to bundle: %w", relPath, err)
+		}
+		header.Name = filepath.ToSlash(relPath)
+		header.Method = zip.Deflate
+
+		writer, err := zipWriter.CreateHeader(header)
 		if err != nil {
 			return fmt.Errorf("failed to add %s to bundle: %w", relPath, err)
 		}
@@ -283,7 +299,7 @@ func shouldInclude(path string) bool {
 		"mcps/":         {"*.afs", "*.yaml", "*.yml"},
 		"a2a/":          {"*.afs", "*.yaml", "*.yml"},
 		"sops/":         {"*.md", "*.yaml", "*.yml"},
-		"triggers/":     {"*.yaml", "*.yml"},
+		"triggers/":     {"*.md", "*.yaml", "*.yml"},
 		"knowledge/":    {"*.md", "*.txt", "*.yaml", "*.yml"},
 		"groups/":       {"*.yaml", "*.yml"},
 		"transformers/": {"*.yaml", "*.yml"},
@@ -300,6 +316,55 @@ func shouldInclude(path string) bool {
 	}
 
 	return false
+}
+
+// triggerAuthScripts returns the formation-relative paths (slash-separated)
+// of the scripts named by `auth:` in triggers/*.md frontmatter. URLs, absolute
+// paths and paths that leave the formation directory are skipped: they cannot
+// travel in a bundle.
+func triggerAuthScripts(formationDir string) map[string]bool {
+	scripts := map[string]bool{}
+	files, _ := filepath.Glob(filepath.Join(formationDir, "triggers", "*.md"))
+	for _, file := range files {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			continue
+		}
+		auth := frontmatterAuth(string(content))
+		if auth == "" || strings.HasPrefix(auth, "http://") || strings.HasPrefix(auth, "https://") || filepath.IsAbs(auth) {
+			continue
+		}
+		rel := filepath.ToSlash(filepath.Clean(auth))
+		if rel == ".." || strings.HasPrefix(rel, "../") {
+			continue
+		}
+		scripts[rel] = true
+	}
+	return scripts
+}
+
+// frontmatterAuth returns the `auth` value from a markdown file's YAML
+// frontmatter, or "" when there is none.
+func frontmatterAuth(content string) string {
+	content = strings.TrimPrefix(content, "\ufeff")
+	if !strings.HasPrefix(content, "---") {
+		return ""
+	}
+	rest := strings.SplitN(content, "\n", 2)
+	if len(rest) != 2 {
+		return ""
+	}
+	end := strings.Index(rest[1], "\n---")
+	if end < 0 {
+		return ""
+	}
+	var meta struct {
+		Auth string `yaml:"auth"`
+	}
+	if err := yaml.Unmarshal([]byte(rest[1][:end]), &meta); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(meta.Auth)
 }
 
 // CleanupBundle removes a temporary bundle file
